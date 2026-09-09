@@ -8,12 +8,17 @@
 // from rooming.js.
 //
 // One rule worth stating outright, because the word "delete" hides it:
-// removing a section removes the section, not the data behind it. A `rooming`
-// section deleted from the outline leaves `rooming[]` in the file untouched,
+// removing a section removes the section, not the data behind it. A `schedule`
+// section deleted from the outline leaves `schedule[]` in the file untouched,
 // and adding the section back shows the same rows. Only `freeText` carries its
 // own content — `body` lives on the section object — so only `freeText` loses
 // anything when it goes. The confirmation the shell raises says which case it
 // is, because the user cannot be expected to know.
+//
+// [v7] `accommodations` is a third case: it owns nothing and edits nothing. It
+// is a summary of `rooming[]`, which belongs to the Rooming Assignment — its
+// own document (§4, §8) — so removing it changes what the event order prints
+// and nothing else at all.
 
 import { newId } from './ids.js';
 import { SECTION_TYPES } from './reference.js';
@@ -35,11 +40,12 @@ export const SECTION_TYPE_INFO = {
     noun: 'guests',
     repeatable: false
   },
-  rooming: {
-    label: 'Rooming',
-    defaultTitle: 'Rooming Assignments',
+  accommodations: {
+    label: 'Accommodations',
+    defaultTitle: 'Accommodations',
     dataKey: 'rooming',
     noun: 'room assignments',
+    derived: true,
     repeatable: false
   },
   schedule: {
@@ -54,13 +60,6 @@ export const SECTION_TYPE_INFO = {
     defaultTitle: 'Food & Beverage',
     dataKey: 'foodAndBev',
     noun: 'meal services',
-    repeatable: false
-  },
-  menu: {
-    label: 'Menu',
-    defaultTitle: 'Menu',
-    dataKey: 'menu',
-    noun: 'menu blocks',
     repeatable: false
   },
   staff: {
@@ -89,17 +88,18 @@ export const SECTION_TYPE_INFO = {
 /**
  * [v6] The sections a new event starts with. BUILD-SPEC §4, §5 (v6 changes).
  *
- * The six nearly every private-side order uses. Staff and departments are
- * deliberately absent: they are the exception, and an outline that lists
- * sections the event will not use is noise the coordinator has to clear before
- * starting.
+ * [v7] Five: the ones nearly every private-side order uses. Staff and
+ * departments are deliberately absent — they are the exception, and an outline
+ * listing sections the event will not use is noise the coordinator has to clear
+ * before starting. Rooming and Menu are absent for a different reason: they are
+ * not sections at all any more, but documents of their own that are always
+ * generated (§4, §8).
  */
 export const SEEDED_SECTION_TYPES = [
   'attendees',
-  'rooming',
+  'accommodations',
   'schedule',
   'foodAndBev',
-  'menu',
   'freeText'
 ];
 
@@ -114,7 +114,8 @@ export function sectionTypes() {
 /**
  * Type metadata, with a usable shape for a type this build does not know.
  * @param {string} type
- * @returns {{label: string, defaultTitle: string, dataKey: string|null, noun: string|null, repeatable: boolean}}
+ * @returns {{label: string, defaultTitle: string, dataKey: string|null, noun: string|null,
+ *   derived: boolean, repeatable: boolean}}
  */
 export function typeInfo(type) {
   return SECTION_TYPE_INFO[type] || {
@@ -122,6 +123,7 @@ export function typeInfo(type) {
     defaultTitle: String(type || 'Section'),
     dataKey: null,
     noun: null,
+    derived: false,
     repeatable: true
   };
 }
@@ -287,21 +289,30 @@ export function setSectionBody(draft, id, body) {
  * section itself and would go with it. Everything else is a detach — the rows
  * stay in the file and come back with the section.
  *
+ * [v7] `derived` marks a section that only summarises an array another
+ * document owns — `accommodations` over `rooming[]`. Removing one takes a table
+ * off the event order and touches nothing else.
+ *
  * @param {object} event
  * @param {object} section
- * @returns {{count: number, noun: string, destroys: boolean}}
+ * @returns {{count: number, noun: string, destroys: boolean, derived: boolean}}
  */
 export function sectionContent(event, section) {
-  if (!section) return { count: 0, noun: '', destroys: false };
+  if (!section) return { count: 0, noun: '', destroys: false, derived: false };
 
   if (section.type === 'freeText') {
     const body = String(section.body || '');
-    return { count: body.length, noun: 'characters of text', destroys: true };
+    return { count: body.length, noun: 'characters of text', destroys: true, derived: false };
   }
 
   const info = typeInfo(section.type);
   const rows = info.dataKey && Array.isArray(event[info.dataKey]) ? event[info.dataKey] : [];
-  return { count: rows.length, noun: info.noun || 'rows', destroys: false };
+  return {
+    count: rows.length,
+    noun: info.noun || 'rows',
+    destroys: false,
+    derived: Boolean(info.derived)
+  };
 }
 
 /**
@@ -316,8 +327,13 @@ export function sectionContent(event, section) {
  */
 export function deleteSectionPrompt(event, section) {
   const title = String((section && section.title) || 'this section').trim() || 'this section';
-  const { count, noun, destroys } = sectionContent(event, section);
+  const { count, noun, destroys, derived } = sectionContent(event, section);
 
+  if (derived) {
+    return `Remove "${title}" from this order? It is a summary of the ${count} ${noun} in the `
+      + 'Rooming Assignment, which is its own document and is not affected. The order stops '
+      + 'showing who is housed where each night.';
+  }
   if (destroys && count > 0) {
     return `Delete "${title}"? Its text goes with it — ${count} characters, and there is no undo. `
       + 'To keep the text but leave it off the printed order, turn off "Include in the order" instead.';

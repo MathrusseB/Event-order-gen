@@ -893,19 +893,21 @@ body.outline-open .outline {
   font-size: var(--text-sm);
 }
 
-/* ------------------------------------------------------------- placeholder */
+/* ---------------------------------------------------------- unknown section */
 
-.editor--placeholder {
+/* [v7] Not a placeholder — every type in §4 has an editor. This is a file
+   naming a type this build has never heard of, kept exactly as it arrived. */
+.editor--unknown {
   padding: var(--space-3) var(--space-4);
   border: 1px dashed var(--rule-strong);
   background: var(--ink-50);
 }
 
-.placeholder__message {
+.unknown__message {
   color: var(--ink-700);
 }
 
-.placeholder__detail {
+.unknown__detail {
   margin-top: var(--space-1);
   color: var(--text-muted);
   font-size: var(--text-sm);
@@ -1115,5 +1117,741 @@ body.outline-open .outline {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* ------------------------------------------------- editors added in [v7] */
+
+/* Every list editor lays its row out from one column definition, declared on
+   the editor and read by both the header strip and the rows, so the two can
+   never drift apart. Below the container query the definition is ignored and a
+   row is a card — the same trick the guest list uses, generalised. */
+
+.editor--schedule {
+  --cols:
+    minmax(8.5rem, 9.5rem)
+    minmax(5.5rem, 6.5rem)
+    minmax(5.5rem, 6.5rem)
+    minmax(10rem, 1fr)
+    minmax(7.75rem, auto);
+}
+
+.editor--staff {
+  --cols:
+    minmax(7rem, 1fr)
+    minmax(8.5rem, 9.5rem)
+    minmax(5rem, 6rem)
+    minmax(10rem, 1.6fr)
+    minmax(7.75rem, auto);
+}
+
+.editor--rooming {
+  --cols:
+    minmax(6.5rem, 9rem)
+    minmax(6.5rem, 10rem)
+    minmax(9rem, 1.4fr)
+    minmax(8.5rem, 9.5rem)
+    minmax(8.5rem, 9.5rem)
+    minmax(7.75rem, auto);
+}
+
+/* Nine fields is more than one line of a letter-width sheet will hold, so the
+   F&B row is two lines: what the meal is on top, how it is counted beneath. */
+.editor--fnb {
+  --cols:
+    minmax(9.5rem, 12rem)
+    minmax(6rem, 9rem)
+    minmax(5.25rem, 6rem)
+    minmax(7rem, 1.3fr)
+    minmax(7rem, 1fr)
+    minmax(7.75rem, auto);
+}
+
+.department .editor__table {
+  --cols:
+    minmax(8.5rem, 9.5rem)
+    minmax(5.5rem, 6.5rem)
+    minmax(10rem, 1fr)
+    minmax(7.75rem, auto);
+}
+
+/* Cells that are a line of their own while the row is a card. */
+.row .cell--party,
+.row .cell--label,
+.row .cell--meal,
+.row .cell--location,
+.row .cell--assignment,
+.row .cell--task,
+.row .cell--figure,
+.row .nightsline {
+  grid-column: 1 / -1;
+}
+
+.row--rooming,
+.row--fnb {
+  row-gap: var(--space-2);
+}
+
+/* ------------------------------------------------------- itinerary preview */
+
+/* [v7] The schedule array no longer holds the meals, so the day it describes
+   is only half of what prints. This is the other half, read-only. */
+.preview {
+  margin-bottom: var(--space-5);
+  padding: var(--space-3) var(--space-4);
+  background: var(--ink-50);
+  border: 1px solid var(--rule);
+}
+
+.preview__title {
+  font-family: var(--font-serif);
+  font-size: var(--text-base);
+  font-weight: 600;
+}
+
+.preview__lead {
+  max-width: 46em;
+  margin-top: var(--space-1);
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
+.preview__days {
+  display: grid;
+  gap: var(--space-4);
+  margin-top: var(--space-3);
+}
+
+.preview__day {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 2px;
+}
+
+.preview__lines {
+  display: grid;
+  gap: 1px;
+  margin-top: var(--space-2);
+  font-size: var(--text-sm);
+}
+
+.preview__line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--space-2);
+  align-items: baseline;
+}
+
+.preview__time {
+  flex: 0 0 10.5rem;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* A meal comes from the other array, and saying so is what tells the user
+   where to go to change it. */
+.preview__line.is-meal .preview__text {
+  font-style: italic;
+}
+
+.preview__line.is-meal .preview__text::after {
+  content: " · meal service";
+  font-style: normal;
+  color: var(--forest-500);
+  font-size: var(--text-xs);
+}
+
+.preview__where {
+  color: var(--text-muted);
+}
+
+.preview__where::before {
+  content: "— ";
+}
+
+.preview__line.is-untimed .preview__time {
+  color: var(--text-faint);
+}
+
+.preview__none,
+.preview__empty {
+  margin-top: var(--space-1);
+  color: var(--text-faint);
+  font-size: var(--text-sm);
+}
+
+/* ------------------------------------------------------------- lodging table */
+
+.lodging__wrap {
+  overflow-x: auto;
+}
+
+.lodging {
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+  min-width: 100%;
+}
+
+.lodging th,
+.lodging td {
+  padding: var(--space-1) var(--space-3) var(--space-1) 0;
+  text-align: left;
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+.lodging thead th {
+  color: var(--text-faint);
+  font-size: var(--text-xs);
+  border-bottom: 1px solid var(--rule);
+}
+
+.lodging tbody th,
+.lodging tfoot th {
+  color: var(--ink-800);
+  padding-right: var(--space-5);
+}
+
+.lodging td.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.lodging td.is-quiet {
+  color: var(--text-faint);
+}
+
+.lodging__total th,
+.lodging__total td {
+  border-top: 1px solid var(--rule);
+  color: var(--text-muted);
+}
+
+.unassigned {
+  margin-top: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border-left: 3px solid var(--amber-400);
+  background: var(--amber-100);
+}
+
+.unassigned__title {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--amber-700);
+}
+
+.unassigned__lead {
+  max-width: 46em;
+  margin-top: var(--space-1);
+  color: var(--ink-700);
+  font-size: var(--text-sm);
+}
+
+.unassigned__list {
+  display: grid;
+  gap: 2px;
+  margin-top: var(--space-2);
+  font-size: var(--text-sm);
+}
+
+.unassigned__list li {
+  display: grid;
+  grid-template-columns: 9.5rem minmax(0, 1fr);
+  gap: var(--space-2);
+}
+
+.unassigned__night {
+  color: var(--amber-700);
+}
+
+/* --------------------------------------------------------------- rooming */
+
+/* A row names a party, not a person (§5, v5 changes). Chips say that at a
+   glance: several names sit on one row without becoming several rows. */
+.party {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin: var(--space-1) 0;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 2px var(--space-1) 2px var(--space-2);
+  border: 1px solid var(--rule-strong);
+  background: var(--ink-50);
+  font-size: var(--text-sm);
+}
+
+.chip.is-child .chip__name::after {
+  content: " · child";
+  color: var(--text-faint);
+  font-size: var(--text-xs);
+}
+
+/* §12.3 — a name the attendee list cannot resolve. The room stays booked. */
+.chip.is-unresolved {
+  border-color: var(--brick-400);
+  background: var(--brick-100);
+  color: var(--brick-600);
+}
+
+.chip__drop {
+  border: 0;
+  background: none;
+  padding: 0 var(--space-1);
+  color: var(--text-muted);
+  font: inherit;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.chip__drop:hover {
+  color: var(--brick-600);
+}
+
+.party__none {
+  margin: var(--space-1) 0;
+  color: var(--text-faint);
+  font-size: var(--text-sm);
+}
+
+.party__add {
+  margin-top: var(--space-1);
+}
+
+.roomnote {
+  color: var(--text-faint);
+  font-size: var(--text-xs);
+}
+
+.nightsline {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+
+.nightsline.is-empty {
+  color: var(--brick-600);
+}
+
+.row--rooming.has-warning,
+.row--schedule.is-echo {
+  background: #fffdf6;
+}
+
+.rowwarn__text {
+  margin-right: var(--space-2);
+}
+
+/* ------------------------------------------------------------ f&b counting */
+
+.fnbcount {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.fnbcount__figure {
+  font-family: var(--font-serif);
+  font-size: var(--text-md);
+  line-height: 1;
+}
+
+.fnbcount__rule {
+  color: var(--text-faint);
+  font-size: var(--text-xs);
+}
+
+/* An override is a number somebody typed, and §12.1 surfaces it before print.
+   It should not look like the derived figures beside it. */
+.cell--figure.is-override .fnbcount__figure {
+  color: var(--amber-700);
+}
+
+.cell--figure.is-override .fnbcount__rule {
+  color: var(--amber-700);
+}
+
+.row--fnb.is-override .cell--count .input {
+  border-color: var(--amber-400);
+  background: #fffdf6;
+}
+
+.tally--fnb,
+.tally--staff,
+.tally--rooming,
+.tally--menu {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-1);
+}
+
+.tally__override,
+.tally__missing,
+.tally__orphan,
+.tally__unresolved,
+.tally__people {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  max-width: 46em;
+}
+
+.tally__override,
+.tally__missing {
+  color: var(--amber-700);
+}
+
+.tally__orphan,
+.tally__unresolved {
+  color: var(--brick-600);
+}
+
+/* --------------------------------------------------------------- line lists */
+
+/* §4: no character limits, no fixed row counts, textareas auto-grow. A dish
+   line wraps to as many lines as it takes and is never cut off. */
+.lines {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.line {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-2);
+  align-items: start;
+}
+
+.textarea--line {
+  min-height: var(--control-h);
+  resize: none;
+  overflow: hidden;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.line__controls {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.lines__empty {
+  color: var(--text-faint);
+  font-size: var(--text-sm);
+}
+
+.lines__wrap .btn--small {
+  margin-top: var(--space-2);
+}
+
+.btn--small {
+  height: 2rem;
+  padding: 0 var(--space-3);
+  font-size: var(--text-sm);
+}
+
+/* -------------------------------------------------------------- departments */
+
+.departments {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.department {
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--rule-strong);
+  padding: var(--space-3) var(--space-4);
+}
+
+.department__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.department__head .cell--name {
+  flex: 1 1 14rem;
+}
+
+.department__controls {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.department__part {
+  margin-top: var(--space-4);
+}
+
+.department__label {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text-muted);
+  margin-bottom: var(--space-2);
+}
+
+/* --------------------------------------------------------------------- menu */
+
+.menublocks {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.menublock {
+  border: 1px solid var(--rule);
+  border-top: 3px solid var(--forest-600);
+  padding: var(--space-3) var(--space-4);
+}
+
+.menublock.is-unwritten {
+  border-top-color: var(--rule-strong);
+  background: var(--ink-50);
+}
+
+.menublock--orphan {
+  border-top-color: var(--brick-400);
+  background: var(--brick-100);
+}
+
+.menublock__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2) var(--space-3);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--rule);
+}
+
+.menublock__meal {
+  font-family: var(--font-serif);
+  font-size: var(--text-md);
+  font-weight: 600;
+}
+
+.menublock__when {
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
+.menublock__covers {
+  margin-left: auto;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.menublock__none {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  padding-top: var(--space-3);
+}
+
+.menublock__nonetext {
+  flex: 1 1 18rem;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
+.menublock__foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.courses {
+  display: grid;
+  gap: var(--space-4);
+  margin-top: var(--space-3);
+}
+
+.course {
+  border-left: 2px solid var(--ink-100);
+  padding-left: var(--space-3);
+}
+
+.course__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.course__head .cell--heading {
+  flex: 1 1 12rem;
+}
+
+.course__head .input {
+  font-family: var(--font-serif);
+  font-size: var(--text-md);
+}
+
+.course__controls {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.orphan__summary {
+  margin-top: var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--ink-800);
+}
+
+.orphan__controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+
+.orphan__controls .field {
+  flex: 1 1 18rem;
+}
+
+/* -------------------------------------------------- documents of their own */
+
+/* [v7] Rooming and Menu are not sections: nothing about them is reordered,
+   renamed, disabled, or removed, so they carry none of the section chrome. */
+.docs {
+  display: grid;
+  gap: var(--space-5);
+  margin-top: var(--space-6);
+}
+
+.block--doc {
+  border-top: 3px solid var(--forest-800);
+}
+
+.block--doc .block__head {
+  background: var(--forest-100);
+}
+
+.outline__heading--docs {
+  margin-top: var(--space-5);
+}
+
+.outline__docs {
+  display: grid;
+  gap: 1px;
+  border-top: 1px solid var(--rule);
+}
+
+.outline__docs li {
+  border-bottom: 1px solid var(--rule);
+}
+
+/* No index column: these are not numbered sections of the order. */
+.outline__docs .outline__link {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.outline__docs .outline__state {
+  grid-column: 1;
+  color: var(--text-faint);
+}
+
+/* --------------------------------------- v7 rows, once the column has room */
+
+@container (min-width: 55rem) {
+  .rowhead--table {
+    display: grid;
+    grid-template-columns: var(--cols);
+    gap: var(--space-2);
+    padding: 0 var(--space-2) var(--space-1);
+    color: var(--text-faint);
+    font-size: var(--text-xs);
+  }
+
+  .rows--table .row {
+    grid-template-columns: var(--cols);
+    gap: var(--space-2);
+    align-items: start;
+    padding: var(--space-2);
+  }
+
+  .rows--table .row .cell--party,
+  .rows--table .row .cell--label,
+  .rows--table .row .cell--meal,
+  .rows--table .row .cell--location,
+  .rows--table .row .cell--assignment,
+  .rows--table .row .cell--task,
+  .rows--table .row .cell--actions {
+    grid-column: auto;
+  }
+
+  .rows--table .field__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .rows--rooming .cell--party > .field__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .rows--table .btn__glyph {
+    display: inline;
+  }
+
+  .rows--fnb .row {
+    grid-template-areas:
+      "date  start  end   meal   location actions"
+      "basis serves count figure figure   actions";
+  }
+
+  .rows--fnb .cell--date { grid-area: date; }
+  .rows--fnb .cell--start { grid-area: start; }
+  .rows--fnb .cell--end { grid-area: end; }
+  .rows--fnb .cell--meal { grid-area: meal; }
+  .rows--fnb .cell--location { grid-area: location; }
+  .rows--fnb .cell--countBasis { grid-area: basis; }
+  .rows--fnb .cell--serves { grid-area: serves; }
+  .rows--fnb .cell--count { grid-area: count; }
+  .rows--fnb .cell--figure { grid-area: figure; }
+  .rows--fnb .cell--actions { grid-area: actions; align-self: start; }
+
+  /* The F&B row is two lines, so one header strip cannot label it. Its fields
+     keep their own labels instead — an unlabelled "Counted by" select is a
+     coin toss, and the count it drives is what prints. */
+  .editor--fnb .rowhead--table {
+    display: none;
+  }
+
+  .rows--fnb .field__label {
+    position: static;
+    width: auto;
+    height: auto;
+    margin: 0;
+    clip-path: none;
+    color: var(--text-faint);
+    font-size: var(--text-xs);
+  }
+
+  .rows--rooming .row .nightsline {
+    grid-column: 1 / -1;
   }
 }

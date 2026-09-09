@@ -1,11 +1,11 @@
-# EVENT-ORDER-GEN — Build Spec v6
+# EVENT-ORDER-GEN — Build Spec v7
 
 Static document generator for Maple Ranch private-side event orders, menus, and rooming lists.
 
 **Repo:** `MathrusseB/EVENT-ORDER-GEN`
 **Deploy:** `event-order-gen-production.up.railway.app`
 
-Supersedes v5. Each change carries the version that introduced it, **[v2]** through **[v6]**;
+Supersedes v6. Each change carries the version that introduced it, **[v2]** through **[v7]**;
 §5 keeps a change block per version.
 
 ---
@@ -27,7 +27,8 @@ Reference sample: Loch Lloyd Executive Meeting, Sept 14–15 2026 (Events depart
 - Single-page form for event data entry
 - **[v2]** Composable section system — every section optional, reorderable, unlimited in length
 - **[v2]** Standalone rooming editor for on-the-fly reassignment
-- Three print-ready renders: Event Order, Menu, Rooming Assignment
+- Three print-ready renders: Event Order, Menu, Rooming Assignment — **[v7]** three separate
+  documents, not three parts of one
 - Event data saved as portable JSON (download / upload)
 - Print-to-PDF via browser, styled with CSS `@page`
 - Validation that catches count and date mismatches before print
@@ -55,14 +56,14 @@ sections per event. Nothing is mandatory except the header block.
 
 ```json
 "sections": [
-  { "id": "s1", "type": "attendees",  "title": "Attendee List",       "enabled": true },
-  { "id": "s2", "type": "rooming",    "title": "Rooming Assignments", "enabled": true },
-  { "id": "s3", "type": "schedule",   "title": "Event Schedule",      "enabled": true },
-  { "id": "s4", "type": "foodAndBev", "title": "Food & Beverage",     "enabled": true },
-  { "id": "s5", "type": "staff",      "title": "Staff Assignments",   "enabled": false },
-  { "id": "s6", "type": "freeText",   "title": "Security Notes",      "enabled": true,
+  { "id": "s1", "type": "attendees",      "title": "Attendee List",     "enabled": true },
+  { "id": "s2", "type": "accommodations", "title": "Accommodations",    "enabled": true },
+  { "id": "s3", "type": "schedule",       "title": "Event Schedule",    "enabled": true },
+  { "id": "s4", "type": "foodAndBev",     "title": "Food & Beverage",   "enabled": true },
+  { "id": "s5", "type": "staff",          "title": "Staff Assignments", "enabled": false },
+  { "id": "s6", "type": "freeText",       "title": "Security Notes",    "enabled": true,
     "body": "Range in use Saturday PM. Guest arrivals staggered 1400-1800." },
-  { "id": "s7", "type": "freeText",   "title": "Notes",               "enabled": true,
+  { "id": "s7", "type": "freeText",       "title": "Notes",             "enabled": true,
     "body": "" }
 ]
 ```
@@ -74,20 +75,24 @@ sections per event. Nothing is mandatory except the header block.
 - `freeText` can be added unlimited times. This covers Security notes, PSO notes, weather,
   transportation, anything not yet anticipated.
 - **No length caps anywhere.** No character limits, no fixed row counts, textareas auto-grow.
-- **[v6]** A new event is **seeded** with six sections — `attendees`, `rooming`, `schedule`,
-  `foodAndBev`, `menu`, and a `freeText` titled "Notes" — enabled, in that order. `staff` and
-  `departments` are not seeded. Seeded sections are ordinary sections: renamed, reordered,
-  disabled, and removed like any other.
+- **[v7] `sections` is the outline of the Event Order alone.** The Menu and the Rooming
+  Assignment are their own documents (§8), always generated, and are not section types. Their
+  data is entered once — in the rooming editor and the menu editor — and each document takes
+  what it needs. What the Event Order carries of the rooming data is the `accommodations`
+  summary, not the room grid.
+- **[v6]** A new event is **seeded** with **[v7]** five sections — `attendees`,
+  `accommodations`, `schedule`, `foodAndBev`, and a `freeText` titled "Notes" — enabled, in that
+  order. `staff` and `departments` are not seeded. Seeded sections are ordinary sections:
+  renamed, reordered, disabled, and removed like any other.
 
 **Section types**
 
 | Type | Content source | Repeatable |
 |---|---|---|
 | `attendees` | `attendees[]` | No |
-| `rooming` | `rooming[]` | No |
-| `schedule` | `schedule[]` | No |
-| `foodAndBev` | `foodAndBev[]` | No |
-| `menu` | `menu[]` | No |
+| **[v7]** `accommodations` | derived from `rooming[]` — guests and rooms per building per night (§7). Read-only: the room grid and the assignments themselves belong to the Rooming Assignment document | No |
+| `schedule` | **[v7]** `schedule[]` and `foodAndBev[]`, merged into one itinerary (§7) | No |
+| `foodAndBev` | `foodAndBev[]` — the F&B schedule table, which **[v7]** prints on the Menu as well | No |
 | `staff` | `staff[]` | No |
 | `departments` | `departments[]` — full corporate-style breakdown, off by default | No |
 | `freeText` | inline `body` | Yes, unlimited |
@@ -119,23 +124,22 @@ sections per event. Nothing is mandatory except the header block.
   ],
 
   "rooming": [
-    { "building": "Lodge", "room": "Brian's Suite", "guestIds": ["a-7f3c"],
+    { "id": "r-1", "building": "Lodge", "room": "Brian's Suite", "guestIds": ["a-7f3c"],
       "from": "2026-11-14", "to": "2026-11-16" },
-    { "building": "Lodge", "room": "Timber Suite",  "guestIds": ["a-9d22"],
+    { "id": "r-2", "building": "Lodge", "room": "Timber Suite",  "guestIds": ["a-9d22"],
       "from": "2026-11-14", "to": "2026-11-15" },
-    { "building": "Lodge", "room": "Timber Suite",  "guestIds": ["a-5e08"],
+    { "id": "r-3", "building": "Lodge", "room": "Timber Suite",  "guestIds": ["a-5e08"],
       "from": "2026-11-15", "to": "2026-11-16" },
-    { "building": "Lodge", "room": "Bunk Room",     "guestIds": ["a-3fa1", "a-6b70"],
+    { "id": "r-4", "building": "Lodge", "room": "Bunk Room",     "guestIds": ["a-3fa1", "a-6b70"],
       "from": "2026-11-14", "to": "2026-11-16" },
-    { "building": "Red Leaf Inn", "room": null, "guestIds": ["a-2b91"],
+    { "id": "r-5", "building": "Red Leaf Inn", "room": null, "guestIds": ["a-2b91"],
       "from": "2026-11-15", "to": "2026-11-16" }
   ],
 
   "schedule": [
-    { "date": "2026-11-14", "start": "05:00", "end": "10:00", "label": "Duck Hunt" },
-    { "date": "2026-11-14", "start": "10:30", "end": null,    "label": "Breakfast - Wheel" },
-    { "date": "2026-11-14", "start": "11:00", "end": "16:00", "label": "Downtime" },
-    { "date": "2026-11-14", "start": "18:00", "end": null,    "label": "Dinner - Wheel" }
+    { "id": "s-1", "date": "2026-11-14", "start": "05:00", "end": "10:00", "label": "Duck Hunt" },
+    { "id": "s-2", "date": "2026-11-14", "start": "11:00", "end": "16:00", "label": "Downtime" },
+    { "id": "s-3", "date": "2026-11-14", "start": "16:00", "end": "17:30", "label": "Range" }
   ],
 
   "foodAndBev": [
@@ -159,14 +163,14 @@ sections per event. Nothing is mandatory except the header block.
   ],
 
   "staff": [
-    { "name": "Sara",    "date": "2026-11-14", "daypart": "AM", "assignment": "Duck blind - North" },
-    { "name": "Sara",    "date": "2026-11-14", "daypart": "PM", "assignment": "Bartend - Wheel" },
-    { "name": "Tanisha", "date": "2026-11-14", "daypart": "AM", "assignment": "AM duties" },
-    { "name": "Evie",    "date": "2026-11-14", "daypart": "PM", "assignment": "PM stew" }
+    { "id": "t-1", "name": "Sara",    "date": "2026-11-14", "daypart": "AM", "assignment": "Duck blind - North" },
+    { "id": "t-2", "name": "Sara",    "date": "2026-11-14", "daypart": "PM", "assignment": "Bartend - Wheel" },
+    { "id": "t-3", "name": "Tanisha", "date": "2026-11-14", "daypart": "AM", "assignment": "AM duties" },
+    { "id": "t-4", "name": "Evie",    "date": "2026-11-14", "daypart": "PM", "assignment": "PM stew" }
   ],
 
   "departments": [
-    { "name": "Security",
+    { "id": "p-1", "name": "Security",
       "priorToEvent": ["Print attendee list for arrivals"],
       "duringEvent": [
         { "date": "2026-11-14", "time": "07:00", "task": "Front gate for arrivals" }
@@ -267,15 +271,55 @@ night — and `all` is the default wherever the field is absent.
 **[v6] A new event is seeded with a default section set.**
 `emptyEvent()` produced `sections: []`, so a new event opened as a blank page with no outline and
 nothing to type into — the first act of authoring every order was rebuilding the same list by hand.
-Nearly every private-side order uses the same six sections: Attendee List, Rooming Assignments,
-Event Schedule, Food & Beverage, Menu, and a free-text Notes section. Those are seeded, enabled, in
-that order. Staff and departments are not seeded — they are the exception, added when a particular
-event wants them. Sections remain fully removable and reorderable, so a seeded default costs
-nothing to discard, and an event that needs none of them is three taps from empty.
+Nearly every private-side order uses the same sections, and **[v7]** they are five: Attendee List,
+Accommodations, Event Schedule, Food & Beverage, and a free-text Notes section. Those are seeded,
+enabled, in that order. Staff and departments are not seeded — they are the exception, added when a
+particular event wants them. Rooming and Menu are no longer among them because they are no longer
+sections at all: each is its own document, always generated (§8). Sections remain fully removable
+and reorderable, so a seeded default costs nothing to discard, and an event that needs none of them
+is three taps from empty.
 
 The seed applies to a *new* event only. A loaded file keeps exactly the sections it was saved with,
 including none: `migrate()` does not add sections, because a file saved with an empty outline was
 authored that way on purpose.
+
+### Changes from v6
+
+**[v7] `sections` is the outline of the Event Order alone.**
+The three documents are separate on purpose: nobody should have to scroll past the rooming grid to
+reach the menu. v6 listed `rooming` and `menu` as section types, which folded the room grid and the
+dish list into the event order and made the separation a matter of what the user remembered to
+disable.
+
+- The **Event Order** carries an *Accommodations* summary — guests and rooms per building per
+  night, the two-line table in the reference sample — not the room grid.
+- The **Rooming Assignment** is its own document: the room grid and the attendee list.
+- The **Menu** is its own document: the F&B schedule table, allergies, and the dishes.
+
+Rooming and Menu are always generated and are not sections. The `rooming` section type is replaced
+by `accommodations`; the `menu` section type is gone. Both editors remain — the data is entered
+once and each document takes what it needs. The F&B schedule table appears on the Event Order and
+on the Menu, which is deliberate: the Menu leaves the kitchen on its own and has to say when each
+service is.
+
+An inbound file is brought forward rather than left broken: `migrate()` turns a `rooming` section
+into an `accommodations` one and drops a `menu` section, and neither `rooming[]` nor `menu[]` is
+touched — the data was never in the section.
+
+**[v7] The itinerary merges `schedule[]` and `foodAndBev[]`.**
+A meal was typed twice — once as a schedule line, once as an F&B entry — with nothing keeping the
+two in step, so a dinner moved from 18:00 to 18:30 moved on one and not the other and the document
+contradicted itself. `schedule[]` now carries only what is not a meal: hunts, arrivals, downtime,
+departures. The Event Summary itinerary is generated by merging both arrays in time order, so
+moving dinner moves it on the itinerary, in the F&B table and on the Menu at once.
+
+**[v7] Every row the form creates carries an opaque `id`.**
+`attendees[]` has had one since v4 and `foodAndBev[]` has always had one, because both are
+referenced from elsewhere. The rest — `rooming[]`, `schedule[]`, `staff[]`, `departments[]` — were
+identified by array position, which is not an identity: the editors add, delete and reorder rows,
+and a control bound to an index edits the wrong row the moment a row above it moves. IDs are
+assigned once, on creation, never displayed, and never edited, exactly as in v4. `migrate()` mints
+them for rows arriving without one, so a file saved before v7 opens with stable rows.
 
 ## 6. Static reference data
 
@@ -319,19 +363,30 @@ Room inventory is fixed property data — selected from, never typed.
 | **[v3]** Room occupancy on a night | `rooming[]` rows where `from <= night < to`, grouped by building and room |
 | **[v3]** Unassigned guests on a night | attendees overnight that night named on no covering `rooming[]` row. **[v5]** A guest not on the sheet is not necessarily unhoused — spouses and children rooming with family are never listed |
 | F&B attendee count | **[v5]** narrowed by `serves` — `all`, `adults`, `children` — then counted per `countBasis`: `present`, `overnight`, or `custom` |
+| **[v7]** Itinerary for a date | `schedule[]` entries and `foodAndBev[]` entries on that date, merged and ordered by `start`, entries without a `start` last in their existing order. An F&B entry contributes its meal name and location; a schedule entry contributes its label. Each merged entry carries the array it came from and its row id, so the render can draw it and the editor can link back to it |
 | **[v5]** Dietary notes | attendees with a non-empty `dietary`, for the Menu allergies block and buffet labels |
 | Menu header count | same computed value as the F&B row it references |
 | Footer revision line | `meta.revisionDate` + `meta.revisedBy` |
 
 ## 8. Render targets
 
+**[v7]** Three documents, printed separately and never combined. Only **A** has an outline the user
+arranges; **B** and **C** are always generated from the same event data and have no sections of
+their own.
+
 **A. Event Order** — header block, then enabled sections in array order, then footer with page
-number and revision line.
+number and revision line. **[v7]** Three section types render something other than their own array:
+`accommodations` prints the per-night lodging summary derived from `rooming[]` (§7) rather than the
+room grid; `schedule` prints the merged itinerary (§7), not `schedule[]` alone; `foodAndBev` prints
+the F&B schedule table, which the Menu prints too.
 
 **B. Menu** — header, F&B schedule table, allergies, per-meal sections grouped by course heading.
+**[v7]** Always generated; never a section of the Event Order.
 
 **C. Rooming Assignment** — room grid by building showing occupied and vacant rooms, per-building
-totals, attendee list with arrival/departure and notes.
+totals, attendee list with arrival/departure and notes. **[v7]** Always generated; never a section
+of the Event Order. The Event Order's Accommodations summary is the only rooming figure that
+crosses over.
 
 ## 9. Rooming editor **[v2]**
 
@@ -413,6 +468,8 @@ Run before any print. Warn, do not block.
 9. Schedule or F&B item dated outside `startDate`–`endDate`
 10. Attendee `depart` earlier than `arrive`
 11. `revisionDate` older than the most recent edit
+12. **[v7]** A `schedule[]` entry whose label matches an F&B meal on the same date at the same time
+    — a meal typed into both arrays, which will now print twice on the merged itinerary (§7)
 
 ## 13. Open items
 

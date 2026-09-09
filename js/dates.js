@@ -135,3 +135,41 @@ export function formatDateRange(start, end) {
   }
   return `${LONG.format(first)} – ${LONG.format(last)}`;
 }
+
+/** "6:30 PM". Times are ISO `HH:MM` strings, as stored. */
+const TIME = new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit' });
+
+/**
+ * A stored `HH:MM` as a readable clock time.
+ *
+ * BUILD-SPEC §7 [v7] is explicit that `itineraryFor` does not format times —
+ * that is the render's job, and this is where the renders and the editors come
+ * to agree on one spelling of "18:30".
+ *
+ * @param {string} value ISO `HH:MM`
+ * @returns {string} the input unchanged when it is not a time
+ */
+export function formatTime(value) {
+  const match = /^(\d{1,2}):(\d{2})$/.exec(String(value || ''));
+  if (!match) return String(value || '');
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  if (hours > 23 || minutes > 59) return String(value);
+  return TIME.format(new Date(2000, 0, 1, hours, minutes));
+}
+
+/**
+ * "6:30 PM" or "5:00 - 6:00 PM". An entry with no end time is a moment, not a
+ * span — §5 shows `end: null` throughout `schedule[]` and `foodAndBev[]` — so
+ * a missing end prints nothing rather than an empty dash.
+ *
+ * @param {string} start ISO `HH:MM`
+ * @param {string} end ISO `HH:MM`
+ * @returns {string} empty when there is no start and no end
+ */
+export function formatTimeRange(start, end) {
+  const from = formatTime(start);
+  const to = formatTime(end);
+  if (from && to) return `${from} - ${to}`;
+  return from || to || '';
+}
