@@ -3,6 +3,13 @@
 // The JSON file is the source of truth. `localStorage` is an autosave
 // convenience only and must never be the sole copy of anything: it is one key,
 // it fails silently, and nothing here treats its absence as an error.
+//
+// [v4] Every inbound path runs `migrate()` before handing the event on, so no
+// caller ever sees a pre-v4 shape, and each returns migrate's own
+// `{ event, summary }` — the summary travels with the event that produced it
+// rather than being stashed somewhere and hoped for later.
+
+import { migrate } from './migrate.js';
 
 /** Single autosave key. One event in flight at a time. */
 const AUTOSAVE_KEY = 'event-order-gen:autosave';
@@ -44,10 +51,10 @@ function fileNameFor(event) {
 }
 
 /**
- * Read a user-selected `.json` file and return the parsed event object.
+ * Read a user-selected `.json` file, migrate it, and return the event.
  *
  * @param {File} file from an `<input type="file">`
- * @returns {Promise<object>}
+ * @returns {Promise<{event: object, summary: object}>}
  * @throws {Error} if there is no file, or the contents are not a JSON object
  */
 export async function loadFromFile(file) {
@@ -62,7 +69,7 @@ export async function loadFromFile(file) {
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
     throw new Error(`${file.name} does not contain an event object.`);
   }
-  return parsed;
+  return migrate(parsed);
 }
 
 /**
@@ -146,7 +153,11 @@ export function autosave(event) {
 /**
  * Read back the autosaved event, if there is one and it still parses.
  *
- * @returns {object|null} null whenever storage is unavailable, empty, or corrupt
+ * An autosave written before v4 is migrated on the way out, exactly as a file
+ * is: the tab that wrote it may have been open since the old shape.
+ *
+ * @returns {{event: object, summary: object}|null} null whenever storage is
+ *   unavailable, empty, or corrupt
  */
 export function restoreAutosave() {
   try {
@@ -154,7 +165,7 @@ export function restoreAutosave() {
     if (!text) return null;
     const parsed = JSON.parse(text);
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
-    return parsed;
+    return migrate(parsed);
   } catch (err) {
     return null;
   }
@@ -179,7 +190,7 @@ export function clearAutosave() {
 /**
  * Fetch the development fixture, `/data/sample.json`.
  *
- * @returns {Promise<object>}
+ * @returns {Promise<{event: object, summary: object}>}
  * @throws {Error} if the fetch fails — notably on `file://`, where fetch is
  *   blocked and the app must be served.
  */
@@ -188,5 +199,5 @@ export async function loadSample() {
   if (!response.ok) {
     throw new Error(`Could not load sample.json (${response.status}).`);
   }
-  return response.json();
+  return migrate(await response.json());
 }

@@ -31,11 +31,11 @@ function stayWindow(event, attendee) {
 }
 
 /**
- * An attendee's name in the form `rooming[].guest` uses: "First Last".
+ * An attendee's name for display: "First Last".
  *
- * The rooming rows carry a name string rather than an index, so this is the one
- * place that spelling is composed. Exported because the renders and the §12.3
- * check ("room assigned to a name not in the attendee list") need the same one.
+ * [v4] Display only. Rooming rows reference `guestId`, not this string, so a
+ * name is free to be edited or duplicated without moving anyone's room. One
+ * place composes the spelling so every render shows the same one.
  *
  * @param {object} attendee
  * @returns {string} may be empty
@@ -46,29 +46,21 @@ export function attendeeName(attendee) {
 }
 
 /**
- * Comparison key for a guest name: trimmed, inner whitespace collapsed, cased
- * down. Forgiving about how a name was typed, without matching different people.
+ * [v4] The attendee an ID refers to. BUILD-SPEC §5 (v4 changes).
  *
- * @param {string} name
- * @returns {string} empty when there is no usable name
- */
-function nameKey(name) {
-  return String(name || '').trim().replace(/\s+/g, ' ').toLowerCase();
-}
-
-/**
- * The attendee a rooming row names, or null if the list has no such guest
- * (validation rule §12.3 — reported there, not here).
+ * The one way a `rooming[].guestId` becomes a person. IDs are opaque: compared
+ * for equality and nothing else, never parsed or ordered. A row whose `guestId`
+ * matches nothing is an orphan, reported by validation rule §12.3 — this
+ * returns null and leaves the reporting there.
  *
  * @param {object} event
- * @param {string} name
+ * @param {string} id
  * @returns {object|null}
  */
-function findAttendeeByName(event, name) {
-  const key = nameKey(name);
-  if (!key) return null;
+export function attendeeById(event, id) {
+  if (!id) return null;
   const attendees = (event && event.attendees) || [];
-  return attendees.find((attendee) => nameKey(attendeeName(attendee)) === key) || null;
+  return attendees.find((attendee) => attendee.id === id) || null;
 }
 
 /**
@@ -89,8 +81,9 @@ function findAttendeeByName(event, name) {
  */
 export function roomingWindow(event, roomingRow) {
   const row = roomingRow || {};
-  // No matching attendee still resolves, via the event's own dates.
-  const stay = stayWindow(event, findAttendeeByName(event, row.guest) || {});
+  // [v4] Resolved by ID, so renaming a guest cannot detach their room. An
+  // orphan row still resolves, via the event's own dates.
+  const stay = stayWindow(event, attendeeById(event, row.guestId) || {});
   return {
     from: row.from || stay.arrive,
     to: row.to || stay.depart
@@ -198,35 +191,58 @@ function overnightAttendeesOn(event, date) {
 }
 
 /**
- * §7 — Rooms by building: count of distinct rooms occupied, grouped by building.
+ * §7 [v4] — Lodging by building, per night.
  *
- * [v3] Distinct rooms, not rows: a room now turns over mid-event, so the Timber
- * Suite holding Dana one night and Tom the next is one room occupied, not two.
- * Counted across the whole event — for a single night, use `roomOccupancyOn`.
+ * For each building holding anyone that night: its assignment mode, the number
+ * of distinct rooms occupied, and the number of guests accommodated. This is
+ * the Accommodations table on the event order, which is a dated table — a
+ * whole-event figure cannot be right for every night once rooms turn over
+ * mid-event (BUILD-SPEC §5, v4 changes).
  *
- * Keys are building names exactly as stored on the rooming rows, in order of
- * first appearance. Rows with no building are grouped under `''` so they stay
- * visible to validation rather than vanishing from the total. A `pooled`
- * building's rows all share one key, so it counts 1 while anyone is in it —
- * "rooms occupied" is not a meaningful figure there; its guest count comes from
- * `roomOccupancyOn`.
+ * **Which figure to render:** `rooms` for a `named` building, `guests` for a
+ * `pooled` one. `mode` is returned so the caller can pick without knowing the
+ * property. A pooled building's rows carry no room, so its `rooms` is 0 — that
+ * is the point of the amendment: counting distinct rooms there returned 1
+ * however many guests were in the building. Under a `named` building, `rooms`
+ * short of `guests` means a row is missing its room (validation §12.6).
+ *
+ * `guests` counts distinct guests: two rows for one person in one building on
+ * one night are one guest. An orphan row (no `guestId`, §12.3) counts as one
+ * guest of its own — somebody is in that room, and the row still renders.
  *
  * @param {object} event
- * @returns {Object<string, number>}
+ * @param {string} night ISO `YYYY-MM-DD` — the date the night begins
+ * @returns {Object<string, {mode: string, rooms: number, guests: number}>}
+ *   keyed by building name as stored on the rows, in order of first appearance.
+ *   Buildings holding nobody that night are absent.
  */
-export function roomsByBuilding(event) {
+export function lodgingByBuilding(event, night) {
   const rooming = (event && event.rooming) || [];
-  const rooms = new Map();
+  const tally = new Map();
+
   for (const row of rooming) {
+    if (!coversNight(roomingWindow(event, row), night)) continue;
     const building = row.building || '';
-    if (!rooms.has(building)) rooms.set(building, new Set());
-    rooms.get(building).add(roomKeyFor(row));
+    if (!tally.has(building)) {
+      tally.set(building, { rooms: new Set(), guests: new Set(), orphans: 0 });
+    }
+    const entry = tally.get(building);
+    // Named rooms only: a pooled row's key is empty and is not a room.
+    const room = roomKeyFor(row);
+    if (room) entry.rooms.add(room);
+    if (row.guestId) entry.guests.add(row.guestId);
+    else entry.orphans += 1;
   }
-  const counts = {};
-  for (const [building, occupied] of rooms) {
-    counts[building] = occupied.size;
+
+  const lodging = {};
+  for (const [building, entry] of tally) {
+    lodging[building] = {
+      mode: assignmentModeFor(building),
+      rooms: entry.rooms.size,
+      guests: entry.guests.size + entry.orphans
+    };
   }
-  return counts;
+  return lodging;
 }
 
 /**
@@ -268,7 +284,8 @@ export function roomOccupancyOn(event, night) {
  * This is validation rule §12.2 ("attendee staying overnight with no room
  * assignment covering that night") and the unassigned pane of the rooming
  * editor (§9), computed once for both. A day guest is never overnight and so
- * never appears here.
+ * never appears here. An attendee carrying no `id` at all cannot be housed by
+ * any row, so they surface here rather than passing silently.
  *
  * @param {object} event
  * @param {string} night ISO `YYYY-MM-DD` — the date the night begins
@@ -280,10 +297,11 @@ export function unassignedGuestsOn(event, night) {
   const housed = new Set();
   for (const row of (event && event.rooming) || []) {
     if (!coversNight(roomingWindow(event, row), night)) continue;
-    const key = nameKey(row.guest);
-    if (key) housed.add(key);
+    if (row.guestId) housed.add(row.guestId);
   }
-  return overnight.filter((attendee) => !housed.has(nameKey(attendeeName(attendee))));
+  // [v4] By ID: two guests who share a name are two people here, and one of
+  // them having a room no longer covers for the other.
+  return overnight.filter((attendee) => !attendee.id || !housed.has(attendee.id));
 }
 
 /**
