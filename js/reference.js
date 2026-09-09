@@ -56,43 +56,39 @@ export function assignmentModeFor(building) {
 
 // Red Leaf Inn room inventory. Room numbers are strings to match rooming[].room.
 // `suite` is the suite label where one applies, otherwise null.
+//
+// [v5] Bedding is not stored. Even rooms are kings and odd rooms are double
+// queens — property knowledge everyone at the ranch already has, which belongs
+// in neither the room titles nor the data (BUILD-SPEC §6). Nothing here models
+// room capacity: a rooming row names the party a room is known by, never a head
+// count (§5, v5 changes).
 
-/** Red Leaf Inn — king rooms. BUILD-SPEC §6. */
-export const RED_LEAF_INN_KING_ROOMS = [
-  { room: '2',  suite: null },
-  { room: '4',  suite: null },
-  { room: '6',  suite: null },
-  { room: '8',  suite: 'Exec Suite' },
-  { room: '10', suite: null },
-  { room: '12', suite: null },
-  { room: '14', suite: null },
-  { room: '16', suite: null },
-  { room: '18', suite: null },
-  { room: '20', suite: 'Exec Suite' },
-  { room: '22', suite: null },
-  { room: '24', suite: null }
-];
-
-/** Red Leaf Inn — double queen rooms. BUILD-SPEC §6. */
-export const RED_LEAF_INN_DOUBLE_QUEEN_ROOMS = [
-  { room: '1',  suite: null },
-  { room: '3',  suite: null },
-  { room: '5',  suite: null },
-  { room: '7',  suite: null },
-  { room: '9',  suite: null },
-  { room: '11', suite: 'Suite' },
-  { room: '13', suite: null },
-  { room: '15', suite: null },
-  { room: '17', suite: null },
-  { room: '19', suite: null },
-  { room: '21', suite: null },
-  { room: '23', suite: 'Suite' }
-];
-
-/** Every Red Leaf Inn room, carrying its bedding type. */
+/** Red Leaf Inn rooms, 1 through 24. Retained but unused while pooled. §6. */
 export const RED_LEAF_INN_ROOMS = [
-  ...RED_LEAF_INN_KING_ROOMS.map((r) => ({ ...r, bedding: 'King' })),
-  ...RED_LEAF_INN_DOUBLE_QUEEN_ROOMS.map((r) => ({ ...r, bedding: 'Double Queen' }))
+  { room: '1',  suite: null },
+  { room: '2',  suite: null },
+  { room: '3',  suite: null },
+  { room: '4',  suite: null },
+  { room: '5',  suite: null },
+  { room: '6',  suite: null },
+  { room: '7',  suite: null },
+  { room: '8',  suite: 'Exec Suite' },
+  { room: '9',  suite: null },
+  { room: '10', suite: null },
+  { room: '11', suite: 'Suite' },
+  { room: '12', suite: null },
+  { room: '13', suite: null },
+  { room: '14', suite: null },
+  { room: '15', suite: null },
+  { room: '16', suite: null },
+  { room: '17', suite: null },
+  { room: '18', suite: null },
+  { room: '19', suite: null },
+  { room: '20', suite: 'Exec Suite' },
+  { room: '21', suite: null },
+  { room: '22', suite: null },
+  { room: '23', suite: 'Suite' },
+  { room: '24', suite: null }
 ];
 
 /** Lodge rooms. BUILD-SPEC §6. */
@@ -133,8 +129,14 @@ export const SCHEDULE_LABEL_SUGGESTIONS = [
   'Skeet'
 ];
 
-/** F&B count bases. BUILD-SPEC §5 (v2 changes). */
+/** F&B count bases — which dates qualify. BUILD-SPEC §5 (v2 changes). */
 export const COUNT_BASES = ['present', 'overnight', 'custom'];
+
+/**
+ * [v5] F&B `serves` — which people qualify. BUILD-SPEC §5 (v5 changes).
+ * Independent of the count basis: the two compose.
+ */
+export const SERVES_OPTIONS = ['all', 'adults', 'children', 'custom'];
 
 /** Staff dayparts. BUILD-SPEC §5 staff[]. */
 export const DAYPARTS = ['AM', 'PM'];

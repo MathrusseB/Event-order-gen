@@ -1,11 +1,12 @@
-# EVENT-ORDER-GEN — Build Spec v2
+# EVENT-ORDER-GEN — Build Spec v5
 
 Static document generator for Maple Ranch private-side event orders, menus, and rooming lists.
 
 **Repo:** `MathrusseB/EVENT-ORDER-GEN`
 **Deploy:** `event-order-gen-production.up.railway.app`
 
-Supersedes v1. Changes are marked **[v2]**.
+Supersedes v4. Each change carries the version that introduced it, **[v2]** through **[v5]**;
+§5 keeps a change block per version.
 
 ---
 
@@ -103,19 +104,26 @@ sections per event. Nothing is mandatory except the header block.
   "sections": [ /* see section 4 */ ],
 
   "attendees": [
-    { "id": "a-7f3c", "last": "Illig",   "first": "Brian", "arrive": "2026-11-14", "depart": "2026-11-16", "note": "" },
-    { "id": "a-2b91", "last": "Palmer",  "first": "Kim",   "arrive": "2026-11-15", "depart": "2026-11-16", "note": "Arriving late" },
-    { "id": "a-c40e", "last": "Baldwin", "first": "Chase", "arrive": "2026-11-14", "depart": "2026-11-14", "note": "Day guest, departing after dinner" }
+    { "id": "a-7f3c", "last": "Illig",   "first": "Brian", "arrive": "2026-11-14", "depart": "2026-11-16",
+      "isChild": false, "dietary": "",                 "note": "" },
+    { "id": "a-2b91", "last": "Palmer",  "first": "Kim",   "arrive": "2026-11-15", "depart": "2026-11-16",
+      "isChild": false, "dietary": "Shellfish allergy", "note": "Arriving late" },
+    { "id": "a-c40e", "last": "Baldwin", "first": "Chase", "arrive": "2026-11-14", "depart": "2026-11-14",
+      "isChild": false, "dietary": "",                 "note": "Day guest, departing after dinner" },
+    { "id": "a-3fa1", "last": "Illig",   "first": "Nora",  "arrive": "2026-11-14", "depart": "2026-11-16",
+      "isChild": true,  "dietary": "",                 "note": "" }
   ],
 
   "rooming": [
-    { "building": "Lodge", "room": "Brian's Suite", "guestId": "a-7f3c",
+    { "building": "Lodge", "room": "Brian's Suite", "guestIds": ["a-7f3c"],
       "from": "2026-11-14", "to": "2026-11-16" },
-    { "building": "Lodge", "room": "Timber Suite",  "guestId": "a-9d22",
+    { "building": "Lodge", "room": "Timber Suite",  "guestIds": ["a-9d22"],
       "from": "2026-11-14", "to": "2026-11-15" },
-    { "building": "Lodge", "room": "Timber Suite",  "guestId": "a-5e08",
+    { "building": "Lodge", "room": "Timber Suite",  "guestIds": ["a-5e08"],
       "from": "2026-11-15", "to": "2026-11-16" },
-    { "building": "Red Leaf Inn", "room": null, "guestId": "a-2b91",
+    { "building": "Lodge", "room": "Bunk Room",     "guestIds": ["a-3fa1", "a-6b70"],
+      "from": "2026-11-14", "to": "2026-11-16" },
+    { "building": "Red Leaf Inn", "room": null, "guestIds": ["a-2b91"],
       "from": "2026-11-15", "to": "2026-11-16" }
   ],
 
@@ -127,11 +135,19 @@ sections per event. Nothing is mandatory except the header block.
   ],
 
   "foodAndBev": [
-    { "id": "sat-dinner", "date": "2026-11-14", "start": "18:00", "end": null,
-      "meal": "Dinner", "location": "The Wheel", "countBasis": "present" }
+    { "id": "sat-kids-dinner", "date": "2026-11-14", "start": "17:30", "end": null,
+      "meal": "Children's Dinner", "location": "The Wheel",
+      "countBasis": "present", "serves": "children" },
+    { "id": "sat-dinner", "date": "2026-11-14", "start": "18:30", "end": null,
+      "meal": "Dinner", "location": "The Wheel",
+      "countBasis": "present", "serves": "adults" }
   ],
 
   "menu": [
+    { "fnbId": "sat-kids-dinner",
+      "courses": [
+        { "heading": "Mains", "items": ["All-Beef Hot Dogs", "Buttered Noodles"] }
+      ] },
     { "fnbId": "sat-dinner",
       "courses": [
         { "heading": "Entrees", "items": ["American Wagyu Beef Tenderloin - Carved to Order"] }
@@ -212,6 +228,36 @@ accommodated. The Accommodations table reads the figure appropriate to the mode.
 The Accommodations table is a dated table — mid-event turnover means a whole-event figure cannot
 be right for every night of the event.
 
+### Changes from v4
+
+**[v5] A rooming row names a party, not a person. `guestId` becomes `guestIds: []`.**
+Rooms hold whoever they hold. A king room takes one couple; a double queen takes two guests, or two
+parents and two children. Only some of those people go on the sheet: spouses are never listed,
+children are listed only when they have a room of their own, and the Bunk Room is the one room that
+routinely carries several names. Occupancy is therefore not derivable from the rooming sheet and is
+not meant to be — the sheet records who the room is *known by*. Array order is display order, and
+the first name is the guest the room is booked under, so a row with no dates of its own takes that
+guest's.
+
+**[v5] No room capacity, and no occupancy counting.**
+Every person at the ranch is on the attendee list and is counted for meals there, so the rooming
+sheet never needs to account for bodies. Capacity is not modelled: a row may carry any number of
+names. Red Leaf Inn's even rooms are kings and odd rooms are double queens, which is property
+knowledge everyone at the ranch already has and does not belong in room titles or in the data.
+
+**[v5] Attendees carry `isChild` and `dietary`.**
+Children are flagged, not aged — exact ages are frequently unknown and the ranch does not ask.
+`dietary` is a free-text field for allergies and special dining accommodations, separate from
+`note`, because it drives the Menu render and buffet labels and cannot be buried in general remarks.
+
+**[v5] F&B entries carry `serves`: `all` | `adults` | `children` | `custom`.**
+Children often eat a different menu at a different time — hot dogs at 5:30, adult buffet at 6:30. A
+children's seating is an ordinary F&B entry with its own time, location, and menu block; `serves`
+narrows who it counts. `custom` uses an explicit `count` as before. This also corrects a live
+counting error: without it, an adult buffet counts every child in the house. `serves` and
+`countBasis` are independent and compose — `overnight` + `children` is the children staying that
+night — and `all` is the default wherever the field is absent.
+
 ## 6. Static reference data
 
 Seeded in `js/reference.js`. Not part of event JSON.
@@ -230,9 +276,12 @@ Dock / Boathouse, Hummer Bar, Food Plot, Lake, Cottage
 **Lodge rooms (`named`):** Master Suite, Brian's Suite, Michael's Suite, Timber Suite,
 Wetland Suite, Basement Office Suite, Upland Suite, Bunk Room
 
-**Red Leaf Inn rooms (retained, unused while `pooled`)**
-- King: 2, 4, 6, 8 (Exec Suite), 10, 12, 14, 16, 18, 20 (Exec Suite), 22, 24
-- Double Queen: 1, 3, 5, 7, 9, 11 (Suite), 13, 15, 17, 19, 21, 23 (Suite)
+**Red Leaf Inn rooms (retained, unused while `pooled`):** 1 through 24, with Exec Suites at 8 and
+20 and Suites at 11 and 23.
+
+**[v5]** Bedding is not stored. Even rooms are kings and odd rooms are double queens — property
+knowledge everyone at the ranch already has, which belongs in neither the room titles nor the data.
+Nothing anywhere models room capacity.
 
 **[v2] Schedule label suggestions** (autocomplete only, free text always allowed):
 Duck Hunt, Upland Hunt, Deer Hunt, Downtime, Breakfast, Lunch, Dinner, Cocktails, Happy Hour,
@@ -247,10 +296,11 @@ Room inventory is fixed property data — selected from, never typed.
 | Total guest count | `attendees.length` |
 | Guests present on a date | attendees where `arrive <= date <= depart` |
 | Overnight count for a night | attendees where `arrive <= date < depart` |
-| **[v4]** Lodging by building, per night | for each building with rows covering that night: `mode`, rooms occupied, guests accommodated. The Accommodations table shows rooms for `named`, guests for `pooled`. |
+| **[v4]** Lodging by building, per night | for each building with rows covering that night: `mode`, rooms occupied, guests named. The Accommodations table shows rooms for `named`, guests for `pooled`. **[v5]** A row naming nobody still occupies its room. |
 | **[v3]** Room occupancy on a night | `rooming[]` rows where `from <= night < to`, grouped by building and room |
-| **[v3]** Unassigned guests on a night | attendees overnight that night with no covering `rooming[]` row |
-| F&B attendee count | per `countBasis` — `present`, `overnight`, or `custom` |
+| **[v3]** Unassigned guests on a night | attendees overnight that night named on no covering `rooming[]` row. **[v5]** A guest not on the sheet is not necessarily unhoused — spouses and children rooming with family are never listed |
+| F&B attendee count | **[v5]** narrowed by `serves` — `all`, `adults`, `children` — then counted per `countBasis`: `present`, `overnight`, or `custom` |
+| **[v5]** Dietary notes | attendees with a non-empty `dietary`, for the Menu allergies block and buffet labels |
 | Menu header count | same computed value as the F&B row it references |
 | Footer revision line | `meta.revisionDate` + `meta.revisedBy` |
 
@@ -326,22 +376,21 @@ now keeps that port cheap.
 
 Run before any print. Warn, do not block.
 
-1. Any F&B entry with `countBasis: "custom"` — surface the override explicitly
-2. Attendee staying overnight with no room assignment covering that night
-3. **[v4]** Rooming row whose `guestId` matches no attendee — an orphan, usually from a deleted guest
-4. **[v3]** Same named room assigned to two guests with overlapping night ranges
-5. **[v3]** Rooming row whose `from`/`to` range falls outside the guest's own `arrive`/`depart`
+1. Any F&B entry counted by explicit override — `countBasis: "custom"`, or **[v5]** `serves: "custom"` — surface it
+2. Attendee staying overnight named on no room assignment covering that night. **[v5]** A warning, not a fault: spouses and children rooming with family are deliberately off the sheet
+3. **[v4]** Rooming row naming a guest it cannot resolve — a `guestIds` entry matching no attendee, or **[v5]** a legacy `guest` name migration could not match. Usually a deleted guest. A row naming nobody at all is not an orphan: it is a room held under no name yet
+4. **[v3]** Same named room claimed on the same night by **[v5]** two separate rooming rows. Several names on one row is a party sharing a room, never a conflict
+5. **[v3]** Rooming row whose `from`/`to` range falls outside the `arrive`/`depart` of the guest it is booked under
 6. **[v3]** Room specified on a `pooled` building, or omitted on a `named` building
-4. Menu block referencing a nonexistent `fnbId`
-5. F&B entry with no menu block
-6. Schedule or F&B item dated outside `startDate`–`endDate`
-7. Attendee `depart` earlier than `arrive`
-8. `revisionDate` older than the most recent edit
+7. Menu block referencing a nonexistent `fnbId`
+8. F&B entry with no menu block
+9. Schedule or F&B item dated outside `startDate`–`endDate`
+10. Attendee `depart` earlier than `arrive`
+11. `revisionDate` older than the most recent edit
 
 ## 13. Open items
 
 - Whether `staff` renders grouped by person or by daypart as the default
-- Whether allergies live in `meta` or as their own section type
 
 ## 14. Resolved
 
@@ -351,3 +400,6 @@ Run before any print. Warn, do not block.
   every section is authored per event.
 - ~~Ownership rooming access~~ — deferred to a later version, but treated as expected. `rooming.js`
   is built as a portable module now so the hosted-state swap is cheap. See §9.
+- ~~Whether allergies live in `meta` or as their own section type~~ — **[v5]** neither. They belong
+  to the person: `attendees[].dietary`, free text, derived into the Menu allergies block. An event
+  level list goes stale the moment the guest list changes.

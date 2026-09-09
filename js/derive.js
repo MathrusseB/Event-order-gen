@@ -64,12 +64,32 @@ export function attendeeById(event, id) {
 }
 
 /**
+ * [v5] The guest IDs a rooming row names, always an array.
+ *
+ * BUILD-SPEC §5 (v5 changes): a row names a *party*, not a person — the guests
+ * the room is known by. Spouses are never listed, children only when they have
+ * a room of their own, and the Bunk Room routinely carries several names. The
+ * array is therefore not a head count and nothing here treats it as one: a room
+ * with one name may hold four people, and a room with no names is still booked.
+ *
+ * Array order is display order.
+ *
+ * @param {object} roomingRow
+ * @returns {string[]} empty when the row names nobody
+ */
+function guestIdsOf(roomingRow) {
+  const ids = roomingRow && roomingRow.guestIds;
+  return Array.isArray(ids) ? ids : [];
+}
+
+/**
  * [v3] Effective night range for a rooming row — the `stayWindow` of a booking.
  *
  * BUILD-SPEC §5 (v3 changes): `from` / `to` "both default to the guest's
  * `arrive` / `depart`, so the common case needs no extra input", and the
- * attendee's own dates fall back to the event's (see `stayWindow`). Resolved
- * here so every caller reads the same range for the same row.
+ * attendee's own dates fall back to the event's (see `stayWindow`). [v5] The
+ * guest in question is the first resolvable name in `guestIds`. Resolved here
+ * so every caller reads the same range for the same row.
  *
  * The interval is half-open: `from <= night < to`. A row `from` the 14th `to`
  * the 15th holds the room for the night of the 14th only.
@@ -81,9 +101,16 @@ export function attendeeById(event, id) {
  */
 export function roomingWindow(event, roomingRow) {
   const row = roomingRow || {};
-  // [v4] Resolved by ID, so renaming a guest cannot detach their room. An
-  // orphan row still resolves, via the event's own dates.
-  const stay = stayWindow(event, attendeeById(event, row.guestId) || {});
+  // [v5] The first resolvable name in the party: the guest the room is booked
+  // under, per §5 (v5 changes). Later names are companions on the same booking,
+  // and their own stays may differ — a child arriving a day late does not
+  // shorten the room. [v4] Resolution is by ID, so renaming a guest cannot
+  // detach their room; a row naming nobody resolvable falls back to the event's
+  // own dates.
+  const booked = guestIdsOf(row)
+    .map((id) => attendeeById(event, id))
+    .find(Boolean);
+  const stay = stayWindow(event, booked || {});
   return {
     from: row.from || stay.arrive,
     to: row.to || stay.depart
@@ -206,9 +233,14 @@ function overnightAttendeesOn(event, date) {
  * however many guests were in the building. Under a `named` building, `rooms`
  * short of `guests` means a row is missing its room (validation §12.6).
  *
- * `guests` counts distinct guests: two rows for one person in one building on
- * one night are one guest. An orphan row (no `guestId`, §12.3) counts as one
- * guest of its own — somebody is in that room, and the row still renders.
+ * [v5] `guests` counts the distinct guests *named* on those rows, not bodies in
+ * beds: a row naming one guest may be a couple, and a party of four children
+ * sharing the Bunk Room is one row with however many names it carries.
+ * Occupancy is not derivable from the rooming sheet and is not meant to be
+ * (§5, v5 changes) — meal counts come from the attendee list. An ID that
+ * resolves to no attendee still counts: it is a name on the sheet, and
+ * validation §12.3 reports it. A row naming nobody at all counts no guests but
+ * still occupies its room, so a booked room cannot vanish from the table.
  *
  * @param {object} event
  * @param {string} night ISO `YYYY-MM-DD` — the date the night begins
@@ -224,14 +256,13 @@ export function lodgingByBuilding(event, night) {
     if (!coversNight(roomingWindow(event, row), night)) continue;
     const building = row.building || '';
     if (!tally.has(building)) {
-      tally.set(building, { rooms: new Set(), guests: new Set(), orphans: 0 });
+      tally.set(building, { rooms: new Set(), guests: new Set() });
     }
     const entry = tally.get(building);
     // Named rooms only: a pooled row's key is empty and is not a room.
     const room = roomKeyFor(row);
     if (room) entry.rooms.add(room);
-    if (row.guestId) entry.guests.add(row.guestId);
-    else entry.orphans += 1;
+    for (const id of guestIdsOf(row)) entry.guests.add(id);
   }
 
   const lodging = {};
@@ -239,7 +270,7 @@ export function lodgingByBuilding(event, night) {
     lodging[building] = {
       mode: assignmentModeFor(building),
       rooms: entry.rooms.size,
-      guests: entry.guests.size + entry.orphans
+      guests: entry.guests.size
     };
   }
   return lodging;
@@ -281,11 +312,15 @@ export function roomOccupancyOn(event, night) {
  * §7 [v3] — Unassigned guests on a night: attendees overnight that night with
  * no covering `rooming[]` row.
  *
- * This is validation rule §12.2 ("attendee staying overnight with no room
- * assignment covering that night") and the unassigned pane of the rooming
- * editor (§9), computed once for both. A day guest is never overnight and so
- * never appears here. An attendee carrying no `id` at all cannot be housed by
- * any row, so they surface here rather than passing silently.
+ * This is validation rule §12.2 and the unassigned pane of the rooming editor
+ * (§9), computed once for both. A day guest is never overnight and so never
+ * appears here. An attendee carrying no `id` at all is named by no row, so they
+ * surface here rather than passing silently.
+ *
+ * [v5] "Unassigned" means *not named on the sheet*, which is a prompt, not a
+ * fault: spouses are never listed and children are listed only when they have a
+ * room of their own (§5, v5 changes), so a guest here may well be rooming with
+ * family. §12.2 warns; it does not block.
  *
  * @param {object} event
  * @param {string} night ISO `YYYY-MM-DD` — the date the night begins
@@ -294,26 +329,68 @@ export function roomOccupancyOn(event, night) {
 export function unassignedGuestsOn(event, night) {
   const overnight = overnightAttendeesOn(event, night);
   if (!overnight.length) return [];
-  const housed = new Set();
+  const named = new Set();
   for (const row of (event && event.rooming) || []) {
     if (!coversNight(roomingWindow(event, row), night)) continue;
-    if (row.guestId) housed.add(row.guestId);
+    for (const id of guestIdsOf(row)) named.add(id);
   }
   // [v4] By ID: two guests who share a name are two people here, and one of
   // them having a room no longer covers for the other.
-  return overnight.filter((attendee) => !attendee.id || !housed.has(attendee.id));
+  return overnight.filter((attendee) => !attendee.id || !named.has(attendee.id));
 }
 
 /**
- * §7 — F&B attendee count: per `countBasis` — `present`, `overnight`, or `custom`.
+ * §7 [v5] — Dietary notes: attendees with a non-empty `dietary`.
  *
- * BUILD-SPEC §5 (v2 changes):
+ * The Menu render's allergies block and the buffet labels. Attendees are
+ * returned, not the strings alone, because a label needs the name attached —
+ * "Kim Palmer — shellfish" is the useful line; "shellfish" on its own is not.
+ *
+ * BUILD-SPEC §5 (v5 changes): `dietary` is deliberately separate from `note`.
+ * A general remark can be skimmed past; an allergy drives what is cooked.
+ *
+ * @param {object} event
+ * @returns {object[]} attendees, in event order
+ */
+export function dietaryNotes(event) {
+  const attendees = (event && event.attendees) || [];
+  return attendees.filter((attendee) => String((attendee && attendee.dietary) || '').trim());
+}
+
+/**
+ * [v5] Who an F&B entry serves. BUILD-SPEC §5 (v5 changes).
+ *
+ * `all` is the default wherever the field is absent or unrecognised, so an
+ * entry authored before v5 keeps counting exactly as it did.
+ *
+ * @param {object} fnbEntry
+ * @returns {'all'|'adults'|'children'|'custom'}
+ */
+function servesOf(fnbEntry) {
+  const serves = fnbEntry && fnbEntry.serves;
+  return serves === 'adults' || serves === 'children' || serves === 'custom' ? serves : 'all';
+}
+
+/**
+ * §7 — F&B attendee count: narrowed by `serves`, then counted per `countBasis`.
+ *
+ * BUILD-SPEC §5 (v2 changes) — `countBasis` picks *which dates* qualify:
  *   `present`   — attendees whose stay spans the meal date. The default.
  *   `overnight` — attendees staying the night of that date.
- *   `custom`    — the entry's explicit `count`, a deliberate override
- *                 (surfaced by validation rule §12.1).
+ *   `custom`    — the entry's explicit `count`, a deliberate override.
  *
- * An unrecognised or missing basis falls back to `present`, the stated default.
+ * [v5] `serves` picks *which people* qualify, independently:
+ *   `all`      — everyone. The default.
+ *   `adults`   — attendees not flagged `isChild`.
+ *   `children` — attendees flagged `isChild`.
+ *   `custom`   — the explicit `count` again, for a seating no rule describes.
+ *
+ * The two compose rather than override: `overnight` + `children` is the
+ * children staying that night, and a 17:30 children's seating plus an 18:30
+ * `adults` dinner add up to the same total as one `all` sitting. Without this
+ * an adult buffet counted every child in the house (§5, v5 changes). Either
+ * `custom` short-circuits to the explicit count and validation §12.1 surfaces
+ * the override.
  *
  * This is also the menu header count: §7 — "Menu header count: same computed
  * value as the F&B row it references". Resolve the `fnbId` to its F&B entry and
@@ -325,12 +402,18 @@ export function unassignedGuestsOn(event, night) {
  */
 export function fnbCount(event, fnbEntry) {
   if (!fnbEntry) return 0;
-  if (fnbEntry.countBasis === 'custom') {
+
+  const serves = servesOf(fnbEntry);
+  if (fnbEntry.countBasis === 'custom' || serves === 'custom') {
     const count = Number(fnbEntry.count);
     return Number.isFinite(count) ? count : 0;
   }
-  if (fnbEntry.countBasis === 'overnight') {
-    return overnightCountFor(event, fnbEntry.date);
-  }
-  return guestsPresentOn(event, fnbEntry.date).length;
+
+  const dated = fnbEntry.countBasis === 'overnight'
+    ? overnightAttendeesOn(event, fnbEntry.date)
+    : guestsPresentOn(event, fnbEntry.date);
+
+  if (serves === 'all') return dated.length;
+  const wantChildren = serves === 'children';
+  return dated.filter((attendee) => Boolean(attendee.isChild) === wantChildren).length;
 }

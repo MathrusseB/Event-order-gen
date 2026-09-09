@@ -23,27 +23,40 @@
   ],
 
   "attendees": [
-    { "id": "a-7f3c", "last": "Illig",     "first": "Brian",   "arrive": "2026-11-14", "depart": "2026-11-16", "note": "" },
-    { "id": "a-1d55", "last": "Illig",     "first": "Michael", "arrive": "2026-11-14", "depart": "2026-11-16", "note": "" },
-    { "id": "a-2b91", "last": "Palmer",    "first": "Kim",     "arrive": "2026-11-15", "depart": "2026-11-16", "note": "Arriving late" },
-    { "id": "a-c40e", "last": "Baldwin",   "first": "Chase",   "arrive": "2026-11-14", "depart": "2026-11-14", "note": "Day guest, departing after dinner" },
-    { "id": "a-9d22", "last": "Reyes",     "first": "Dana",    "arrive": "2026-11-14", "depart": "2026-11-15", "note": "Departs after breakfast Sunday" },
-    { "id": "a-5e08", "last": "Whitfield", "first": "Tom",     "arrive": "2026-11-15", "depart": "2026-11-16", "note": "" },
-    { "id": "a-8a17", "last": "Navarro",   "first": "Elise",   "arrive": "2026-11-14", "depart": "2026-11-16", "note": "Overflow - Red Leaf Inn" }
+    { "id": "a-7f3c", "last": "Illig",     "first": "Brian",   "arrive": "2026-11-14", "depart": "2026-11-16",
+      "isChild": false, "dietary": "",                              "note": "" },
+    { "id": "a-1d55", "last": "Illig",     "first": "Michael", "arrive": "2026-11-14", "depart": "2026-11-16",
+      "isChild": false, "dietary": "",                              "note": "" },
+    { "id": "a-3fa1", "last": "Illig",     "first": "Nora",    "arrive": "2026-11-14", "depart": "2026-11-16",
+      "isChild": true,  "dietary": "Severe tree nut allergy",       "note": "" },
+    { "id": "a-6b70", "last": "Illig",     "first": "Charlie", "arrive": "2026-11-14", "depart": "2026-11-16",
+      "isChild": true,  "dietary": "",                              "note": "" },
+    { "id": "a-2b91", "last": "Palmer",    "first": "Kim",     "arrive": "2026-11-15", "depart": "2026-11-16",
+      "isChild": false, "dietary": "Shellfish allergy",             "note": "Arriving late" },
+    { "id": "a-c40e", "last": "Baldwin",   "first": "Chase",   "arrive": "2026-11-14", "depart": "2026-11-14",
+      "isChild": false, "dietary": "",                              "note": "Day guest, departing after dinner" },
+    { "id": "a-9d22", "last": "Reyes",     "first": "Dana",    "arrive": "2026-11-14", "depart": "2026-11-15",
+      "isChild": false, "dietary": "Vegetarian",                    "note": "Departs after breakfast Sunday" },
+    { "id": "a-5e08", "last": "Whitfield", "first": "Tom",     "arrive": "2026-11-15", "depart": "2026-11-16",
+      "isChild": false, "dietary": "",                              "note": "" },
+    { "id": "a-8a17", "last": "Navarro",   "first": "Elise",   "arrive": "2026-11-14", "depart": "2026-11-16",
+      "isChild": false, "dietary": "",                              "note": "Overflow - Red Leaf Inn" }
   ],
 
   "rooming": [
-    { "building": "Lodge",        "room": "Brian's Suite",   "guestId": "a-7f3c",
+    { "building": "Lodge",        "room": "Brian's Suite",   "guestIds": ["a-7f3c"],
       "from": "2026-11-14", "to": "2026-11-16" },
-    { "building": "Lodge",        "room": "Michael's Suite", "guestId": "a-1d55",
+    { "building": "Lodge",        "room": "Michael's Suite", "guestIds": ["a-1d55"],
       "from": "2026-11-14", "to": "2026-11-16" },
-    { "building": "Lodge",        "room": "Timber Suite",    "guestId": "a-9d22",
+    { "building": "Lodge",        "room": "Bunk Room",       "guestIds": ["a-3fa1", "a-6b70"],
+      "from": "2026-11-14", "to": "2026-11-16" },
+    { "building": "Lodge",        "room": "Timber Suite",    "guestIds": ["a-9d22"],
       "from": "2026-11-14", "to": "2026-11-15" },
-    { "building": "Lodge",        "room": "Timber Suite",    "guestId": "a-5e08",
+    { "building": "Lodge",        "room": "Timber Suite",    "guestIds": ["a-5e08"],
       "from": "2026-11-15", "to": "2026-11-16" },
-    { "building": "Red Leaf Inn", "room": null,              "guestId": "a-8a17",
+    { "building": "Red Leaf Inn", "room": null,              "guestIds": ["a-8a17"],
       "from": "2026-11-14", "to": "2026-11-16" },
-    { "building": "Red Leaf Inn", "room": null,              "guestId": "a-2b91",
+    { "building": "Red Leaf Inn", "room": null,              "guestIds": ["a-2b91"],
       "from": "2026-11-15", "to": "2026-11-16" }
   ],
 
@@ -52,7 +65,8 @@
     { "date": "2026-11-14", "start": "10:30", "end": null,    "label": "Breakfast - Wheel" },
     { "date": "2026-11-14", "start": "11:00", "end": "16:00", "label": "Downtime" },
     { "date": "2026-11-14", "start": "16:00", "end": "17:30", "label": "Range" },
-    { "date": "2026-11-14", "start": "18:00", "end": null,    "label": "Dinner - Wheel" },
+    { "date": "2026-11-14", "start": "17:30", "end": null,    "label": "Children's Dinner - Wheel" },
+    { "date": "2026-11-14", "start": "18:30", "end": null,    "label": "Dinner - Wheel" },
     { "date": "2026-11-15", "start": "06:00", "end": "10:00", "label": "Upland Hunt - Food Plot" },
     { "date": "2026-11-15", "start": "10:30", "end": null,    "label": "Breakfast - Red Leaf Inn" },
     { "date": "2026-11-15", "start": "11:00", "end": "15:00", "label": "Downtime" },
@@ -67,15 +81,23 @@
   ],
 
   "foodAndBev": [
-    { "id": "sat-dinner",   "date": "2026-11-14", "start": "18:00", "end": null,
-      "meal": "Dinner",   "location": "The Wheel",  "countBasis": "present" },
-    { "id": "sun-nightcap", "date": "2026-11-15", "start": "21:00", "end": "23:00",
-      "meal": "Nightcap", "location": "Hummer Bar", "countBasis": "overnight" },
-    { "id": "mon-lunch",    "date": "2026-11-16", "start": "11:30", "end": null,
-      "meal": "Lunch",    "location": "The Wheel",  "countBasis": "custom", "count": 6 }
+    { "id": "sat-kids-dinner", "date": "2026-11-14", "start": "17:30", "end": null,
+      "meal": "Children's Dinner", "location": "The Wheel",  "countBasis": "present",   "serves": "children" },
+    { "id": "sat-dinner",      "date": "2026-11-14", "start": "18:30", "end": null,
+      "meal": "Dinner",        "location": "The Wheel",  "countBasis": "present",   "serves": "adults" },
+    { "id": "sun-nightcap",    "date": "2026-11-15", "start": "21:00", "end": "23:00",
+      "meal": "Nightcap",      "location": "Hummer Bar", "countBasis": "overnight", "serves": "adults" },
+    { "id": "mon-lunch",       "date": "2026-11-16", "start": "11:30", "end": null,
+      "meal": "Lunch",         "location": "The Wheel",  "countBasis": "custom",    "count": 6 }
   ],
 
   "menu": [
+    { "fnbId": "sat-kids-dinner",
+      "courses": [
+        { "heading": "Mains",   "items": ["All-Beef Hot Dogs", "Buttered Noodles"] },
+        { "heading": "Sides",   "items": ["Apple Slices", "Carrot Sticks and Ranch"] },
+        { "heading": "Dessert", "items": ["Vanilla Soft Serve - nut-free station"] }
+      ] },
     { "fnbId": "sat-dinner",
       "courses": [
         { "heading": "Passed",  "items": ["Bacon-Wrapped Dove Poppers", "Smoked Trout Rillette on Rye"] },
