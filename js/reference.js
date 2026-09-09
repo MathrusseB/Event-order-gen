@@ -141,13 +141,18 @@ export const SERVES_OPTIONS = ['all', 'adults', 'children', 'custom'];
 /** Staff dayparts. BUILD-SPEC §5 staff[]. */
 export const DAYPARTS = ['AM', 'PM'];
 
-/** Section types. BUILD-SPEC §4. */
+/**
+ * Section types. BUILD-SPEC §4.
+ *
+ * [v7] `rooming` and `menu` are not here: each is its own document, always
+ * generated, never a section of the event order (§4, §8). What the order
+ * carries of the rooming data is `accommodations`, the per-night summary.
+ */
 export const SECTION_TYPES = [
   'attendees',
-  'rooming',
+  'accommodations',
   'schedule',
   'foodAndBev',
-  'menu',
   'staff',
   'departments',
   'freeText'

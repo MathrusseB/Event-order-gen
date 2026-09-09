@@ -35,6 +35,27 @@
       <h2 class="outline__heading">In this order</h2>
       <ol class="outline__list" id="outline-list"></ol>
 
+      <!-- [v7] The Menu and the Rooming Assignment are documents of their own
+           (BUILD-SPEC §4, §8), always generated. They are destinations here,
+           not entries in the order's outline: nothing about them can be
+           reordered, renamed, or left out of the event order, because they are
+           not in it. -->
+      <h2 class="outline__heading outline__heading--docs">Also generated</h2>
+      <ul class="outline__docs">
+        <li>
+          <button type="button" class="outline__link" data-goto="rooming-block">
+            <span class="outline__label">Rooming Assignment</span>
+            <span class="outline__state">Own document</span>
+          </button>
+        </li>
+        <li>
+          <button type="button" class="outline__link" data-goto="menu-block">
+            <span class="outline__label">Menu</span>
+            <span class="outline__state">Own document</span>
+          </button>
+        </li>
+      </ul>
+
       <div class="outline__add">
         <label class="field" for="add-type">
           <span class="field__label">Add a section</span>
@@ -63,8 +84,34 @@
         <p class="empty__lead">
           This order has no sections yet. Pick what this event needs — every section can be
           renamed, reordered, turned off, or removed later, so nothing here is a commitment.
+          The Rooming Assignment and the Menu are below either way: they are their own
+          documents, not sections of this one.
         </p>
         <div class="empty__quick" id="empty-quick"></div>
+      </div>
+
+      <div class="docs" id="doc-blocks">
+        <section class="block block--doc" id="rooming-block">
+          <header class="block__head">
+            <span class="block__index" aria-hidden="true"></span>
+            <div class="block__naming">
+              <h2 class="block__fixedtitle">Rooming Assignment</h2>
+              <span class="block__type">Its own document. The order prints the Accommodations summary.</span>
+            </div>
+          </header>
+          <div class="block__body" id="rooming-body"></div>
+        </section>
+
+        <section class="block block--doc" id="menu-block">
+          <header class="block__head">
+            <span class="block__index" aria-hidden="true"></span>
+            <div class="block__naming">
+              <h2 class="block__fixedtitle">Menu</h2>
+              <span class="block__type">Its own document. One block per meal service.</span>
+            </div>
+          </header>
+          <div class="block__body" id="menu-body"></div>
+        </section>
       </div>
     </main>
   </div>

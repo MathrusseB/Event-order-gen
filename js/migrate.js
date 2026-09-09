@@ -13,6 +13,12 @@
 // `guest` name, and v4 rows carrying a single `guestId`. Both become a v5
 // `guestIds` array. Every rule below stays idempotent, so a file may be loaded,
 // saved, and loaded again without drifting.
+//
+// [v7] Two more: rows that carry no `id` are given one (§5, v7 changes), and
+// the two section types that became documents of their own are brought forward
+// — `rooming` becomes `accommodations`, `menu` goes. Neither `rooming[]` nor
+// `menu[]` is touched by that: the data was never in the section, and both
+// documents are generated from it as before.
 
 import { attendeeName } from './derive.js';
 import { newId } from './ids.js';
@@ -41,6 +47,16 @@ import { newId } from './ids.js';
  *      end. A v4 row left unresolved by an earlier run is retried here, so
  *      re-adding a deleted guest heals it.
  *
+ *   7. [v7] A row of `rooming[]`, `schedule[]`, `staff[]` or `departments[]`
+ *      with no `id` is given one. The editors address rows by id, and a row
+ *      without one cannot be edited safely once the list can be reordered.
+ *   8. [v7] A `rooming` section becomes an `accommodations` section — the
+ *      summary the event order now carries — unless the file already has one,
+ *      in which case the stale section is dropped rather than duplicated. A
+ *      `menu` section is dropped outright. A title the user chose is kept; one
+ *      left at the old default is renamed, because "Rooming Assignments" over a
+ *      two-line summary table would be a lie.
+ *
  * `foodAndBev[].serves` needs no rule: it defaults to `all` where it is read
  * (`fnbCount`), so a pre-v5 entry counts exactly as it always did.
  *
@@ -54,7 +70,10 @@ export function migrate(event) {
     attendeeIdsAdded: 0,
     roomingRowsLinked: 0,
     roomingRowsWidened: 0,
-    unresolvedRooming: []
+    unresolvedRooming: [],
+    rowIdsAdded: 0,
+    sectionsRetyped: 0,
+    sectionsDropped: 0
   };
 
   if (!event || typeof event !== 'object' || Array.isArray(event)) {
@@ -130,8 +149,64 @@ export function migrate(event) {
     // A row naming nobody in any shape is left as it is: still a booked room.
   }
 
+  // 7. [v7] Row identity, on the arrays that were positional until now.
+  for (const key of ROW_ID_ARRAYS) {
+    const rows = Array.isArray(next[key]) ? next[key] : [];
+    for (const row of rows) {
+      if (!row || typeof row !== 'object' || Array.isArray(row)) continue;
+      if (row.id) continue;
+      row.id = newId();
+      summary.rowIdsAdded += 1;
+      summary.changed = true;
+    }
+  }
+
+  // 8. [v7] The two section types that became documents of their own.
+  if (Array.isArray(next.sections)) {
+    const kept = [];
+    let hasAccommodations = next.sections.some(
+      (section) => section && section.type === 'accommodations');
+
+    for (const section of next.sections) {
+      if (!section || typeof section !== 'object') {
+        kept.push(section);
+        continue;
+      }
+      if (section.type === 'menu') {
+        summary.sectionsDropped += 1;
+        summary.changed = true;
+        continue;
+      }
+      if (section.type === 'rooming') {
+        if (hasAccommodations) {
+          summary.sectionsDropped += 1;
+          summary.changed = true;
+          continue;
+        }
+        section.type = 'accommodations';
+        if (OLD_ROOMING_TITLES.has(String(section.title || '').trim())) {
+          section.title = 'Accommodations';
+        }
+        hasAccommodations = true;
+        summary.sectionsRetyped += 1;
+        summary.changed = true;
+      }
+      kept.push(section);
+    }
+    next.sections = kept;
+  }
+
   return { event: next, summary };
 }
+
+/** [v7] The arrays whose rows were identified by position before v7. */
+const ROW_ID_ARRAYS = ['rooming', 'schedule', 'staff', 'departments'];
+
+/**
+ * [v7] Titles a `rooming` section carried by default, which are renamed on the
+ * way to `accommodations`. Anything else was chosen by a person and is kept.
+ */
+const OLD_ROOMING_TITLES = new Set(['Rooming', 'Rooming Assignments', 'Rooming Assignment']);
 
 /**
  * Comparison key for a guest name: trimmed, inner whitespace collapsed, cased
@@ -156,4 +231,9 @@ function nameKey(name) {
  *   `guestIds` and their name kept. Reported by the run that migrated them;
  *   from then on the row is in the current shape and validation §12.3 is what
  *   keeps reporting it, until someone picks the person.
+ * @property {number} rowIdsAdded [v7] rows given an `id`
+ * @property {number} sectionsRetyped [v7] `rooming` sections that became
+ *   `accommodations`
+ * @property {number} sectionsDropped [v7] `menu` sections, and duplicate
+ *   `rooming` sections, removed from the outline
  */

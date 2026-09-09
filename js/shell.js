@@ -19,6 +19,7 @@
 
 import { getEvent, subscribe, update } from './app.js';
 import {
+  SEEDED_SECTION_TYPES,
   addSection,
   availableTypes,
   deleteSectionPrompt,
@@ -30,6 +31,8 @@ import {
   typeInfo
 } from './sections.js';
 import { createMetaEditor } from './editors/meta.js';
+import { createMenuEditor } from './editors/menu.js';
+import { createRoomingEditor } from './editors/rooming.js';
 import { editorFor, hasEditor } from './editors/registry.js';
 import { formatDateRange } from './dates.js';
 import {
@@ -44,8 +47,15 @@ import {
   toggleClass
 } from './dom.js';
 
-/** The section types offered in the empty state, in seeded order. */
-const QUICK_ADD = ['attendees', 'rooming', 'schedule', 'foodAndBev', 'menu', 'freeText'];
+/**
+ * The section types offered in the empty state, in seeded order.
+ *
+ * Taken from the seed rather than listed again, so the empty state and a new
+ * event can never offer different sets. [v7] Rooming and Menu are not among
+ * them: they are documents of their own (§4, §8), mounted below whatever the
+ * outline holds.
+ */
+const QUICK_ADD = SEEDED_SECTION_TYPES;
 
 const refs = {};
 let addTypeSignature = '';
@@ -64,6 +74,8 @@ function grab() {
   refs.blocks = document.getElementById('section-blocks');
   refs.empty = document.getElementById('empty-state');
   refs.emptyQuick = document.getElementById('empty-quick');
+  refs.roomingBody = document.getElementById('rooming-body');
+  refs.menuBody = document.getElementById('menu-body');
 }
 
 /**
@@ -97,7 +109,21 @@ function closeOutlineOnNarrow() {
 
 /** Bring a block into view and put the caret in its title. */
 function goToBlock(id) {
-  const node = id === 'meta' ? refs.metaBlock : rowNode(refs.blocks, id);
+  goToNode(id === 'meta' ? refs.metaBlock : rowNode(refs.blocks, id));
+}
+
+/**
+ * [v7] The document destinations — Rooming and Menu — which have no section id
+ * because they are not sections. Wired from `data-goto` in the markup so the
+ * navigator holds the list and this holds only the behaviour.
+ */
+function wireDocLinks() {
+  for (const button of document.querySelectorAll('[data-goto]')) {
+    button.addEventListener('click', () => goToNode(document.getElementById(button.dataset.goto)));
+  }
+}
+
+function goToNode(node) {
   if (!node) return;
   closeOutlineOnNarrow();
   node.scrollIntoView({
@@ -143,7 +169,7 @@ function wireAddSection() {
   const all = el('button', {
     type: 'button',
     class: 'btn btn--primary',
-    text: 'Add all six'
+    text: `Add all ${QUICK_ADD.length}`
   });
   all.addEventListener('click', () => {
     update((draft) => {
@@ -186,11 +212,13 @@ function createOutlineItem(item) {
       setText(index, current.kind === 'meta' ? '' : String(current.index + 1));
       setText(label, current.label);
       const off = current.kind === 'section' && !current.section.enabled;
-      const pending = current.kind === 'section' && !hasEditor(current.section.type);
-      setText(state, off ? 'Not printed' : (pending ? 'Editor pending' : ''));
-      setHidden(state, !off && !pending);
+      // [v7] Every type in §4 has an editor, so this is no longer "not built
+      // yet" — it is a file naming a type this build has never heard of.
+      const unknown = current.kind === 'section' && !hasEditor(current.section.type);
+      setText(state, off ? 'Not printed' : (unknown ? 'Unknown type' : ''));
+      setHidden(state, !off && !unknown);
       toggleClass(node, 'is-off', off);
-      toggleClass(node, 'is-pending', pending && !off);
+      toggleClass(node, 'is-pending', unknown && !off);
       toggleClass(node, 'is-meta', current.kind === 'meta');
     }
   };
@@ -312,6 +340,8 @@ function blockButton(control, label, glyph, extraClass = '') {
 /* ----------------------------------------------------------------- rendering */
 
 let metaEditor = null;
+let roomingEditor = null;
+let menuEditor = null;
 
 function render(event) {
   if (!event) return;
@@ -352,12 +382,28 @@ function render(event) {
   blockEntries.forEach((entry, index) => entry.update(event, sections[index], index, sections.length));
 
   setHidden(refs.empty, sections.length > 0);
+
+  // [v7] The two documents that are always generated. Mounted once, outside the
+  // reconciled section list, because nothing in the outline can add or remove
+  // them.
+  if (!roomingEditor) {
+    roomingEditor = createRoomingEditor();
+    refs.roomingBody.append(roomingEditor.node);
+  }
+  roomingEditor.update(event);
+
+  if (!menuEditor) {
+    menuEditor = createMenuEditor();
+    refs.menuBody.append(menuEditor.node);
+  }
+  menuEditor.update(event);
 }
 
 function mount() {
   grab();
   trackBarHeight();
   wireOutlineToggle();
+  wireDocLinks();
   wireAddSection();
   subscribe(render);
 }
