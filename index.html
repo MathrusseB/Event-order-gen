@@ -3,23 +3,75 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
   <title>Event Order Generator — Maple Ranch</title>
+  <link rel="icon" href="data:,">
   <link rel="stylesheet" href="./css/styles.css">
 </head>
 <body>
-  <header>
-    <h1>Event Order Generator</h1>
-    <nav id="toolbar" aria-label="Event file actions">
-      <button type="button" id="btn-new">New</button>
-      <button type="button" id="btn-load">Load</button>
-      <button type="button" id="btn-save">Save</button>
-      <button type="button" id="btn-sample">Load Sample</button>
-      <input type="file" id="file-input" accept="application/json,.json" hidden>
-    </nav>
+  <a class="skiplink" href="#section-blocks">Skip to the order</a>
+
+  <header class="bar" id="bar">
+    <div class="bar__doc">
+      <h1 class="bar__name" id="bar-name">Untitled event</h1>
+      <p class="bar__dates" id="bar-dates">Dates not set</p>
+    </div>
+
+    <div class="bar__tools">
+      <button type="button" class="btn btn--onbar bar__disclosure" id="btn-outline"
+              aria-expanded="false" aria-controls="outline">Sections</button>
+      <nav class="bar__file" aria-label="Event file">
+        <button type="button" class="btn btn--onbar" id="btn-new">New</button>
+        <button type="button" class="btn btn--onbar" id="btn-load">Load</button>
+        <button type="button" class="btn btn--onbar btn--onbar-strong" id="btn-save">Save</button>
+        <button type="button" class="btn btn--onbar" id="btn-sample">Load sample</button>
+        <input type="file" id="file-input" accept="application/json,.json" hidden>
+      </nav>
+    </div>
   </header>
 
-  <main id="app"></main>
+  <div class="workbench">
+    <aside class="outline" id="outline" aria-label="Sections in this order">
+      <h2 class="outline__heading">In this order</h2>
+      <ol class="outline__list" id="outline-list"></ol>
 
+      <div class="outline__add">
+        <label class="field" for="add-type">
+          <span class="field__label">Add a section</span>
+          <select class="input" id="add-type"></select>
+        </label>
+        <button type="button" class="btn btn--primary" id="btn-add-section">Add</button>
+      </div>
+    </aside>
+
+    <main class="sheet" id="sheet">
+      <section class="block block--meta" id="meta-block">
+        <header class="block__head">
+          <span class="block__index" aria-hidden="true"></span>
+          <div class="block__naming">
+            <h2 class="block__fixedtitle">Event details</h2>
+            <span class="block__type">Header of every document</span>
+          </div>
+        </header>
+        <div class="block__body" id="meta-body"></div>
+      </section>
+
+      <div class="blocks" id="section-blocks"></div>
+
+      <div class="empty" id="empty-state" hidden>
+        <h2 class="empty__title">Build the order</h2>
+        <p class="empty__lead">
+          This order has no sections yet. Pick what this event needs — every section can be
+          renamed, reordered, turned off, or removed later, so nothing here is a commitment.
+        </p>
+        <div class="empty__quick" id="empty-quick"></div>
+      </div>
+    </main>
+  </div>
+
+  <!-- app.js holds the event; shell.js draws it. shell.js imports app.js, so
+       app.js is evaluated first whichever order these tags run in. -->
   <script type="module" src="./js/app.js"></script>
+  <script type="module" src="./js/shell.js"></script>
 </body>
 </html>

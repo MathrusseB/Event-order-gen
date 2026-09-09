@@ -1,11 +1,11 @@
-# EVENT-ORDER-GEN — Build Spec v5
+# EVENT-ORDER-GEN — Build Spec v6
 
 Static document generator for Maple Ranch private-side event orders, menus, and rooming lists.
 
 **Repo:** `MathrusseB/EVENT-ORDER-GEN`
 **Deploy:** `event-order-gen-production.up.railway.app`
 
-Supersedes v4. Each change carries the version that introduced it, **[v2]** through **[v5]**;
+Supersedes v5. Each change carries the version that introduced it, **[v2]** through **[v6]**;
 §5 keeps a change block per version.
 
 ---
@@ -74,6 +74,10 @@ sections per event. Nothing is mandatory except the header block.
 - `freeText` can be added unlimited times. This covers Security notes, PSO notes, weather,
   transportation, anything not yet anticipated.
 - **No length caps anywhere.** No character limits, no fixed row counts, textareas auto-grow.
+- **[v6]** A new event is **seeded** with six sections — `attendees`, `rooming`, `schedule`,
+  `foodAndBev`, `menu`, and a `freeText` titled "Notes" — enabled, in that order. `staff` and
+  `departments` are not seeded. Seeded sections are ordinary sections: renamed, reordered,
+  disabled, and removed like any other.
 
 **Section types**
 
@@ -258,6 +262,21 @@ counting error: without it, an adult buffet counts every child in the house. `se
 `countBasis` are independent and compose — `overnight` + `children` is the children staying that
 night — and `all` is the default wherever the field is absent.
 
+### Changes from v5
+
+**[v6] A new event is seeded with a default section set.**
+`emptyEvent()` produced `sections: []`, so a new event opened as a blank page with no outline and
+nothing to type into — the first act of authoring every order was rebuilding the same list by hand.
+Nearly every private-side order uses the same six sections: Attendee List, Rooming Assignments,
+Event Schedule, Food & Beverage, Menu, and a free-text Notes section. Those are seeded, enabled, in
+that order. Staff and departments are not seeded — they are the exception, added when a particular
+event wants them. Sections remain fully removable and reorderable, so a seeded default costs
+nothing to discard, and an event that needs none of them is three taps from empty.
+
+The seed applies to a *new* event only. A loaded file keeps exactly the sections it was saved with,
+including none: `migrate()` does not add sections, because a file saved with an empty outline was
+authored that way on purpose.
+
 ## 6. Static reference data
 
 Seeded in `js/reference.js`. Not part of event JSON.
@@ -358,12 +377,19 @@ now keeps that port cheap.
 ## 11. File layout
 
 ```
-/index.html          form + section builder
+/index.html          application shell
 /rooming.html        standalone rooming editor
 /css/styles.css      design tokens, screen styles
 /css/print.css       @page rules, print-only styles
 /js/app.js           form state, event JSON in memory
+/js/shell.js         application frame — header, section navigator, editor mounting
 /js/sections.js      section add / remove / reorder / enable
+/js/editors/         one editor module per section type, plus the event header
+/js/dom.js           DOM helpers and the keyed reconciler editors render through
+/js/dates.js         ISO date helpers
+/js/ids.js           opaque row ids
+/js/migrate.js       forward migration of inbound JSON
+/js/derive.js        counts and lodging, derived from the event
 /js/reference.js     buildings, rooms, static lists
 /js/render.js        JSON -> document renders
 /js/rooming.js       drag-and-drop assignment editor

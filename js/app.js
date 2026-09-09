@@ -1,4 +1,7 @@
-// Application state and shell — BUILD-SPEC §11.
+// Application state and the file toolbar — BUILD-SPEC §11.
+//
+// The interface itself lives in shell.js and js/editors/. This module knows
+// nothing about them: it holds the event, and everything else subscribes.
 //
 // WRITE CONVENTION — read this before writing event data anywhere in the app.
 // `getEvent()` returns the live event deeply frozen, so an in-place write to it
@@ -12,6 +15,7 @@
 // instead return a replacement event, which is how a self-contained module such
 // as `rooming.js` (BUILD-SPEC §9) plugs in: event in, mutated event out.
 
+import { defaultSections } from './sections.js';
 import {
   loadFromFile,
   saveToFile,
@@ -145,8 +149,17 @@ function notify() {
 }
 
 /**
- * An empty event in the shape of BUILD-SPEC §5. No sections: the section
- * builder adds them.
+ * A new event in the shape of BUILD-SPEC §5.
+ *
+ * [v6] Seeded with the six sections nearly every private-side order uses
+ * (§4, §5 v6 changes) rather than opening on a blank outline. They are ordinary
+ * sections from the moment they exist: renamed, reordered, disabled, and
+ * removed like any other, so an event that wants none of them discards them.
+ *
+ * Only *new* events are seeded. A loaded file keeps the outline it was saved
+ * with, empty included — `migrate()` adds nothing, because a file saved with no
+ * sections was authored that way.
+ *
  * @returns {object}
  */
 export function emptyEvent() {
@@ -159,7 +172,7 @@ export function emptyEvent() {
       revisionDate: '',
       revisedBy: ''
     },
-    sections: [],
+    sections: defaultSections(),
     attendees: [],
     rooming: [],
     schedule: [],
