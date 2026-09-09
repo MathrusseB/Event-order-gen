@@ -103,19 +103,19 @@ sections per event. Nothing is mandatory except the header block.
   "sections": [ /* see section 4 */ ],
 
   "attendees": [
-    { "last": "Illig",   "first": "Brian", "arrive": "2026-11-14", "depart": "2026-11-16", "note": "" },
-    { "last": "Palmer",  "first": "Kim",   "arrive": "2026-11-15", "depart": "2026-11-16", "note": "Arriving late" },
-    { "last": "Baldwin", "first": "Chase", "arrive": "2026-11-14", "depart": "2026-11-14", "note": "Day guest, departing after dinner" }
+    { "id": "a-7f3c", "last": "Illig",   "first": "Brian", "arrive": "2026-11-14", "depart": "2026-11-16", "note": "" },
+    { "id": "a-2b91", "last": "Palmer",  "first": "Kim",   "arrive": "2026-11-15", "depart": "2026-11-16", "note": "Arriving late" },
+    { "id": "a-c40e", "last": "Baldwin", "first": "Chase", "arrive": "2026-11-14", "depart": "2026-11-14", "note": "Day guest, departing after dinner" }
   ],
 
   "rooming": [
-    { "building": "Lodge", "room": "Brian's Suite", "guest": "Brian Illig",
+    { "building": "Lodge", "room": "Brian's Suite", "guestId": "a-7f3c",
       "from": "2026-11-14", "to": "2026-11-16" },
-    { "building": "Lodge", "room": "Timber Suite",  "guest": "Dana Reyes",
+    { "building": "Lodge", "room": "Timber Suite",  "guestId": "a-9d22",
       "from": "2026-11-14", "to": "2026-11-15" },
-    { "building": "Lodge", "room": "Timber Suite",  "guest": "Tom Whitfield",
+    { "building": "Lodge", "room": "Timber Suite",  "guestId": "a-5e08",
       "from": "2026-11-15", "to": "2026-11-16" },
-    { "building": "Red Leaf Inn", "room": null, "guest": "Kim Palmer",
+    { "building": "Red Leaf Inn", "room": null, "guestId": "a-2b91",
       "from": "2026-11-15", "to": "2026-11-16" }
   ],
 
@@ -194,6 +194,24 @@ RLI" is sufficient detail for the document. Buildings therefore declare an assig
 Named buildings require a room; pooled buildings ignore the field. The Lodge is the only named
 building in normal private-side use.
 
+### Changes from v3
+
+**[v4] Attendees carry a stable `id`; `rooming[]` references `guestId`, not a name.**
+Matching a rooming row to a guest by name string breaks two ways, both silently. Editing a guest's
+name orphans their room — the room renders as held by someone no longer on the guest list while
+the guest renders as unhoused. And two attendees with the same name (a junior and a senior, two
+cousins) resolve to the same person, so one room appears to house both. IDs are assigned once, on
+creation, and never displayed. Names remain free to edit.
+
+**[v4] Building occupancy is reported per mode.**
+`named` buildings report rooms occupied. `pooled` buildings have no rooms, so they report guests
+accommodated. The Accommodations table reads the figure appropriate to the mode. Reporting
+"distinct rooms" for a pooled building yields 1 no matter how many guests are in it.
+
+**[v4] Building occupancy is reported per night.**
+The Accommodations table is a dated table — mid-event turnover means a whole-event figure cannot
+be right for every night of the event.
+
 ## 6. Static reference data
 
 Seeded in `js/reference.js`. Not part of event JSON.
@@ -229,7 +247,7 @@ Room inventory is fixed property data — selected from, never typed.
 | Total guest count | `attendees.length` |
 | Guests present on a date | attendees where `arrive <= date <= depart` |
 | Overnight count for a night | attendees where `arrive <= date < depart` |
-| Rooms by building | count of distinct rooms occupied, grouped by building |
+| **[v4]** Lodging by building, per night | for each building with rows covering that night: `mode`, rooms occupied, guests accommodated. The Accommodations table shows rooms for `named`, guests for `pooled`. |
 | **[v3]** Room occupancy on a night | `rooming[]` rows where `from <= night < to`, grouped by building and room |
 | **[v3]** Unassigned guests on a night | attendees overnight that night with no covering `rooming[]` row |
 | F&B attendee count | per `countBasis` — `present`, `overnight`, or `custom` |
@@ -310,7 +328,7 @@ Run before any print. Warn, do not block.
 
 1. Any F&B entry with `countBasis: "custom"` — surface the override explicitly
 2. Attendee staying overnight with no room assignment covering that night
-3. Room assigned to a name not in the attendee list
+3. **[v4]** Rooming row whose `guestId` matches no attendee — an orphan, usually from a deleted guest
 4. **[v3]** Same named room assigned to two guests with overlapping night ranges
 5. **[v3]** Rooming row whose `from`/`to` range falls outside the guest's own `arrive`/`depart`
 6. **[v3]** Room specified on a `pooled` building, or omitted on a `named` building
