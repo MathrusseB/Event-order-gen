@@ -109,8 +109,14 @@ sections per event. Nothing is mandatory except the header block.
   ],
 
   "rooming": [
-    { "building": "Lodge",        "room": "Brian's Suite", "guest": "Brian Illig" },
-    { "building": "Red Leaf Inn", "room": "8",             "guest": "Kim Palmer" }
+    { "building": "Lodge", "room": "Brian's Suite", "guest": "Brian Illig",
+      "from": "2026-11-14", "to": "2026-11-16" },
+    { "building": "Lodge", "room": "Timber Suite",  "guest": "Dana Reyes",
+      "from": "2026-11-14", "to": "2026-11-15" },
+    { "building": "Lodge", "room": "Timber Suite",  "guest": "Tom Whitfield",
+      "from": "2026-11-15", "to": "2026-11-16" },
+    { "building": "Red Leaf Inn", "room": null, "guest": "Kim Palmer",
+      "from": "2026-11-15", "to": "2026-11-16" }
   ],
 
   "schedule": [
@@ -139,7 +145,14 @@ sections per event. Nothing is mandatory except the header block.
     { "name": "Evie",    "date": "2026-11-14", "daypart": "PM", "assignment": "PM stew" }
   ],
 
-  "departments": [],
+  "departments": [
+    { "name": "Security",
+      "priorToEvent": ["Print attendee list for arrivals"],
+      "duringEvent": [
+        { "date": "2026-11-14", "time": "07:00", "task": "Front gate for arrivals" }
+      ],
+      "notes": ["One guest departing after dinner, not returning"] }
+  ],
 
   "buildingsInUse": ["Red Leaf Inn", "The Wheel", "Lodge"]
 }
@@ -166,6 +179,21 @@ larger event warrants it.
 **[v2] Security notes, PSO notes, and anything similar are `freeText` sections,** not schema
 fields. Unlimited, arbitrarily titled, added as needed.
 
+### Changes from v2
+
+**[v3] `rooming[]` entries carry `from` / `to` night ranges.**
+Rooms turn over mid-event on the private side: a guest departs early and an arriving guest takes
+that room the same weekend. A room assignment is therefore a booking over a range of nights, not a
+property of the guest. Both default to the guest's `arrive` / `depart`, so the common case needs no
+extra input. The interval is half-open — `from <= night < to` — matching `overnightCountFor`, so a
+guest departing on the 15th does not hold the room the night of the 15th.
+
+**[v3] `rooming[].room` may be `null` for pooled buildings.**
+Red Leaf Inn is overflow-only for private events and does not need room-level assignment — "in
+RLI" is sufficient detail for the document. Buildings therefore declare an assignment mode (§6).
+Named buildings require a room; pooled buildings ignore the field. The Lodge is the only named
+building in normal private-side use.
+
 ## 6. Static reference data
 
 Seeded in `js/reference.js`. Not part of event JSON.
@@ -173,12 +201,20 @@ Seeded in `js/reference.js`. Not part of event JSON.
 **Buildings:** Red Leaf Inn (RLI), The Wheel, Bucket Shop, Lodge, Wood Shop, MRSO,
 Dock / Boathouse, Hummer Bar, Food Plot, Lake, Cottage
 
-**Red Leaf Inn rooms**
+**[v3] Building assignment modes.** Each building declares `mode: "named" | "pooled"`.
+- **Lodge — `named`.** The working venue for private events. Room-level assignment, room grid in
+  the editor and the render.
+- **Red Leaf Inn — `pooled`.** Backup overflow only. Guests are assigned to the building, not to a
+  room; the render lists them under "Red Leaf Inn" with no room numbers. Full room inventory is
+  retained below so the mode can be flipped if a private event ever needs it.
+- All other buildings are non-lodging and take no assignments.
+
+**Lodge rooms (`named`):** Master Suite, Brian's Suite, Michael's Suite, Timber Suite,
+Wetland Suite, Basement Office Suite, Upland Suite, Bunk Room
+
+**Red Leaf Inn rooms (retained, unused while `pooled`)**
 - King: 2, 4, 6, 8 (Exec Suite), 10, 12, 14, 16, 18, 20 (Exec Suite), 22, 24
 - Double Queen: 1, 3, 5, 7, 9, 11 (Suite), 13, 15, 17, 19, 21, 23 (Suite)
-
-**Lodge rooms:** Master Suite, Brian's Suite, Michael's Suite, Timber Suite, Wetland Suite,
-Basement Office Suite, Upland Suite, Bunk Room
 
 **[v2] Schedule label suggestions** (autocomplete only, free text always allowed):
 Duck Hunt, Upland Hunt, Deer Hunt, Downtime, Breakfast, Lunch, Dinner, Cocktails, Happy Hour,
@@ -193,7 +229,9 @@ Room inventory is fixed property data — selected from, never typed.
 | Total guest count | `attendees.length` |
 | Guests present on a date | attendees where `arrive <= date <= depart` |
 | Overnight count for a night | attendees where `arrive <= date < depart` |
-| Rooms by building | count of `rooming[]` grouped by building |
+| Rooms by building | count of distinct rooms occupied, grouped by building |
+| **[v3]** Room occupancy on a night | `rooming[]` rows where `from <= night < to`, grouped by building and room |
+| **[v3]** Unassigned guests on a night | attendees overnight that night with no covering `rooming[]` row |
 | F&B attendee count | per `countBasis` — `present`, `overnight`, or `custom` |
 | Menu header count | same computed value as the F&B row it references |
 | Footer revision line | `meta.revisionDate` + `meta.revisedBy` |
@@ -212,12 +250,20 @@ totals, attendee list with arrival/departure and notes.
 
 A dedicated view, not a form field. Requirement: ownership can adjust assignments without help.
 
-- Two panes — unassigned guests on one side, room grid by building on the other
-- Drag a guest onto a room, or tap guest then tap room on touch
-- Rooms show occupied / vacant state at a glance
-- Dragging onto an occupied room offers swap or replace
+**[v3] The editor works one night at a time.** A night selector across the top (one control per
+night of the event) sets which night is being arranged. This is what makes mid-event turnover
+visible — the Timber Suite can show Dana on Saturday and Tom on Sunday, and the conflict of
+assigning both to the same night is obvious rather than silent.
+
+- Night selector — one tab per night, current night highlighted
+- Two panes — guests present that night and unassigned, against the lodging buildings
+- **Lodge** renders as a room grid; drag a guest onto a room, or tap guest then tap room on touch
+- **Red Leaf Inn** renders as a single drop area with no rooms — a guest is either in RLI or not
+- Rooms show occupied / vacant for the selected night only
+- Dropping onto an occupied room offers swap or replace, scoped to that night
+- Assigning a guest across consecutive nights creates one `rooming[]` row with a spanning range,
+  not one row per night
 - Undo for the last ten moves
-- Reflects immediately in the Rooming render and in any derived counts
 - Works on tablet — assume it gets used standing up, not at a desk
 
 v1 is local-only: whoever has the app open makes the change.
@@ -249,7 +295,6 @@ now keeps that port cheap.
 /css/styles.css      design tokens, screen styles
 /css/print.css       @page rules, print-only styles
 /js/app.js           form state, event JSON in memory
-/js/derive.js        derived counts and grouping, pure (see §7)
 /js/sections.js      section add / remove / reorder / enable
 /js/reference.js     buildings, rooms, static lists
 /js/render.js        JSON -> document renders
@@ -264,8 +309,11 @@ now keeps that port cheap.
 Run before any print. Warn, do not block.
 
 1. Any F&B entry with `countBasis: "custom"` — surface the override explicitly
-2. Attendee staying overnight with no room assignment
+2. Attendee staying overnight with no room assignment covering that night
 3. Room assigned to a name not in the attendee list
+4. **[v3]** Same named room assigned to two guests with overlapping night ranges
+5. **[v3]** Rooming row whose `from`/`to` range falls outside the guest's own `arrive`/`depart`
+6. **[v3]** Room specified on a `pooled` building, or omitted on a `named` building
 4. Menu block referencing a nonexistent `fnbId`
 5. F&B entry with no menu block
 6. Schedule or F&B item dated outside `startDate`–`endDate`
