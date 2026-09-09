@@ -1,78 +1,81 @@
-/* Design tokens — BUILD-SPEC §11.
-   Custom properties only. No component styles: those arrive with the form,
-   the section editors, and the renders. Print rules live in css/print.css. */
+/* Screen styles and design tokens — BUILD-SPEC §11.
+   Print rules live in css/print.css.
+
+   THE IDEA
+   This is a workbench, not a website. One coordinator uses it, sometimes at a
+   desk and sometimes standing in a lodge holding a tablet, and the thing that
+   leaves the building is the printed order. So the screen is quiet, dense, and
+   set in the same two voices the document will be: a serif for anything that is
+   part of the document — the event's name, the section titles — and a small,
+   plain sans for everything that is machinery, which is labels, fields, and
+   buttons. Real estate goes to the data.
+
+   Boldness is spent in exactly one place: the header slab, dark forest, with
+   the event's name in the document's own serif. Below it nothing raises its
+   voice — hairlines instead of shadows, square corners instead of rounded
+   cards, sentence case instead of tracked-out capitals, and colour only where
+   it carries meaning (a warning, a section that will not print, a field that is
+   following the event dates rather than its own). */
 
 :root {
-  /* Font stacks */
+  /* Type. Two voices: the document's, and the tool's. */
+  --font-serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --font-serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
-  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
 
-  /* Neutral scale — paper through ink */
-  --color-paper: #ffffff;
-  --color-neutral-50: #f7f6f3;
-  --color-neutral-100: #eeece7;
-  --color-neutral-200: #ddd9d1;
-  --color-neutral-300: #c4beb2;
-  --color-neutral-400: #a09889;
-  --color-neutral-500: #7d7466;
-  --color-neutral-600: #5e564a;
-  --color-neutral-700: #443e35;
-  --color-neutral-800: #2c2822;
-  --color-neutral-900: #1a1714;
+  /* Ink — cool, faintly green-grey, so it sits with the forest rather than
+     fighting it. Paper is paper. */
+  --paper: #ffffff;
+  --ground: #e5e8e2;
+  --ink-900: #14181a;
+  --ink-800: #232a2c;
+  --ink-700: #333c3e;
+  --ink-600: #4a5457;
+  --ink-500: #667074;
+  --ink-400: #8b9498;
+  --ink-300: #b3babc;
+  --ink-200: #d3d8d6;
+  --ink-100: #e6eae6;
+  --ink-50: #f3f5f2;
 
-  /* Accent scale — property green */
-  --color-accent-100: #e2ebdf;
-  --color-accent-300: #a9c0a0;
-  --color-accent-500: #6b8a5e;
-  --color-accent-700: #45623c;
-  --color-accent-900: #2b3f26;
+  /* Forest — the one saturated family. The bar, and small marks of state. */
+  --forest-900: #16241c;
+  --forest-800: #1e3125;
+  --forest-600: #2f5138;
+  --forest-500: #3c6544;
+  --forest-300: #8bab92;
+  --forest-100: #dfeae1;
 
-  /* Status — validation warns, never blocks (BUILD-SPEC §12) */
-  --color-warn-100: #faf0d7;
-  --color-warn-500: #b98900;
-  --color-warn-900: #6b4f00;
-  --color-danger-100: #f8dedb;
-  --color-danger-500: #b3402f;
-  --color-danger-900: #6b241a;
-  --color-ok-100: #dfeee2;
-  --color-ok-500: #4a8657;
-  --color-ok-900: #29512f;
+  /* Meaning, not decoration. Validation warns and never blocks (§12). */
+  --amber-700: #75560f;
+  --amber-400: #c79a2a;
+  --amber-100: #f8eed8;
+  --brick-600: #8c3b2a;
+  --brick-400: #c08175;
+  --brick-100: #f7e4e0;
 
   /* Semantic aliases */
-  --color-text: var(--color-neutral-900);
-  --color-text-muted: var(--color-neutral-600);
-  --color-text-faint: var(--color-neutral-400);
-  --color-surface: var(--color-paper);
-  --color-surface-sunken: var(--color-neutral-50);
-  --color-border: var(--color-neutral-200);
-  --color-border-strong: var(--color-neutral-400);
-  --color-focus: var(--color-accent-500);
+  --text: var(--ink-900);
+  --text-muted: var(--ink-600);
+  --text-faint: var(--ink-400);
+  --rule: var(--ink-200);
+  --rule-strong: var(--ink-300);
+  --focus: var(--forest-500);
+  --focus-on-dark: #bcd8c3;
 
-  /* Type scale — 1.200 minor third off a 16px base */
-  --text-xs: 0.694rem;
-  --text-sm: 0.833rem;
-  --text-base: 1rem;
-  --text-md: 1.2rem;
-  --text-lg: 1.44rem;
-  --text-xl: 1.728rem;
-  --text-2xl: 2.074rem;
-  --text-3xl: 2.488rem;
+  /* Type scale — 1.2 minor third off a 16px base */
+  --text-xs: 0.75rem;
+  --text-sm: 0.8125rem;
+  --text-base: 0.9375rem;
+  --text-md: 1.125rem;
+  --text-lg: 1.35rem;
+  --text-xl: 1.62rem;
+  --text-2xl: 1.95rem;
 
   --leading-tight: 1.2;
-  --leading-normal: 1.5;
-  --leading-loose: 1.7;
+  --leading-normal: 1.45;
+  --leading-loose: 1.6;
 
-  --weight-regular: 400;
-  --weight-medium: 500;
-  --weight-bold: 700;
-
-  --tracking-tight: -0.01em;
-  --tracking-normal: 0;
-  --tracking-wide: 0.06em;
-
-  /* Spacing scale — 4px base */
-  --space-0: 0;
+  /* Spacing — 4px base */
   --space-1: 0.25rem;
   --space-2: 0.5rem;
   --space-3: 0.75rem;
@@ -80,22 +83,1037 @@
   --space-5: 1.5rem;
   --space-6: 2rem;
   --space-7: 3rem;
-  --space-8: 4rem;
-  --space-9: 6rem;
 
-  /* Borders and radii */
-  --radius-sm: 2px;
-  --radius-md: 4px;
-  --radius-lg: 8px;
-  --border-width: 1px;
-  --border-width-strong: 2px;
+  --radius: 2px;
+  --control-h: 2.25rem;
+  --touch-h: 2.75rem;
 
-  /* Elevation — screen only */
-  --shadow-sm: 0 1px 2px rgba(26, 23, 20, 0.08);
-  --shadow-md: 0 2px 8px rgba(26, 23, 20, 0.12);
-
-  /* Layout */
-  --measure: 68ch;
+  /* Layout. --bar-h is written by shell.js from the header's measured height,
+     so sticky offsets stay true at whatever width the tablet is held. */
+  --bar-h: 4.5rem;
+  --outline-w: 15rem;
+  --sheet-max: 84rem;
   --page-width: 8.5in;
   --page-margin: 0.75in;
+}
+
+/* ------------------------------------------------------------------- base */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+}
+
+h1, h2, h3, p, ul, ol {
+  margin: 0;
+}
+
+ul, ol {
+  padding: 0;
+  list-style: none;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.skiplink {
+  position: absolute;
+  left: var(--space-3);
+  top: -4rem;
+  z-index: 20;
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--touch-h);
+  padding: 0 var(--space-4);
+  background: var(--paper);
+  color: var(--text);
+  border: 1px solid var(--forest-500);
+  text-decoration: none;
+}
+
+.skiplink:focus {
+  top: var(--space-3);
+}
+
+/* ------------------------------------------------------------------- bar */
+
+.bar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-5);
+  padding: var(--space-3) var(--space-5);
+  background: var(--forest-900);
+  color: #f0f4ef;
+  border-bottom: 3px solid var(--forest-600);
+}
+
+.bar__doc {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-4);
+  min-width: 0;
+}
+
+.bar__name {
+  font-family: var(--font-serif);
+  font-size: var(--text-xl);
+  font-weight: 600;
+  line-height: var(--leading-tight);
+  letter-spacing: -0.005em;
+}
+
+.bar__dates {
+  font-size: var(--text-sm);
+  color: var(--forest-300);
+}
+
+.bar__name.is-placeholder,
+.bar__dates.is-placeholder {
+  color: #7e9885;
+  font-style: italic;
+}
+
+/* Button labels never wrap mid-word, so the rows of buttons wrap instead.
+   On a phone that is two tidy lines rather than a slice off the right edge. */
+.bar__tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.bar__file {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.bar .bar__disclosure {
+  display: none;
+}
+
+/* --------------------------------------------------------------- controls */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: var(--control-h);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius);
+  background: var(--paper);
+  color: var(--ink-800);
+  font: inherit;
+  font-size: var(--text-sm);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+
+.btn:hover:not(:disabled) {
+  background: var(--ink-50);
+  border-color: var(--ink-500);
+}
+
+.btn:disabled {
+  opacity: 0.38;
+  cursor: default;
+}
+
+.btn--primary {
+  background: var(--forest-600);
+  border-color: var(--forest-600);
+  color: #f2f7f2;
+}
+
+.btn--primary:hover:not(:disabled) {
+  background: var(--forest-800);
+  border-color: var(--forest-800);
+}
+
+.btn--onbar {
+  background: transparent;
+  border-color: #4d6b56;
+  color: #dbe7dc;
+}
+
+.btn--onbar:hover:not(:disabled) {
+  background: var(--forest-800);
+  border-color: var(--forest-300);
+}
+
+.btn--onbar-strong {
+  border-color: var(--forest-300);
+  color: #ffffff;
+}
+
+.bar :focus-visible {
+  outline-color: var(--focus-on-dark);
+}
+
+.btn--row {
+  min-width: var(--control-h);
+  padding: 0 var(--space-2);
+}
+
+.btn--danger {
+  color: var(--brick-600);
+  border-color: var(--brick-400);
+}
+
+.btn--danger:hover:not(:disabled) {
+  background: var(--brick-100);
+  border-color: var(--brick-600);
+}
+
+.btn__glyph {
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.btn__text {
+  display: none;
+}
+
+.linkish {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--forest-600);
+  font: inherit;
+  font-size: var(--text-xs);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.linkish:hover {
+  color: var(--forest-800);
+}
+
+/* ----------------------------------------------------------------- fields */
+
+.field {
+  display: block;
+  min-width: 0;
+}
+
+.field__label {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  line-height: 1.3;
+}
+
+.input {
+  width: 100%;
+  min-height: var(--control-h);
+  padding: 0 var(--space-2);
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius);
+  background: var(--paper);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--text-base);
+}
+
+.input:hover {
+  border-color: var(--ink-500);
+}
+
+.input:focus {
+  border-color: var(--forest-500);
+}
+
+select.input {
+  padding-right: var(--space-1);
+}
+
+.textarea {
+  display: block;
+  min-height: 5.5rem;
+  padding: var(--space-2);
+  line-height: var(--leading-loose);
+  resize: vertical;
+  overflow: hidden;
+  white-space: pre-wrap;
+}
+
+.input::placeholder {
+  color: var(--text-faint);
+}
+
+.check {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--control-h);
+  cursor: pointer;
+}
+
+.check__box {
+  width: 1.15rem;
+  height: 1.15rem;
+  margin: 0;
+  accent-color: var(--forest-600);
+  flex: none;
+}
+
+.check__label {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+.check--switch .check__label {
+  color: var(--ink-700);
+  white-space: nowrap;
+}
+
+/* -------------------------------------------------------------- workbench */
+
+.workbench {
+  display: block;
+  max-width: var(--sheet-max);
+  margin: 0 auto;
+  padding: 0 var(--space-4) var(--space-7);
+}
+
+.outline {
+  display: none;
+  padding: var(--space-4) 0 var(--space-5);
+}
+
+body.outline-open .outline {
+  display: block;
+  border-bottom: 1px solid var(--rule);
+  margin-bottom: var(--space-4);
+}
+
+.outline__heading {
+  margin-bottom: var(--space-2);
+  font-family: var(--font-serif);
+  font-size: var(--text-md);
+  font-weight: 600;
+}
+
+.outline__list {
+  border-top: 1px solid var(--rule);
+}
+
+.outline__item {
+  border-bottom: 1px solid var(--rule);
+}
+
+.outline__link {
+  display: grid;
+  grid-template-columns: 1.5rem 1fr;
+  align-items: baseline;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: var(--touch-h);
+  padding: var(--space-2) var(--space-1);
+  border: 0;
+  background: none;
+  color: var(--ink-800);
+  font: inherit;
+  font-size: var(--text-sm);
+  text-align: left;
+  cursor: pointer;
+}
+
+.outline__link:hover {
+  background: var(--ink-50);
+}
+
+.outline__index {
+  font-family: var(--font-serif);
+  color: var(--text-faint);
+  font-size: var(--text-sm);
+}
+
+.outline__label {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.outline__state {
+  grid-column: 2;
+  color: var(--amber-700);
+  font-size: var(--text-xs);
+}
+
+.outline__item.is-off .outline__label {
+  color: var(--text-faint);
+}
+
+.outline__item.is-pending .outline__state {
+  color: var(--text-faint);
+}
+
+.outline__item.is-meta .outline__label {
+  font-family: var(--font-serif);
+  font-size: var(--text-base);
+}
+
+.outline__add {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+.outline__add .field {
+  flex: 1 1 auto;
+}
+
+.outline__add .btn {
+  flex: none;
+}
+
+/* ------------------------------------------------------------------ sheet */
+
+.sheet {
+  padding-top: var(--space-4);
+  min-width: 0;
+}
+
+.block {
+  margin-bottom: var(--space-4);
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  scroll-margin-top: calc(var(--bar-h) + var(--space-3));
+}
+
+.block__head {
+  display: grid;
+  grid-template-columns: 1.75rem minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--ink-50);
+  border-bottom: 1px solid var(--rule);
+}
+
+.block__index {
+  font-family: var(--font-serif);
+  font-size: var(--text-md);
+  color: var(--text-faint);
+  text-align: right;
+}
+
+.block__naming {
+  min-width: 0;
+}
+
+.block__fixedtitle {
+  font-family: var(--font-serif);
+  font-size: var(--text-md);
+  font-weight: 600;
+}
+
+.block__type {
+  display: block;
+  color: var(--text-faint);
+  font-size: var(--text-xs);
+}
+
+.input--title {
+  font-family: var(--font-serif);
+  font-size: var(--text-md);
+  padding-left: var(--space-1);
+  background: transparent;
+  border-color: transparent;
+  border-bottom: 1px dotted var(--rule-strong);
+  border-radius: 0;
+}
+
+.input--title:hover,
+.input--title:focus {
+  background: var(--paper);
+  border-color: var(--forest-500);
+}
+
+.block__controls {
+  display: flex;
+  gap: var(--space-2);
+  grid-column: 2;
+}
+
+.block__head .check--switch {
+  grid-column: 2;
+}
+
+.block__body {
+  padding: var(--space-4);
+}
+
+/* Disabled is not deleted. The section keeps its content and its place; it is
+   left out of the printed order. BUILD-SPEC §4 — never delete to hide. */
+.block--off {
+  background: var(--ink-50);
+}
+
+.block--off .block__head {
+  background: var(--ink-100);
+}
+
+.block--off::before {
+  content: "";
+  display: block;
+  height: 4px;
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--ink-300) 0 4px,
+    var(--ink-100) 4px 8px
+  );
+}
+
+.block--off .input--title {
+  color: var(--text-muted);
+}
+
+.block--off .block__body {
+  opacity: 0.66;
+}
+
+.block__badge {
+  padding: var(--space-2) var(--space-4);
+  border-bottom: 1px solid var(--rule);
+  background: var(--ink-100);
+  color: var(--ink-700);
+  font-size: var(--text-sm);
+}
+
+/* ----------------------------------------------------------------- editors */
+
+.editor__foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+  margin-top: var(--space-4);
+}
+
+.editor__legend {
+  color: var(--text-faint);
+  font-size: var(--text-xs);
+  max-width: 46em;
+}
+
+.editor--meta {
+  container-type: inline-size;
+}
+
+.metagrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-3) var(--space-4);
+}
+
+.metagrid .cell--wide {
+  grid-column: 1 / -1;
+}
+
+.editor--meta .editor__legend {
+  margin-top: var(--space-3);
+}
+
+@container (min-width: 30rem) {
+  .metagrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@container (min-width: 48rem) {
+  .metagrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* ------------------------------------------------------------------ notice */
+
+.notice {
+  margin-top: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--amber-400);
+  border-left-width: 4px;
+  background: var(--amber-100);
+  color: var(--ink-800);
+}
+
+.notice__title {
+  font-family: var(--font-serif);
+  font-size: var(--text-base);
+  font-weight: 600;
+  margin-bottom: var(--space-2);
+}
+
+.notice__list {
+  display: grid;
+  gap: 2px;
+  font-size: var(--text-sm);
+}
+
+.notice__list li {
+  display: grid;
+  grid-template-columns: 9.5rem minmax(0, 1fr);
+  gap: var(--space-2);
+}
+
+.notice__kind {
+  color: var(--amber-700);
+}
+
+.notice__summary {
+  margin-bottom: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--ink-700);
+}
+
+.notice__more,
+.notice__foot {
+  margin-top: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+/* ------------------------------------------------------------------ tally */
+
+.tally {
+  position: sticky;
+  top: var(--bar-h);
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-3) var(--space-6);
+  margin: calc(var(--space-4) * -1) calc(var(--space-4) * -1) var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  background: var(--paper);
+  border-bottom: 1px solid var(--rule-strong);
+}
+
+.tally__total {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
+.tally__figure {
+  font-family: var(--font-serif);
+  font-size: var(--text-xl);
+  color: var(--text);
+  line-height: 1;
+}
+
+.tally__table {
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.tally__table th,
+.tally__table td {
+  padding: 1px var(--space-3) 1px 0;
+  text-align: left;
+  font-weight: 400;
+}
+
+.tally__table thead th {
+  color: var(--text-faint);
+  font-size: var(--text-xs);
+  border-bottom: 1px solid var(--rule);
+}
+
+.tally__table tbody th {
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.tally__table td {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  min-width: 3.5rem;
+}
+
+.tally__table tr.is-quiet td {
+  color: var(--text-faint);
+}
+
+.tally__empty,
+.tally__dietary {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  max-width: 42em;
+}
+
+/* Dietary drives the menu and the buffet labels (§5, v5 changes), so it is
+   stated in words as well as shown in the column. */
+.tally__dietary {
+  flex-basis: 100%;
+  color: var(--amber-700);
+}
+
+/* ------------------------------------------------------------------- rows */
+
+/* One column definition, shared by the header strip and every row, so the two
+   can never drift apart. Widths are sized to fit inside the 55rem container
+   query below — last, first, arrives, departs, child, dietary, note, actions. */
+.editor--guests {
+  --guest-cols:
+    minmax(4.75rem, 1fr)
+    minmax(4.75rem, 1fr)
+    9rem
+    9rem
+    3rem
+    minmax(6rem, 1.8fr)
+    minmax(6rem, 1.2fr)
+    minmax(7.75rem, auto);
+}
+
+.editor__table {
+  container-type: inline-size;
+}
+
+.rowhead {
+  display: none;
+}
+
+.rows {
+  border-top: 1px solid var(--rule);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-2);
+  border-bottom: 1px solid var(--rule);
+}
+
+.row .cell--dietary,
+.row .cell--note,
+.row .cell--actions,
+.row .rowwarn {
+  grid-column: 1 / -1;
+}
+
+.cell {
+  min-width: 0;
+}
+
+.cell--actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.rows__empty {
+  padding: var(--space-4) var(--space-2);
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
+/* A date the guest has not set follows the event's. Dashed and grey says
+   "inherited"; an empty date input says "you forgot something". */
+.cell--date.is-defaulted .input--date {
+  color: var(--text-faint);
+  border-style: dashed;
+  background: var(--ink-50);
+}
+
+.datemark {
+  display: block;
+  min-height: 1.1rem;
+  margin-top: 2px;
+  font-size: var(--text-xs);
+  line-height: 1.1rem;
+}
+
+.datemark__default {
+  color: var(--text-faint);
+}
+
+.row.has-dietary .cell--dietary .input {
+  border-color: var(--amber-400);
+  background: #fffdf6;
+}
+
+.rowwarn {
+  margin-top: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  background: var(--amber-100);
+  border-left: 3px solid var(--amber-400);
+  color: var(--amber-700);
+  font-size: var(--text-sm);
+}
+
+/* ------------------------------------------------------------- placeholder */
+
+.editor--placeholder {
+  padding: var(--space-3) var(--space-4);
+  border: 1px dashed var(--rule-strong);
+  background: var(--ink-50);
+}
+
+.placeholder__message {
+  color: var(--ink-700);
+}
+
+.placeholder__detail {
+  margin-top: var(--space-1);
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  max-width: 46em;
+}
+
+/* -------------------------------------------------------------- empty state */
+
+.empty {
+  padding: var(--space-6) var(--space-5);
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-top: 3px solid var(--forest-600);
+}
+
+.empty__title {
+  font-family: var(--font-serif);
+  font-size: var(--text-lg);
+  font-weight: 600;
+}
+
+.empty__lead {
+  max-width: 46em;
+  margin-top: var(--space-2);
+  color: var(--text-muted);
+}
+
+.empty__quick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-5);
+}
+
+/* ------------------------------------------------------- touch and reading */
+
+@media (pointer: coarse) {
+  .btn,
+  .input,
+  .check {
+    min-height: var(--touch-h);
+  }
+
+  .btn--row {
+    min-width: var(--touch-h);
+  }
+
+  .check__box {
+    width: 1.4rem;
+    height: 1.4rem;
+  }
+
+  /* A text button is still a button under a thumb. */
+  .linkish {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--touch-h);
+    padding: 0 var(--space-1);
+  }
+}
+
+/* Wide enough for the navigator to live beside the sheet. Below this the
+   navigator collapses to the "Sections" button in the header — it stops taking
+   room, it does not stop existing. */
+@media (min-width: 60rem) {
+  .workbench {
+    display: grid;
+    grid-template-columns: var(--outline-w) minmax(0, 1fr);
+    gap: var(--space-6);
+    padding: 0 var(--space-5) var(--space-7);
+  }
+
+  .outline {
+    display: block;
+    position: sticky;
+    top: var(--bar-h);
+    align-self: start;
+    max-height: calc(100vh - var(--bar-h));
+    overflow-y: auto;
+    padding: var(--space-4) 0 var(--space-5);
+  }
+
+  body.outline-open .outline {
+    border-bottom: 0;
+    margin-bottom: 0;
+  }
+
+  .block__head {
+    grid-template-columns: 1.75rem minmax(0, 1fr) auto auto;
+  }
+
+  .block__controls,
+  .block__head .check--switch {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 59.99rem) {
+  .bar .bar__disclosure {
+    display: inline-flex;
+  }
+
+  /* The block header stacks here, so its controls have room to say what they
+     do. The row buttons do the same thing through a container query, because
+     they answer to their column's width rather than the window's. */
+  .block__controls {
+    flex-wrap: wrap;
+  }
+
+  .block__controls .btn__glyph {
+    display: none;
+  }
+
+  .block__controls .btn__text {
+    display: inline;
+  }
+}
+
+@media (min-width: 90rem) {
+  :root {
+    --outline-w: 17rem;
+  }
+}
+
+/* The guest list becomes a table when its own column is wide enough for one —
+   a container query, not a viewport one, because the sheet's width depends on
+   whether the navigator is beside it. */
+@container (min-width: 55rem) {
+  .rowhead {
+    display: grid;
+    grid-template-columns: var(--guest-cols);
+    gap: var(--space-2);
+    padding: 0 var(--space-2) var(--space-1);
+    color: var(--text-faint);
+    font-size: var(--text-xs);
+  }
+
+  .rows--guests .row {
+    grid-template-columns: var(--guest-cols);
+    gap: var(--space-2);
+    align-items: start;
+    padding: var(--space-2);
+  }
+
+  .rows--guests .row .cell--dietary,
+  .rows--guests .row .cell--note,
+  .rows--guests .row .cell--actions {
+    grid-column: auto;
+  }
+
+  .rows--guests .field__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .rows--guests .check__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .rows--guests .cell--child {
+    display: flex;
+    justify-content: center;
+  }
+
+  .rows--guests .btn__glyph {
+    display: inline;
+  }
+}
+
+@container (max-width: 54.99rem) {
+  .btn--row .btn__glyph {
+    display: none;
+  }
+
+  .btn--row .btn__text {
+    display: inline;
+  }
+
+  .btn--row {
+    padding: 0 var(--space-3);
+  }
+
+  /* Stacked, a guest is a card and its controls are its footer. */
+  .rows--guests .cell--actions {
+    padding-top: var(--space-1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
