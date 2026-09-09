@@ -1,6 +1,6 @@
 // Static reference data — BUILD-SPEC §6.
 // Property facts, not event data. Never written to the event JSON.
-// Plain constants only: no logic, no DOM, no imports.
+// Constants and pure lookups over them: no DOM, no state, no imports.
 
 /** Buildings on property. BUILD-SPEC §6. */
 export const BUILDINGS = [
@@ -21,6 +21,38 @@ export const BUILDINGS = [
 export const BUILDING_ABBREVIATIONS = {
   'Red Leaf Inn': 'RLI'
 };
+
+/**
+ * [v3] Building assignment modes. BUILD-SPEC §6.
+ *
+ *   `named`  — room-level assignment. `rooming[].room` is required, and the
+ *              room grid is drawn in the editor and the render.
+ *   `pooled` — assignment is to the building only. `rooming[].room` is null;
+ *              "in RLI" is all the detail the document needs.
+ *
+ * Buildings absent from this map are non-lodging and take no assignments.
+ * Red Leaf Inn is pooled because it is backup overflow on the private side; its
+ * room inventory is kept below so the mode can be flipped if that ever changes.
+ */
+export const BUILDING_ASSIGNMENT_MODES = {
+  'Lodge': 'named',
+  'Red Leaf Inn': 'pooled'
+};
+
+/** Mode reported for a building that takes no assignments at all. */
+export const ASSIGNMENT_MODE_NONE = 'none';
+
+/**
+ * A building's assignment mode. BUILD-SPEC §6 [v3].
+ *
+ * @param {string} building name as stored on a rooming row
+ * @returns {'named'|'pooled'|'none'} `none` for non-lodging or unknown buildings
+ */
+export function assignmentModeFor(building) {
+  return Object.hasOwn(BUILDING_ASSIGNMENT_MODES, building)
+    ? BUILDING_ASSIGNMENT_MODES[building]
+    : ASSIGNMENT_MODE_NONE;
+}
 
 // Red Leaf Inn room inventory. Room numbers are strings to match rooming[].room.
 // `suite` is the suite label where one applies, otherwise null.
@@ -75,7 +107,10 @@ export const LODGE_ROOMS = [
   { room: 'Bunk Room',             suite: null }
 ];
 
-/** Room inventory keyed by building. Buildings with no lodging are absent. */
+/**
+ * Room inventory keyed by building. Buildings with no lodging are absent.
+ * Red Leaf Inn's rooms are retained but unused while it is `pooled` (§6 [v3]).
+ */
 export const ROOMS_BY_BUILDING = {
   'Red Leaf Inn': RED_LEAF_INN_ROOMS,
   'Lodge': LODGE_ROOMS

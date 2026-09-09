@@ -7,6 +7,16 @@
 /** Single autosave key. One event in flight at a time. */
 const AUTOSAVE_KEY = 'event-order-gen:autosave';
 
+/**
+ * Trailing debounce for the autosave, in ms. The form writes per keystroke;
+ * without this, every character serializes the whole event to `localStorage`.
+ * Long enough to coalesce typing, short enough that a pause is a save.
+ */
+const AUTOSAVE_DEBOUNCE_MS = 500;
+
+/** How long a download's object URL is held before it is revoked. */
+const OBJECT_URL_LIFETIME_MS = 60000;
+
 /** Resolved from this module, so the app runs from any directory. */
 const SAMPLE_URL = new URL('../data/sample.json', import.meta.url);
 
@@ -71,8 +81,50 @@ export function saveToFile(event) {
   document.body.appendChild(link);
   link.click();
   link.remove();
-  URL.revokeObjectURL(url);
+  // Safari and iOS can still be reading the blob when `click()` returns, so a
+  // synchronous revoke races the download and produces an empty or failed file.
+  // Defer it: the URL costs nothing to hold, and the tab reclaims it anyway.
+  window.setTimeout(() => URL.revokeObjectURL(url), OBJECT_URL_LIFETIME_MS);
   return name;
+}
+
+// Debounce state. The pending event is held here, not by the caller, so a
+// flush at page-hide time writes the newest edit whoever triggers it.
+let autosaveTimer = null;
+let pendingEvent = null;
+
+/**
+ * Queue an autosave, replacing any write still waiting. The normal write path:
+ * `app.js` calls this on every change, and it lands ~500ms after typing stops.
+ *
+ * @param {object} event
+ */
+export function scheduleAutosave(event) {
+  pendingEvent = event;
+  if (autosaveTimer !== null) window.clearTimeout(autosaveTimer);
+  autosaveTimer = window.setTimeout(flushAutosave, AUTOSAVE_DEBOUNCE_MS);
+}
+
+/**
+ * Write any queued autosave now. Wired to page-hide in `app.js` so a closed
+ * tab does not eat the last edit. Safe to call with nothing pending.
+ *
+ * @returns {boolean} whether anything was written
+ */
+export function flushAutosave() {
+  cancelPendingAutosave();
+  if (pendingEvent === null) return false;
+  const event = pendingEvent;
+  pendingEvent = null;
+  return autosave(event);
+}
+
+/** Drop a queued autosave without writing it. */
+function cancelPendingAutosave() {
+  if (autosaveTimer !== null) {
+    window.clearTimeout(autosaveTimer);
+    autosaveTimer = null;
+  }
 }
 
 /**
@@ -108,8 +160,14 @@ export function restoreAutosave() {
   }
 }
 
-/** Discard the autosave. Silent if storage is unavailable. */
+/**
+ * Discard the autosave, queued write included — otherwise a debounced save of
+ * the discarded event could land after New has cleared it.
+ * Silent if storage is unavailable.
+ */
 export function clearAutosave() {
+  cancelPendingAutosave();
+  pendingEvent = null;
   try {
     window.localStorage.removeItem(AUTOSAVE_KEY);
     return true;
