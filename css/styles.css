@@ -1,0 +1,101 @@
+/* Design tokens — BUILD-SPEC §11.
+   Custom properties only. No component styles: those arrive with the form,
+   the section editors, and the renders. Print rules live in css/print.css. */
+
+:root {
+  /* Font stacks */
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+
+  /* Neutral scale — paper through ink */
+  --color-paper: #ffffff;
+  --color-neutral-50: #f7f6f3;
+  --color-neutral-100: #eeece7;
+  --color-neutral-200: #ddd9d1;
+  --color-neutral-300: #c4beb2;
+  --color-neutral-400: #a09889;
+  --color-neutral-500: #7d7466;
+  --color-neutral-600: #5e564a;
+  --color-neutral-700: #443e35;
+  --color-neutral-800: #2c2822;
+  --color-neutral-900: #1a1714;
+
+  /* Accent scale — property green */
+  --color-accent-100: #e2ebdf;
+  --color-accent-300: #a9c0a0;
+  --color-accent-500: #6b8a5e;
+  --color-accent-700: #45623c;
+  --color-accent-900: #2b3f26;
+
+  /* Status — validation warns, never blocks (BUILD-SPEC §12) */
+  --color-warn-100: #faf0d7;
+  --color-warn-500: #b98900;
+  --color-warn-900: #6b4f00;
+  --color-danger-100: #f8dedb;
+  --color-danger-500: #b3402f;
+  --color-danger-900: #6b241a;
+  --color-ok-100: #dfeee2;
+  --color-ok-500: #4a8657;
+  --color-ok-900: #29512f;
+
+  /* Semantic aliases */
+  --color-text: var(--color-neutral-900);
+  --color-text-muted: var(--color-neutral-600);
+  --color-text-faint: var(--color-neutral-400);
+  --color-surface: var(--color-paper);
+  --color-surface-sunken: var(--color-neutral-50);
+  --color-border: var(--color-neutral-200);
+  --color-border-strong: var(--color-neutral-400);
+  --color-focus: var(--color-accent-500);
+
+  /* Type scale — 1.200 minor third off a 16px base */
+  --text-xs: 0.694rem;
+  --text-sm: 0.833rem;
+  --text-base: 1rem;
+  --text-md: 1.2rem;
+  --text-lg: 1.44rem;
+  --text-xl: 1.728rem;
+  --text-2xl: 2.074rem;
+  --text-3xl: 2.488rem;
+
+  --leading-tight: 1.2;
+  --leading-normal: 1.5;
+  --leading-loose: 1.7;
+
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-bold: 700;
+
+  --tracking-tight: -0.01em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.06em;
+
+  /* Spacing scale — 4px base */
+  --space-0: 0;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-8: 4rem;
+  --space-9: 6rem;
+
+  /* Borders and radii */
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 8px;
+  --border-width: 1px;
+  --border-width-strong: 2px;
+
+  /* Elevation — screen only */
+  --shadow-sm: 0 1px 2px rgba(26, 23, 20, 0.08);
+  --shadow-md: 0 2px 8px rgba(26, 23, 20, 0.12);
+
+  /* Layout */
+  --measure: 68ch;
+  --page-width: 8.5in;
+  --page-margin: 0.75in;
+}
