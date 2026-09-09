@@ -30,7 +30,7 @@ import {
   setValue,
   toggleClass
 } from '../dom.js';
-import { lineList, rowButton, textField } from './fields.js';
+import { lineList, optionSignature, rowButton, textField } from './fields.js';
 import { draftList } from './rows.js';
 
 /** The menu blocks of an event, always an array. */
@@ -461,7 +461,7 @@ function createOrphanBlock(fnbId) {
             formatTimeRange(service.start, service.end)].filter(Boolean).join(', ')}`
         }))
       ];
-      const next = options.map((option) => `${option.value} ${option.label}`).join('');
+      const next = optionSignature(options);
       if (next !== signature) {
         signature = next;
         attach.replaceChildren(...options.map((option) =>

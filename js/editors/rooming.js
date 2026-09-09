@@ -43,7 +43,7 @@ import {
   setValue,
   toggleClass
 } from '../dom.js';
-import { defaultedDateField, rowButton, selectField } from './fields.js';
+import { defaultedDateField, optionSignature, rowButton, selectField } from './fields.js';
 import { draftList, fieldWriter, moveRow, removeRow, rowById } from './rows.js';
 
 const write = fieldWriter('rooming');
@@ -347,7 +347,7 @@ function createParty(id) {
           label: attendeeName(attendee) || 'Unnamed guest'
         }))
       ];
-      const next = options.map((option) => `${option.value} ${option.label}`).join('');
+      const next = optionSignature(options);
       if (next !== signature) {
         signature = next;
         add.replaceChildren(...options.map((option) =>
