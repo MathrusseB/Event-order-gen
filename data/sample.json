@@ -32,11 +32,16 @@
   ],
 
   "rooming": [
-    { "building": "Lodge",        "room": "Brian's Suite",   "guest": "Brian Illig" },
-    { "building": "Lodge",        "room": "Michael's Suite", "guest": "Michael Illig" },
-    { "building": "Red Leaf Inn", "room": "8",               "guest": "Kim Palmer" },
-    { "building": "Red Leaf Inn", "room": "11",              "guest": "Dana Reyes" },
-    { "building": "Red Leaf Inn", "room": "20",              "guest": "Tom Whitfield" }
+    { "building": "Lodge",        "room": "Brian's Suite",   "guest": "Brian Illig",
+      "from": "2026-11-14", "to": "2026-11-16" },
+    { "building": "Lodge",        "room": "Michael's Suite", "guest": "Michael Illig",
+      "from": "2026-11-14", "to": "2026-11-16" },
+    { "building": "Lodge",        "room": "Timber Suite",    "guest": "Dana Reyes",
+      "from": "2026-11-14", "to": "2026-11-15" },
+    { "building": "Lodge",        "room": "Timber Suite",    "guest": "Tom Whitfield",
+      "from": "2026-11-15", "to": "2026-11-16" },
+    { "building": "Red Leaf Inn", "room": null,              "guest": "Kim Palmer",
+      "from": "2026-11-15", "to": "2026-11-16" }
   ],
 
   "schedule": [
