@@ -249,6 +249,7 @@ now keeps that port cheap.
 /css/styles.css      design tokens, screen styles
 /css/print.css       @page rules, print-only styles
 /js/app.js           form state, event JSON in memory
+/js/derive.js        derived counts and grouping, pure (see §7)
 /js/sections.js      section add / remove / reorder / enable
 /js/reference.js     buildings, rooms, static lists
 /js/render.js        JSON -> document renders
