@@ -23,24 +23,27 @@
   ],
 
   "attendees": [
-    { "last": "Illig",     "first": "Brian",   "arrive": "2026-11-14", "depart": "2026-11-16", "note": "" },
-    { "last": "Illig",     "first": "Michael", "arrive": "2026-11-14", "depart": "2026-11-16", "note": "" },
-    { "last": "Palmer",    "first": "Kim",     "arrive": "2026-11-15", "depart": "2026-11-16", "note": "Arriving late" },
-    { "last": "Baldwin",   "first": "Chase",   "arrive": "2026-11-14", "depart": "2026-11-14", "note": "Day guest, departing after dinner" },
-    { "last": "Reyes",     "first": "Dana",    "arrive": "2026-11-14", "depart": "2026-11-15", "note": "Departs after breakfast Sunday" },
-    { "last": "Whitfield", "first": "Tom",     "arrive": "2026-11-15", "depart": "2026-11-16", "note": "" }
+    { "id": "a-7f3c", "last": "Illig",     "first": "Brian",   "arrive": "2026-11-14", "depart": "2026-11-16", "note": "" },
+    { "id": "a-1d55", "last": "Illig",     "first": "Michael", "arrive": "2026-11-14", "depart": "2026-11-16", "note": "" },
+    { "id": "a-2b91", "last": "Palmer",    "first": "Kim",     "arrive": "2026-11-15", "depart": "2026-11-16", "note": "Arriving late" },
+    { "id": "a-c40e", "last": "Baldwin",   "first": "Chase",   "arrive": "2026-11-14", "depart": "2026-11-14", "note": "Day guest, departing after dinner" },
+    { "id": "a-9d22", "last": "Reyes",     "first": "Dana",    "arrive": "2026-11-14", "depart": "2026-11-15", "note": "Departs after breakfast Sunday" },
+    { "id": "a-5e08", "last": "Whitfield", "first": "Tom",     "arrive": "2026-11-15", "depart": "2026-11-16", "note": "" },
+    { "id": "a-8a17", "last": "Navarro",   "first": "Elise",   "arrive": "2026-11-14", "depart": "2026-11-16", "note": "Overflow - Red Leaf Inn" }
   ],
 
   "rooming": [
-    { "building": "Lodge",        "room": "Brian's Suite",   "guest": "Brian Illig",
+    { "building": "Lodge",        "room": "Brian's Suite",   "guestId": "a-7f3c",
       "from": "2026-11-14", "to": "2026-11-16" },
-    { "building": "Lodge",        "room": "Michael's Suite", "guest": "Michael Illig",
+    { "building": "Lodge",        "room": "Michael's Suite", "guestId": "a-1d55",
       "from": "2026-11-14", "to": "2026-11-16" },
-    { "building": "Lodge",        "room": "Timber Suite",    "guest": "Dana Reyes",
+    { "building": "Lodge",        "room": "Timber Suite",    "guestId": "a-9d22",
       "from": "2026-11-14", "to": "2026-11-15" },
-    { "building": "Lodge",        "room": "Timber Suite",    "guest": "Tom Whitfield",
+    { "building": "Lodge",        "room": "Timber Suite",    "guestId": "a-5e08",
       "from": "2026-11-15", "to": "2026-11-16" },
-    { "building": "Red Leaf Inn", "room": null,              "guest": "Kim Palmer",
+    { "building": "Red Leaf Inn", "room": null,              "guestId": "a-8a17",
+      "from": "2026-11-14", "to": "2026-11-16" },
+    { "building": "Red Leaf Inn", "room": null,              "guestId": "a-2b91",
       "from": "2026-11-15", "to": "2026-11-16" }
   ],
 

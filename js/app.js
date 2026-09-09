@@ -29,6 +29,14 @@ let event = null;
 const subscribers = new Set();
 
 /**
+ * [v4] What `migrate()` did to the event currently loaded, or null for one this
+ * session created. Held beside the event rather than inside it: it describes
+ * the file that was opened, not the document being authored, and must never
+ * ride along into the saved JSON.
+ */
+let lastMigration = null;
+
+/**
  * Freeze an object and everything reachable from it, in place.
  *
  * Freezing before recursing doubles as cycle protection: an already-frozen
@@ -75,9 +83,25 @@ export function getEvent() {
  * change state behind the app's back.
  *
  * @param {object} next
+ * @param {object|null} [migrationSummary] the `summary` from `migrate()`, where
+ *   the event came from a file, the autosave, or the fixture
  */
-export function setEvent(next) {
+export function setEvent(next, migrationSummary = null) {
+  lastMigration = migrationSummary;
   commit(structuredClone(next));
+}
+
+/**
+ * [v4] How the event currently loaded was migrated on the way in, or null.
+ *
+ * Nothing surfaces this yet — the report exists so a later segment can tell the
+ * user that rooming rows came in unmatched, rather than the rows quietly
+ * rendering as orphans.
+ *
+ * @returns {object|null} see `MigrationSummary` in migrate.js
+ */
+export function getLastMigration() {
+  return lastMigration;
 }
 
 /**
@@ -169,7 +193,8 @@ function wireToolbar() {
   fileInput.addEventListener('change', async () => {
     const file = fileInput.files[0];
     try {
-      setEvent(await loadFromFile(file));
+      const { event: loaded, summary } = await loadFromFile(file);
+      setEvent(loaded, summary);
     } catch (err) {
       window.alert(err.message);
     } finally {
@@ -185,7 +210,8 @@ function wireToolbar() {
 
   document.getElementById('btn-sample').addEventListener('click', async () => {
     try {
-      setEvent(await loadSample());
+      const { event: sample, summary } = await loadSample();
+      setEvent(sample, summary);
     } catch (err) {
       window.alert(err.message);
     }
@@ -218,7 +244,11 @@ async function init() {
   wireAutosaveFlush();
 
   const restored = restoreAutosave();
-  setEvent(restored || emptyEvent());
+  if (restored) {
+    setEvent(restored.event, restored.summary);
+    return;
+  }
+  setEvent(emptyEvent());
 }
 
 init();
