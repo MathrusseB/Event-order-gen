@@ -47,16 +47,28 @@
       </div>
 
       <nav class="bar__file" aria-label="Event file">
-        <button type="button" class="btn btn--onbar" id="btn-new">New</button>
+        <!-- [v13] §10: New leads, and it is the one of the four that asks
+             nothing when there is nothing to discard. An order that begins as a
+             copy of the sample prints somebody else's guests. -->
+        <button type="button" class="btn btn--onbar btn--onbar-strong" id="btn-new">New order</button>
         <button type="button" class="btn btn--onbar" id="btn-load">Load</button>
         <button type="button" class="btn btn--onbar" id="btn-save">Save</button>
-        <button type="button" class="btn btn--onbar" id="btn-sample">Load sample</button>
         <input type="file" id="file-input" accept="application/json,.json" hidden>
         <!-- [v10] §10: the JSON is the working copy, not the thing that leaves
              the building. Saying so once here is cheaper than the phone call
              asking why the guest list arrived as a .json file. -->
         <p class="bar__savenote">Save keeps a working copy — reopen it to amend or duplicate this
           event. What goes out is printed.</p>
+        <!-- [v13] §10: last, quiet, and named for what it is. It was next to
+             New and called "Load sample", which made it the shortest way to get
+             something on the screen — and then the November weekend it loads
+             became the starting point for a real December order. -->
+        <div class="bar__sample">
+          <button type="button" class="btn btn--onbar btn--quiet" id="btn-sample">Open the sample
+            event</button>
+          <p class="bar__samplenote">A made-up weekend, to see what the tool does. It replaces
+            whatever is open — start a real order with New.</p>
+        </div>
       </nav>
     </div>
   </header>

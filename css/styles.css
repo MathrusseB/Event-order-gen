@@ -754,6 +754,27 @@ body.outline-open .outline {
   color: var(--text-muted);
 }
 
+/* [v13] The date-shift offer — BUILD-SPEC §5 (v13 changes). A question rather
+   than a warning, so it is the forest palette and not the amber one: nothing is
+   wrong, nothing is happening, and nothing happens until one of the two buttons
+   below it is pressed. */
+
+.notice--offer {
+  border-color: var(--forest-500);
+  background: var(--forest-100);
+}
+
+.notice--offer .notice__list li {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.notice__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
 /* ------------------------------------------------------------------ tally */
 
 .tally {
@@ -1230,6 +1251,24 @@ body.outline-open .outline {
   margin: 2px 0 var(--space-2);
   color: var(--text-faint);
   font-size: var(--text-xs);
+}
+
+/* [v13] §6 — one grid per group, so a group of two lays out as a row of two and
+   a column boundary can never fall inside a set. The old single grid over all
+   eleven buildings is what put Pintail next to a Lodge room. */
+.buildings__groups {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.buildinggroup__name {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-faint);
 }
 
 .buildings__set {
@@ -3236,10 +3275,38 @@ body.outline-open .outline {
   max-width: 34ch;
 }
 
+/* [v13] §10 — the sample sits below the three file actions rather than beside
+   them, and is dimmer than any of them. It is not a fourth way to open an
+   event; it is a demonstration, and it says so under its own button. */
+.bar__sample {
+  flex-basis: 100%;
+  margin-top: var(--space-2);
+}
+
+.btn--quiet {
+  border-color: transparent;
+  color: var(--forest-300);
+  font-size: var(--text-xs);
+  min-height: 0;
+  padding: 2px var(--space-2);
+}
+
+.btn--quiet:hover:not(:disabled) {
+  border-color: #4d6b56;
+}
+
+.bar__samplenote {
+  margin: 2px 0 0;
+  color: #7d9a85;
+  font-size: var(--text-xs);
+  max-width: 34ch;
+}
+
 @media (max-width: 60rem) {
-  /* On a tablet the bar is already three rows; the note is the first thing that
-     can go, and the button still says Save. */
-  .bar__savenote {
+  /* On a tablet the bar is already three rows; the notes are the first thing
+     that can go, and the buttons still say Save and Open the sample event. */
+  .bar__savenote,
+  .bar__samplenote {
     display: none;
   }
 

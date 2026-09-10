@@ -33,7 +33,7 @@ import {
 } from '../derive.js';
 import { datesBetween, formatDateShort } from '../dates.js';
 import { newId } from '../ids.js';
-import { LODGING_BUILDINGS, assignmentModeFor, roomsIn } from '../reference.js';
+import { LODGING_BUILDINGS, assignmentModeFor, groupOf, roomsIn } from '../reference.js';
 import {
   el,
   focusRowControl,
@@ -237,9 +237,12 @@ function createRoomingRow(list, id) {
       // offered rather than dropped: the row was authored that way, and §12.6
       // is a warning, not a correction.
       const buildings = stored && !known.includes(stored) ? [...known, stored] : known;
+      // [v13] Under its group heading (§6 [v13]) — the same five headings the
+      // buildings picker draws. A building the registry no longer carries has
+      // no group and sits on its own at the end, which is exactly what it is.
       building.setOptions([
         { value: '', label: 'Choose a building' },
-        ...buildings.map((name) => ({ value: name, label: name }))
+        ...buildings.map((name) => ({ value: name, label: name, group: groupOf(name) }))
       ]);
       setValue(building.select, stored);
 

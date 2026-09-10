@@ -21,7 +21,7 @@
 // dull, they are unambiguous, they work with a keyboard, and they keep focus on
 // the control that was pressed.
 
-import { findingsIn, getEvent, subscribe, update } from './app.js';
+import { findingsIn, getEvent, lastLoad, subscribe, update } from './app.js';
 import {
   SEEDED_SECTION_TYPES,
   addSection,
@@ -623,6 +623,15 @@ let metaEditor = null;
 let roomingBlock = null;
 let menuEditor = null;
 
+/**
+ * [v13] The last whole event this shell has drawn. BUILD-SPEC §10 [v13].
+ *
+ * `render` runs on every keystroke; only a *new* event should move the caret,
+ * and only when the user asked for a blank one. `lastLoad().serial` is the one
+ * thing that separates those two, and this is what it is compared against.
+ */
+let drawnLoad = 0;
+
 function render(event) {
   if (!event) return;
   const meta = event.meta || {};
@@ -640,6 +649,16 @@ function render(event) {
     refs.metaBody.append(metaEditor.node);
   }
   metaEditor.update(event);
+
+  // [v13] §10 — a new order lands on the date fields. Not a loaded file and not
+  // a restored autosave: those open where the coordinator left them, and taking
+  // the caret off whatever they were typing is the focus loss this app does not
+  // do anywhere else either.
+  const load = lastLoad();
+  if (load.serial !== drawnLoad) {
+    drawnLoad = load.serial;
+    if (load.origin === 'new') metaEditor.focusDates();
+  }
 
   const sections = sectionsOf(event);
 

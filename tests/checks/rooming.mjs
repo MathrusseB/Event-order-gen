@@ -33,9 +33,9 @@ function event() {
         isChild: true, dietary: '', note: '' }
     ],
     rooming: [
-      { id: 'r-timber', building: 'Lodge Lower Suites', room: 'Timber', guestIds: ['a-dana'],
+      { id: 'r-timber', building: 'Timber', room: 'Timber', guestIds: ['a-dana'],
         from: '2026-11-13', to: '2026-11-16' },
-      { id: 'r-bunk', building: 'Lodge Bunk Rooms', room: 'Bunk Room',
+      { id: 'r-bunk', building: 'Bunk Room', room: 'Bunk Room',
         guestIds: ['a-tom', 'a-nora'], from: '2026-11-13', to: '2026-11-16' }
     ],
     schedule: [], foodAndBev: [], menu: [], staff: [], departments: [], buildingsInUse: []
@@ -55,8 +55,8 @@ function shape(next) {
 }
 
 /** The Lodge's two lower suites and its bunk rooms — §6 [v9]. */
-const TIMBER = { building: 'Lodge Lower Suites', room: 'Timber' };
-const WETLAND = { building: 'Lodge Lower Suites', room: 'Wetland' };
+const TIMBER = { building: 'Timber', room: 'Timber' };
+const WETLAND = { building: 'Wetland', room: 'Wetland' };
 const REMINGTON_1 = { building: 'Remington', room: '1' };
 
 export async function run({ check }) {

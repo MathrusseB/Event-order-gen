@@ -20,12 +20,22 @@
 // underneath it, live, in the order the user will have to deal with them. The
 // §12 validator is still the authority before print; this is the same truth
 // shown at the moment the change is made.
+//
+// [v13] AND ONE THING THIS EDITOR NOW OFFERS TO DO, which is the exception that
+// proves the rule above. When both dates move by the same number of days the
+// event has been rescheduled rather than corrected, and every row it holds
+// belongs on the new days: leaving them behind produced forty-five findings on
+// a real order and a coordinator reading none of them (§5, v13 changes). The
+// offer names the offset and counts what would travel before anything travels,
+// and it is still an offer — a mistyped year and a rescheduled weekend look
+// identical from here, so the app does not get to decide which it was.
 
-import { update } from '../app.js';
+import { getEvent, update } from '../app.js';
 import { attendeeName, includeFlags, roomingWindow } from '../derive.js';
-import { datesBetween, formatDateShort } from '../dates.js';
+import { dayOffset, datesBetween, formatDateRange, formatDateShort } from '../dates.js';
 import { BRANDS, DEFAULT_BRAND_ID, brandFor } from '../reference.js';
 import { seedForDates } from '../seed.js';
+import { plan, shiftEvent } from '../shift.js';
 import { el, reconcile, setChecked, setHidden, setText, setValue } from '../dom.js';
 
 /** How many outside-the-range items are named before the list summarises. */
@@ -33,6 +43,30 @@ const MAX_LISTED = 8;
 
 /** [v10] The fields that seed a day when they change. §5 (v10 changes). */
 const DATE_FIELDS = new Set(['startDate', 'endDate']);
+
+/**
+ * [v13] The date move in progress, or null. BUILD-SPEC §5 (v13 changes).
+ *
+ * The two date fields are typed one after the other, so a range that moves is
+ * never a single edit: Nov 14–16 to Dec 2–4 passes through Dec 2 – Nov 16, and
+ * only the second keystroke makes a shift out of it. `from` is therefore the
+ * pair as it stood before the first of those edits, and it is held here rather
+ * than in the event because it describes an interaction and not a document —
+ * the same reason `lastMigration` sits beside the event in app.js instead of
+ * inside it.
+ *
+ *   `from`    the dates before this move began
+ *   `dates`   the dates after the most recent write, so a render can tell that
+ *             the event has been replaced under it and drop the whole thing
+ *   `offer`   `{days}` when the pair is a same-offset move of `from`, else null
+ *   `created` what seeding put down while the dates were half-typed, which an
+ *             accepted shift clears rather than moves (js/shift.js)
+ *
+ * Module state in an editor, deliberately and for the life of one interaction.
+ * It is cleared by an answer, and by any event arriving with dates this move
+ * did not write — New, Load, Load sample.
+ */
+let move = null;
 
 const FIELDS = [
   { key: 'eventName', label: 'Event name', type: 'text', cell: 'wide', autocapitalize: 'words' },
@@ -59,17 +93,103 @@ const INCLUDES = [
   }
 ];
 
+/** The event's `meta`, created if a hand-edited file arrived without one. */
+function metaOf(draft) {
+  if (!draft.meta || typeof draft.meta !== 'object') draft.meta = {};
+  return draft.meta;
+}
+
 /** Write one meta field. */
 function writeMeta(key, value) {
+  if (!DATE_FIELDS.has(key)) {
+    update((draft) => {
+      metaOf(draft)[key] = value;
+    });
+    return;
+  }
+
+  // [v13] A date. Everything below decides one thing — whether this edit has
+  // turned into a range that has *moved* — and it is decided before the write
+  // rather than inside it, because the render that shows the offer happens
+  // inside `update()` and would otherwise be one keystroke behind.
+  const meta = (getEvent() || {}).meta || {};
+  const before = { start: meta.startDate || '', end: meta.endDate || '' };
+  if (!move) move = { from: before, dates: before, offer: null, created: [] };
+
+  const after = {
+    start: key === 'startDate' ? value : before.start,
+    end: key === 'endDate' ? value : before.end
+  };
+  const first = dayOffset(move.from.start, after.start);
+  const last = dayOffset(move.from.end, after.end);
+  move.dates = after;
+  move.offer = first !== null && last !== null && first === last && first !== 0
+    ? { days: first }
+    : null;
+
+  // An offer with nothing behind it is not an offer. A range moved on an event
+  // that has no dated rows yet is just a range being set, and asking about it
+  // would train the answer out of somebody before the question ever mattered.
+  if (move.offer && plan(getEvent(), move.offer.days, move.created).total === 0) {
+    move.offer = null;
+  }
+
   update((draft) => {
-    if (!draft.meta || typeof draft.meta !== 'object') draft.meta = {};
-    draft.meta[key] = value;
+    metaOf(draft)[key] = value;
     // [v10] Setting or changing the event dates seeds the days that have not
     // been offered rows yet (§5, v10 changes). Inside the same write, so a date
     // change and the three meals it creates are one edit and one render — and
     // so that an undo of the date, if this ever grows one, takes them with it.
-    if (DATE_FIELDS.has(key)) seedForDates(draft);
+    //
+    // [v13] Unless there is an offer outstanding: the days about to receive an
+    // event's own itinerary must not be filled with blank rows first. Seeding
+    // runs the moment the offer is answered, either way.
+    if (move.offer) return;
+    move.created.push(...seedForDates(draft).created);
   });
+}
+
+/**
+ * [v13] Move the content. BUILD-SPEC §5 (v13 changes).
+ *
+ * The move is dropped *before* the write, so the render inside `update()` draws
+ * an editor with no offer in it rather than one that has to be told a second
+ * time.
+ */
+function acceptShift() {
+  if (!move || !move.offer) return;
+  const { days } = move.offer;
+  const created = move.created;
+  move = null;
+  update((draft) => {
+    shiftEvent(draft, days, created);
+    // Then seeding, as normal, for the new range: the ledger travelled with the
+    // content, so the days that arrived carrying rows are not offered any.
+    seedForDates(draft);
+  });
+}
+
+/**
+ * [v13] Leave the content where it is — and the easy answer of the two.
+ *
+ * Somebody correcting a mistyped year has not rescheduled anything, and the
+ * rows they have already written belong to the days they were written for.
+ * Seeding then runs for the new range exactly as it does on any other date
+ * change, which is the whole of what declining means.
+ */
+function declineShift() {
+  if (!move) return;
+  move = null;
+  update((draft) => {
+    seedForDates(draft);
+  });
+}
+
+/** "18 days later", "a day earlier" — the offset as a person says it. */
+function offsetPhrase(days) {
+  const size = Math.abs(days);
+  const way = days < 0 ? 'earlier' : 'later';
+  return size === 1 ? `a day ${way}` : `${size} days ${way}`;
 }
 
 /**
@@ -157,6 +277,32 @@ export function createMetaEditor() {
 
   const hint = el('p', { class: 'editor__legend' });
 
+  // [v13] The offer. §5 (v13 changes): the offset in days and what would move,
+  // said before anything moves. Inline rather than modal — nothing is blocked
+  // and nothing is happening, and a dialog over a date field the user is still
+  // typing into is a dialog that gets dismissed to get back to the typing.
+  const offerTitle = el('h3', { class: 'notice__title' });
+  const offerSummary = el('p', { class: 'notice__summary' });
+  const offerList = el('ul', { class: 'notice__list' });
+  const offerCleared = el('p', { class: 'notice__more', hidden: true });
+  const offerFoot = el('p', { class: 'notice__foot' });
+  const offerNo = el('button', {
+    type: 'button',
+    class: 'btn',
+    text: 'Leave the content where it is'
+  });
+  const offerYes = el('button', { type: 'button', class: 'btn btn--primary' });
+  offerNo.addEventListener('click', () => declineShift());
+  offerYes.addEventListener('click', () => acceptShift());
+  const offer = el('div', { class: 'notice notice--offer', role: 'status', hidden: true }, [
+    offerTitle,
+    offerSummary,
+    offerList,
+    offerCleared,
+    offerFoot,
+    el('div', { class: 'notice__actions' }, [offerNo, offerYes])
+  ]);
+
   const warnTitle = el('h3', { class: 'notice__title' });
   const warnSummary = el('p', { class: 'notice__summary' });
   const warnList = el('ul', { class: 'notice__list' });
@@ -173,12 +319,33 @@ export function createMetaEditor() {
     warnFoot
   ]);
 
-  const node = el('div', { class: 'editor editor--meta' }, [grid, seededNote, includes, hint, notice]);
+  const node = el('div', { class: 'editor editor--meta' },
+    [grid, offer, seededNote, includes, hint, notice]);
 
   return {
     node,
+
+    /**
+     * [v13] Put the caret in the start date. §10 [v13] — New is the way into a
+     * real order, and the dates are the two fields everything else reads from
+     * (§5, v2 changes), so a new order opens on them rather than on a form the
+     * coordinator has to choose a starting point in.
+     */
+    focusDates() {
+      const start = inputs.get('startDate');
+      if (start) start.focus({ preventScroll: true });
+    },
+
     update(event) {
       const meta = event.meta || {};
+
+      // [v13] An event whose dates are not the ones this move last wrote is a
+      // different event — New, Load, Load sample, or a write from somewhere
+      // else — and the move it was halfway through is not about it.
+      if (move && ((meta.startDate || '') !== move.dates.start
+        || (meta.endDate || '') !== move.dates.end)) {
+        move = null;
+      }
       for (const [key, input] of inputs) {
         // The brand is resolved rather than copied — see below.
         if (key === 'brandId') continue;
@@ -222,6 +389,31 @@ export function createMetaEditor() {
 
       setText(hint, defaultsHint(event));
 
+      // [v13] The offer, drawn from the event in hand rather than from anything
+      // remembered: what would move is counted now, on what is there now.
+      const moving = move && move.offer ? plan(event, move.offer.days, move.created) : null;
+      setHidden(offer, !moving);
+      if (moving) {
+        const way = offsetPhrase(moving.days);
+        setText(offerTitle, `These dates moved the event ${way}. Move its content too?`);
+        setText(offerSummary,
+          `${formatDateRange(move.from.start, move.from.end)} to `
+          + `${formatDateRange(meta.startDate, meta.endDate)}. `
+          + `${moving.total} dated ${moving.total === 1 ? 'row' : 'rows'} would move ${way}, `
+          + 'keeping the day of the event each one is on.');
+        const entries = reconcile(offerList, moving.parts, (part) => part.list,
+          () => createOfferRow());
+        entries.forEach((entry, index) => entry.update(moving.parts[index]));
+        setHidden(offerCleared, moving.cleared === 0);
+        setText(offerCleared, `${moving.cleared} blank ${moving.cleared === 1 ? 'row' : 'rows'} `
+          + 'put down while the dates were half-typed are cleared first.');
+        setText(offerFoot, 'Nothing has moved. If you were correcting a date rather than '
+          + 'rescheduling, leave this — the rows stay on the days they were written for, and '
+          + 'anything now outside the event is listed below.');
+        setText(offerYes, `Move all ${moving.total} ${moving.total === 1 ? 'row' : 'rows'} `
+          + way);
+      }
+
       const problems = outsideEventDates(event);
       setHidden(notice, problems.length === 0);
       setText(warnTitle, problems.length === 1
@@ -264,6 +456,17 @@ function summarise(problems) {
     parts.push(`${count} ${count === 1 ? one : many}`);
   }
   return `${parts.join(', ')}.`;
+}
+
+/** [v13] One line of what would move: "9 meal services". */
+function createOfferRow() {
+  const node = el('li', {});
+  return {
+    node,
+    update(part) {
+      setText(node, `${part.count} ${part.noun}`);
+    }
+  };
 }
 
 function createProblemRow() {

@@ -92,21 +92,25 @@ function insertByDateAndTime(rows, row) {
  * time and any number of times: a date already in the ledger is skipped.
  *
  * @param {object} draft the mutable event from `update()`
- * @returns {{meals: number, itinerary: number, dates: string[]}} what was
- *   created, for a caller that wants to say so
+ * @returns {{meals: number, itinerary: number, dates: string[],
+ *   created: {list: string, id: string, date: string}[]}} what was created, for
+ *   a caller that wants to say so — and [v13] which rows, for the one caller
+ *   that may have to take them back off again (js/shift.js)
  */
 export function seedForDates(draft) {
   const meta = (draft && draft.meta) || {};
   const dates = datesBetween(meta.startDate, meta.endDate);
   const seeded = ledger(draft);
-  const made = { meals: 0, itinerary: 0, dates: [] };
+  const made = { meals: 0, itinerary: 0, dates: [], created: [] };
 
   for (const date of dates) {
     if (!seeded.meals.includes(date)) {
       const services = list(draft, 'foodAndBev');
       for (const meal of SEEDED_MEALS) {
+        const id = newId();
+        made.created.push({ list: 'foodAndBev', id, date });
         insertByDateAndTime(services, {
-          id: newId(),
+          id,
           date,
           start: meal.start,
           end: meal.end,
@@ -128,7 +132,9 @@ export function seedForDates(draft) {
         // Blank and ready: no time, no activity. A row with a time already in
         // it would have to guess at a day nobody has described yet, and the
         // guess would be typed over every time.
-        insertByDateAndTime(schedule, { id: newId(), date, start: '', end: '', label: '' });
+        const id = newId();
+        made.created.push({ list: 'schedule', id, date });
+        insertByDateAndTime(schedule, { id, date, start: '', end: '', label: '' });
       }
       seeded.itinerary.push(date);
       made.itinerary += SEEDED_ITINERARY_ROWS;

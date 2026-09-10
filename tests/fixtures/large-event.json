@@ -48,7 +48,7 @@
       "type": "freeText",
       "title": "Security Notes",
       "enabled": true,
-      "body": "Range in use each afternoon. Guest arrivals staggered 1400-1800 Thursday and Friday. PSO on property from 1200 Thursday through Monday departure.\n\nVehicles stage at the Bucket Shop. No traffic past the Food Plot during a hunt."
+      "body": "Range in use each afternoon. Guest arrivals staggered 1400-1800 Thursday and Friday. PSO on property from 1200 Thursday through Monday departure.\n\nVehicles stage behind the Clubhouse. No traffic past the north fields during a hunt."
     },
     {
       "id": "s7",
@@ -353,7 +353,7 @@
     },
     {
       "id": "r-0004",
-      "building": "Lodge Lower Suites",
+      "building": "Timber",
       "room": "Timber",
       "guestIds": [
         "a-0006"
@@ -363,7 +363,7 @@
     },
     {
       "id": "r-0005",
-      "building": "Lodge Lower Suites",
+      "building": "Timber",
       "room": "Timber",
       "guestIds": [
         "a-0007"
@@ -373,7 +373,7 @@
     },
     {
       "id": "r-0006",
-      "building": "Lodge Lower Suites",
+      "building": "Wetland",
       "room": "Wetland",
       "guestIds": [
         "a-0008",
@@ -404,7 +404,7 @@
     },
     {
       "id": "r-0009",
-      "building": "Lodge Bunk Rooms",
+      "building": "Bunk Room",
       "room": "Bunk Room",
       "guestIds": [
         "a-0002",
@@ -695,7 +695,7 @@
       "start": "12:30",
       "end": null,
       "meal": "Lunch",
-      "location": "Hummer Bar",
+      "location": "The Lodge",
       "countBasis": "present",
       "serves": "all"
     },
@@ -735,7 +735,7 @@
       "start": "12:30",
       "end": null,
       "meal": "Lunch",
-      "location": "Hummer Bar",
+      "location": "The Lodge",
       "countBasis": "present",
       "serves": "all"
     },
@@ -775,7 +775,7 @@
       "start": "12:30",
       "end": null,
       "meal": "Lunch",
-      "location": "Hummer Bar",
+      "location": "The Lodge",
       "countBasis": "present",
       "serves": "all"
     },
@@ -815,7 +815,7 @@
       "start": "12:30",
       "end": null,
       "meal": "Lunch",
-      "location": "Hummer Bar",
+      "location": "The Lodge",
       "countBasis": "present",
       "serves": "all"
     },
@@ -855,7 +855,7 @@
       "start": "12:30",
       "end": null,
       "meal": "Lunch",
-      "location": "Hummer Bar",
+      "location": "The Lodge",
       "countBasis": "present",
       "serves": "all"
     },
@@ -1548,13 +1548,10 @@
   "buildingsInUse": [
     "Remington",
     "Winchester",
-    "Lodge Lower Suites",
-    "Lodge Bunk Rooms",
-    "RLI",
-    "The Wheel",
-    "Hummer Bar",
-    "Bucket Shop",
-    "Food Plot"
+    "Bunk Room",
+    "Timber",
+    "Wetland",
+    "RLI"
   ],
   "overflowBuildings": [
     "Mallard",

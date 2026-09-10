@@ -31,6 +31,9 @@
 // silently missing from this file is indistinguishable from a rule that passes,
 // and the next reader has no way to tell which.
 //
+// [v13] Thirteen rules now. 13 reports the names v13's registry correction left
+// behind, and 8 reports two different things at two severities.
+//
 // Dates are ISO `YYYY-MM-DD` strings and are compared as strings, exactly as
 // derive.js compares them. Never convert one to a `Date` to compare it.
 
@@ -45,7 +48,9 @@ import {
 } from './derive.js';
 import {
   ASSIGNMENT_MODE_NONE,
+  LODGING_BUILDINGS,
   assignmentModeFor,
+  retiredLocation,
   roomsIn,
   sharesFreely
 } from './reference.js';
@@ -113,9 +118,10 @@ function guestIdsOf(row) {
  * A room as staff say it out loud.
  *
  * The four named rooms on the property — Bunk Room, Timber, Wetland, King Suite
- * — are unique across all ten buildings, so nobody says "Lodge Lower Suites
- * Timber"; they say "the Timber". A numbered room needs its building, because
- * there is an 8 in six of them.
+ * — are unique across all eleven buildings, so nobody says "the Timber, Timber";
+ * they say "the Timber". [v13] Three of the four are now buildings of their own
+ * under those names (§6 [v13]), which is this sentence arriving in the registry.
+ * A numbered room needs its building, because there is an 8 in six of them.
  *
  * The registry decides which is which, so a hand-edited file naming a room the
  * property does not have keeps its building on the front and stays findable.
@@ -788,12 +794,26 @@ function ruleSevenOrphanMenus(event) {
 }
 
 /**
- * §12.8 — a meal service with no menu block.
+ * §12.8 — a meal service with no menu, and a menu with no dishes.
  *
  * Protecting against: the kitchen finding out at service. §8 [v8] is the same
  * rule seen from the page — a meal with no menu prints its heading and a note
  * saying so, because a heading with "None" under it was checked and a heading
  * that is simply missing was forgotten.
+ *
+ * **[v13] Two things, at two severities, and the split is the point.** Nobody
+ * writes a dish list for a nightcap, and since v10 every day of an event opens
+ * with three meal services (§5, v10 changes) — so on the old rule a fresh
+ * three-day event carried nine warnings before a word had been typed into it.
+ * Nine warnings on an empty event is how a coordinator learns that the panel is
+ * noise, and then the warning that mattered goes past unread. A meal with no
+ * menu is a **note**: normal, and worth seeing before it becomes paper.
+ *
+ * A menu that exists and holds no dishes is the **warning**. Somebody opened
+ * that one and left it, and it is the one that prints a heading with nothing
+ * under it. The editor creates a block with one empty line in it, so this fires
+ * the moment "Write a menu" is pressed and stops the moment a dish is typed —
+ * which is exactly the window in which the block is unfinished.
  *
  * @param {object} event
  * @returns {Finding[]}
@@ -801,11 +821,31 @@ function ruleSevenOrphanMenus(event) {
 function ruleEightMealsWithNoMenu(event) {
   const found = [];
   for (const entry of rowsOf(event, 'foodAndBev')) {
-    if (!entry.id || menuFor(event, entry.id)) continue;
+    if (!entry.id) continue;
+    const block = menuFor(event, entry.id);
+
+    if (!block) {
+      found.push(finding({
+        rule: 8,
+        severity: NOTE,
+        text: `${mealPhrase(entry)} has no menu written.`,
+        area: 'menu',
+        rowIds: [entry.id],
+        date: entry.date || ''
+      }));
+      continue;
+    }
+
+    const dishes = (Array.isArray(block.dishes) ? block.dishes : [])
+      .map((dish) => String(dish || '').trim())
+      .filter(Boolean);
+    if (dishes.length) continue;
+
     found.push(finding({
       rule: 8,
       severity: WARNING,
-      text: `${mealPhrase(entry)} has no menu written.`,
+      text: `${mealPhrase(entry)} has a menu started with no dishes in it — write them, or `
+        + 'delete the menu.',
       area: 'menu',
       rowIds: [entry.id],
       date: entry.date || ''
@@ -986,6 +1026,81 @@ function ruleTwelveMealTypedTwice(event) {
   return found;
 }
 
+/**
+ * §12.13 — a name the property registry no longer carries.
+ *
+ * Protecting against: the quiet half of a registry correction. v13 replaced a
+ * list of locations that were never private-side to begin with (§6 [v13]), and
+ * the rows that named them are still in files on the machine right now. Nothing
+ * rewrites them — somebody planned something at the Hummer Bar, and the words
+ * are the only record of it — so this is what goes on saying so, every time the
+ * file is opened, exactly as §12.6 does for a room that has left the property.
+ *
+ * **A location is reported only when the app itself offered it.** `location` is
+ * free text (§6 [v13]): "the north blind" typed into a meal is a perfectly good
+ * location, and a rule reading "not in the current list" would fire on every
+ * deliberate one. `RETIRED_LOCATIONS` is the list of names this app used to
+ * offer, and it is the only thing this half reads.
+ *
+ * **A building is reported whenever it is not in the registry**, which is the
+ * opposite test, and the difference is not an inconsistency. Buildings are
+ * ticked from the registry and never typed (§6), so the only way an unknown one
+ * reaches `buildingsInUse[]` is a file older than the registry — and the
+ * buildings line prints that name on the order as a building in use.
+ *
+ * @param {object} event
+ * @returns {Finding[]}
+ */
+function ruleThirteenRetiredNames(event) {
+  const found = [];
+
+  const dated = [
+    { key: 'foodAndBev', area: 'foodAndBev', phrase: mealPhrase },
+    { key: 'schedule', area: 'schedule', phrase: activityPhrase }
+  ];
+  for (const kind of dated) {
+    for (const entry of rowsOf(event, kind.key)) {
+      const retired = retiredLocation(entry.location);
+      if (!retired) continue;
+      const instead = retired.becomes
+        ? `That is ${retired.becomes} now.`
+        : 'It is not a place on the private side.';
+      found.push(finding({
+        rule: 13,
+        severity: NOTE,
+        text: `${kind.phrase(entry)} is at ${retired.name}, which the property list no longer `
+          + `carries. ${instead} It prints as it was typed until somebody changes it.`,
+        area: kind.area,
+        rowIds: [entry.id],
+        date: entry.date || ''
+      }));
+    }
+  }
+
+  const lists = [
+    { key: 'buildingsInUse', phrase: 'named as a building in use' },
+    { key: 'overflowBuildings', phrase: 'named as a building held back' }
+  ];
+  for (const list of lists) {
+    const names = Array.isArray(event && event[list.key]) ? event[list.key] : [];
+    for (const name of names) {
+      const text = String(name || '').trim();
+      if (!text || LODGING_BUILDINGS.includes(text)) continue;
+      found.push(finding({
+        rule: 13,
+        severity: NOTE,
+        text: `${text} is ${list.phrase} and is not a building on the property — it prints on `
+          + 'the guests section as it stands.',
+        area: 'guests',
+        rowIds: [],
+        date: ''
+      }));
+    }
+  }
+
+  return found;
+}
+
 /* --------------------------------------------------------------------- pass */
 
 /**
@@ -1004,7 +1119,8 @@ const RULES = [
   ruleNineDatedOutsideEvent,
   ruleTenBackwardsStays,
   ruleElevenStaleRevisionDate,
-  ruleTwelveMealTypedTwice
+  ruleTwelveMealTypedTwice,
+  ruleThirteenRetiredNames
 ];
 
 /**

@@ -140,12 +140,12 @@ export function timeField({ field, label, onChange }) {
  * exist for this — unit and record — written as escapes, because a raw control
  * byte in a source file makes git read the whole file as binary.
  *
- * @param {{value: string, label: string}[]} options
+ * @param {{value: string, label: string, group?: string}[]} options
  * @returns {string}
  */
 export function optionSignature(options) {
   return options
-    .map((option) => `${option.value}\u001f${option.label}`)
+    .map((option) => `${option.value}\u001f${option.label}\u001f${option.group || ''}`)
     .join('\u001e');
 }
 
@@ -156,12 +156,19 @@ export function optionSignature(options) {
  * replacing the options under an open select closes it, and these are re-offered
  * on every keystroke anywhere in the form.
  *
+ * [v13] An option may name a `group`, and consecutive options naming the same
+ * one are drawn inside an `<optgroup>`. That is the registry's own grouping
+ * (§6 [v13]) reaching the one other place buildings are chosen: eleven flat
+ * options in a row is a list you read; five headings is a property you know.
+ * An option with no group sits directly on the select, which is where "Choose a
+ * building" and a name the registry no longer carries both belong.
+ *
  * @param {object} options
  * @param {string} options.field
  * @param {string} options.label
  * @param {(value: string) => void} options.onChange
  * @returns {{root: HTMLElement, select: HTMLSelectElement,
- *   setOptions: (options: {value: string, label: string}[]) => void}}
+ *   setOptions: (options: {value: string, label: string, group?: string}[]) => void}}
  */
 export function selectField({ field, label, onChange }) {
   const select = el('select', { class: 'input input--select', 'data-field': field });
@@ -184,8 +191,30 @@ export function selectField({ field, label, onChange }) {
       if (next === signature) return;
       signature = next;
       const wanted = select.value;
-      select.replaceChildren(...options.map((option) =>
-        el('option', { value: option.value, text: option.label })));
+
+      // [v13] Grouped options land in an `<optgroup>`, one per run of the same
+      // group name, so the order the caller sends is the order that is drawn.
+      const built = [];
+      let open = null;
+      let openName = '';
+      for (const option of options) {
+        const node = el('option', { value: option.value, text: option.label });
+        const group = option.group || '';
+        if (!group) {
+          open = null;
+          openName = '';
+          built.push(node);
+          continue;
+        }
+        if (!open || group !== openName) {
+          open = el('optgroup', { label: group });
+          openName = group;
+          built.push(open);
+        }
+        open.append(node);
+      }
+      select.replaceChildren(...built);
+
       // Keep the current value across a rebuild where it survived the change;
       // the caller writes the stored value in on the same pass either way.
       if (options.some((option) => option.value === wanted)) select.value = wanted;

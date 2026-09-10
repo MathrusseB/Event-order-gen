@@ -193,7 +193,7 @@ export async function run({ browser, origin, savePdf, check }) {
 
   check(
     'the filename comes from the event name and its start date, slugified',
-    built.name === 'illig-party-opening-weekend-2026-11-14-rooming.html',
+    built.name === 'sample-event-illig-party-opening-weekend-2026-11-14-rooming.html',
     built.name
   );
 

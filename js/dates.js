@@ -104,6 +104,51 @@ export function nextDate(iso) {
 }
 
 /**
+ * [v13] A date moved by a whole number of days. BUILD-SPEC §5 (v13 changes).
+ *
+ * The arithmetic behind a range that moves rather than narrows. Built the same
+ * way as `nextDate` above and for the same reason: split, rebuild as a *local*
+ * date, step, and format back. Adding `days * 86_400_000` to a timestamp is
+ * wrong twice a year, and an event moved across the start of November would
+ * arrive a day early.
+ *
+ * @param {string} iso
+ * @param {number} days may be negative; 0 returns the date unchanged
+ * @returns {string} empty when the input is not a date or the offset is not a
+ *   whole number
+ */
+export function shiftDate(iso, days) {
+  const date = toLocalDate(iso);
+  if (!date || !Number.isInteger(days)) return '';
+  date.setDate(date.getDate() + days);
+  return toIso(date);
+}
+
+/**
+ * [v13] How many days apart two dates are, `to` minus `from`.
+ *
+ * The one place that answers "has this range moved, and by how much" (§5, v13
+ * changes). Counted by walking a local date forward or back rather than by
+ * dividing a millisecond difference, which is the same daylight-saving trap
+ * `shiftDate` avoids — and the count has to be exact, because it is the number
+ * shown to the coordinator and the number every row is moved by.
+ *
+ * @param {string} from ISO
+ * @param {string} to ISO
+ * @returns {number|null} null when either is not a date. 0 when they are equal
+ */
+export function dayOffset(from, to) {
+  const first = toLocalDate(from);
+  const last = toLocalDate(to);
+  if (!first || !last) return null;
+  // Midday, so a daylight-saving shift cannot carry a rounded difference over
+  // a day boundary; the parts are read back as whole days either way.
+  first.setHours(12, 0, 0, 0);
+  last.setHours(12, 0, 0, 0);
+  return Math.round((last - first) / 86400000);
+}
+
+/**
  * [v12] The moment, as a local wall-clock string: `YYYY-MM-DDTHH:MM`.
  *
  * `meta.touchedAt` (§5 [v12]) — stamped by `update()` on every write, and read

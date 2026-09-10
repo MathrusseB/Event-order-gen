@@ -1,6 +1,6 @@
 {
   "meta": {
-    "eventName": "Illig Party - Opening Weekend",
+    "eventName": "Sample event - Illig Party, Opening Weekend",
     "startDate": "2026-11-14",
     "endDate": "2026-11-16",
     "eventLead": "Brian Mathrusse",
@@ -173,7 +173,7 @@
     },
     {
       "id": "r-7d41",
-      "building": "Lodge Bunk Rooms",
+      "building": "Bunk Room",
       "room": "Bunk Room",
       "guestIds": [
         "a-3fa1",
@@ -184,7 +184,7 @@
     },
     {
       "id": "r-4a90",
-      "building": "Lodge Lower Suites",
+      "building": "Timber",
       "room": "Timber",
       "guestIds": [
         "a-9d22"
@@ -194,7 +194,7 @@
     },
     {
       "id": "r-c655",
-      "building": "Lodge Lower Suites",
+      "building": "Timber",
       "room": "Timber",
       "guestIds": [
         "a-5e08"
@@ -345,7 +345,7 @@
       "start": "17:00",
       "end": "18:00",
       "meal": "Cocktails",
-      "location": "Hummer Bar",
+      "location": "The Lodge",
       "countBasis": "present",
       "serves": "adults"
     },
@@ -365,7 +365,7 @@
       "start": "21:00",
       "end": "23:00",
       "meal": "Nightcap",
-      "location": "Hummer Bar",
+      "location": "The Lodge",
       "countBasis": "overnight",
       "serves": "adults"
     },
@@ -449,7 +449,7 @@
       "name": "Sara",
       "date": "2026-11-15",
       "daypart": "AM",
-      "assignment": "Upland guide - Food Plot"
+      "assignment": "Upland guide - North fields"
     },
     {
       "id": "t-16f8",
@@ -469,12 +469,9 @@
   "departments": [],
   "buildingsInUse": [
     "Remington",
-    "Lodge Bunk Rooms",
-    "Lodge Lower Suites",
-    "RLI",
-    "The Wheel",
-    "Hummer Bar",
-    "Food Plot"
+    "Bunk Room",
+    "Timber",
+    "RLI"
   ],
   "overflowBuildings": [
     "Winchester"

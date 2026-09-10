@@ -197,13 +197,15 @@ export function createFoodAndBevEditor() {
 }
 
 /**
- * [v10] Where the meal is: a select of the three places the ranch serves in,
- * and Other, which takes free text. BUILD-SPEC §6 [v10].
+ * [v13] Where the meal is: a select of the four places the ranch serves in, and
+ * Other, which takes free text. BUILD-SPEC §6 [v13].
  *
  * `location` stays one string in the file. The select shows the listed value
  * when the stored one matches, and Other with the text beside it when it does
  * not — so a file that says "Food Plot" opens with Food Plot in the box rather
- * than with a blank select and a lost location.
+ * than with a blank select and a lost location. That is not a hypothetical any
+ * more: v13 retired seven names this app used to offer (§6 [v13]) and every row
+ * that carries one arrives here. Nothing is rewritten; §12.13 says so instead.
  *
  * The typed text is remembered for the life of the row: picking The Wheel and
  * then Other again brings back what was there, because the alternative is

@@ -57,6 +57,24 @@ let checked = null;
 let lastMigration = null;
 
 /**
+ * [v13] Where the event currently loaded came from, and how many events this
+ * session has loaded. BUILD-SPEC §10 [v13].
+ *
+ * Held here for the same reason `lastMigration` is: it is a fact about the
+ * session, not about the document, and it must never reach the file. The
+ * interface reads it to answer one question — has a *different* event just
+ * arrived, and did the user ask for a blank one — because a new order opens on
+ * the date fields and a restored autosave must not steal the caret from
+ * wherever the coordinator left it.
+ *
+ * The serial is what makes "a different event" answerable at all: `commit`
+ * hands out a new object on every keystroke, so identity says nothing, and only
+ * `setEvent` moves this on.
+ */
+let origin = 'new';
+let loadSerial = 0;
+
+/**
  * Freeze an object and everything reachable from it, in place.
  *
  * Freezing before recursing doubles as cycle protection: an already-frozen
@@ -108,11 +126,69 @@ export function getEvent() {
  * @param {object} next
  * @param {object|null} [migrationSummary] the `summary` from `migrate()`, where
  *   the event came from a file, the autosave, or the fixture
+ * @param {'new'|'file'|'autosave'|'sample'} [from] [v13] which of the four this
+ *   is — see `lastLoad`
  */
-export function setEvent(next, migrationSummary = null) {
+export function setEvent(next, migrationSummary = null, from = 'new') {
   lastMigration = migrationSummary;
+  origin = from;
+  loadSerial += 1;
   commit(structuredClone(next));
 }
+
+/**
+ * [v13] The event currently loaded, as an arrival rather than as a document.
+ *
+ * @returns {{origin: string, serial: number}} `serial` moves only when a whole
+ *   event is replaced, so a caller that remembers the last one it saw can tell
+ *   a new event from the four hundredth keystroke in the old one
+ */
+export function lastLoad() {
+  return { origin, serial: loadSerial };
+}
+
+/**
+ * [v13] Whether anything has been typed into an event. BUILD-SPEC §10 [v13].
+ *
+ * The question New and Load sample ask before replacing what is open. "Discard
+ * the event in progress?" over an event nobody has touched is the confirmation
+ * that teaches people to confirm without reading — and an empty order is the
+ * one thing in this app it costs nothing to throw away.
+ *
+ * The outline counts: a coordinator who has arranged their sections and typed
+ * nothing else has still done work. Everything else is content.
+ *
+ * @param {object} event
+ * @returns {boolean} false for a new event nobody has touched
+ */
+export function hasWork(event) {
+  if (!event || typeof event !== 'object') return false;
+
+  const meta = event.meta || {};
+  for (const key of ['eventName', 'startDate', 'endDate', 'eventLead', 'revisionDate', 'revisedBy']) {
+    if (String(meta[key] || '').trim()) return true;
+  }
+  for (const key of CONTENT_ARRAYS) {
+    if (Array.isArray(event[key]) && event[key].length) return true;
+  }
+  return outlineSignature(event.sections) !== FRESH_OUTLINE;
+}
+
+/** [v13] The arrays that hold what somebody typed. `sections` is asked separately. */
+const CONTENT_ARRAYS = ['attendees', 'rooming', 'schedule', 'foodAndBev', 'menu', 'staff',
+  'departments', 'buildingsInUse', 'overflowBuildings', 'customActivities'];
+
+/** [v13] An outline as one comparable string — type, title and whether it prints. */
+function outlineSignature(sections) {
+  return (Array.isArray(sections) ? sections : [])
+    .map((section) => (section && typeof section === 'object'
+      ? `${section.type}:${String(section.title || '')}:${section.enabled !== false}`
+      : '?'))
+    .join('|');
+}
+
+/** [v13] The outline a new event opens with, computed once. */
+const FRESH_OUTLINE = outlineSignature(defaultSections());
 
 /**
  * [v4] How the event currently loaded was migrated on the way in, or null.
@@ -295,10 +371,13 @@ subscribe((current) => {
 function wireToolbar() {
   const fileInput = document.getElementById('file-input');
 
+  // [v13] §10 — New is the way into a real order, so it asks nothing when there
+  // is nothing to discard. An untouched order is not work in progress.
   document.getElementById('btn-new').addEventListener('click', () => {
-    if (event && !window.confirm('Discard the event in progress and start a new one?')) return;
+    if (hasWork(event)
+      && !window.confirm('Discard the event in progress and start a new one?')) return;
     clearAutosave();
-    setEvent(emptyEvent());
+    setEvent(emptyEvent(), null, 'new');
   });
 
   document.getElementById('btn-load').addEventListener('click', () => {
@@ -309,7 +388,7 @@ function wireToolbar() {
     const file = fileInput.files[0];
     try {
       const { event: loaded, summary } = await loadFromFile(file);
-      setEvent(loaded, summary);
+      setEvent(loaded, summary, 'file');
     } catch (err) {
       window.alert(err.message);
     } finally {
@@ -323,10 +402,15 @@ function wireToolbar() {
     saveToFile(event);
   });
 
+  // [v13] §10 — the sample is a sample. It replaces the whole event, and a
+  // coordinator halfway through a real order is asked first; the button that
+  // does not ask is New, one along.
   document.getElementById('btn-sample').addEventListener('click', async () => {
+    if (hasWork(event)
+      && !window.confirm('Replace the event in progress with the sample event?')) return;
     try {
       const { event: sample, summary } = await loadSample();
-      setEvent(sample, summary);
+      setEvent(sample, summary, 'sample');
     } catch (err) {
       window.alert(err.message);
     }
@@ -352,7 +436,12 @@ function wireAutosaveFlush() {
  *
  * Deliberately not the sample: opening the tool onto fixture data invites
  * typing over it, and a real document could ship with leftover Illig Party rows
- * in a section nobody scrolled to. The sample stays behind the Load Sample button.
+ * in a section nobody scrolled to. The sample stays behind its own button.
+ *
+ * [v13] The two paths are told apart by their origin rather than by what they
+ * hold, because the interface does different things with them: a new order
+ * opens on the date fields (§10 [v13]), and a restored autosave opens exactly
+ * where it was left, caret included.
  */
 async function init() {
   wireToolbar();
@@ -360,10 +449,10 @@ async function init() {
 
   const restored = restoreAutosave();
   if (restored) {
-    setEvent(restored.event, restored.summary);
+    setEvent(restored.event, restored.summary, 'autosave');
     return;
   }
-  setEvent(emptyEvent());
+  setEvent(emptyEvent(), null, 'new');
 }
 
 init();
