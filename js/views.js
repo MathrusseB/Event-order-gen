@@ -23,9 +23,10 @@
 // rebuilding three documents per character typed would be three documents of
 // work nobody is looking at.
 
-import { getEvent, subscribe } from './app.js';
+import { findings, getEvent, subscribe } from './app.js';
 import { DOCUMENTS, documentById, renderDocument, printRule } from './render.js';
-import { el, setHidden, toggleClass } from './dom.js';
+import { findingsForPrint, severityCounts } from './validate.js';
+import { el, reconcile, setHidden, setText, toggleClass } from './dom.js';
 
 /** The editing view's id. Not a document — there is nothing to print from it. */
 const EDIT = 'edit';
@@ -46,6 +47,25 @@ const scrollByView = new Map();
 
 /** [v10] The shell's print control — a document to print, and the button. */
 let printPicker = null;
+let printButton = null;
+
+/** [v12] The line beside the print control saying what is outstanding (§12). */
+let checksLine = null;
+
+/** [v12] The pre-print panel, built once on first use. */
+let panel = null;
+
+/**
+ * [v12] How to take the user to the thing a finding is about — handed in by
+ * shell.js, which owns the navigator, the section blocks and the Board / Rows
+ * switch. Passed rather than imported: shell.js already imports this module,
+ * and reaching back the other way would close a cycle for one function.
+ */
+let reveal = null;
+let canReveal = null;
+
+/** [v12] The timer that takes the clean line back down again. */
+let checksTimer = 0;
 
 let view = EDIT;
 let printTarget = DEFAULT_PRINT;
@@ -58,7 +78,12 @@ let pageStyle = null;
  * Build the view switcher and the previews, and start listening.
  *
  * @param {{nav: HTMLElement, workbench: HTMLElement, region: HTMLElement,
- *   printTarget: HTMLSelectElement, printButton: HTMLElement}} refs
+ *   printTarget: HTMLSelectElement, printButton: HTMLElement,
+ *   printChecks: HTMLElement, reveal: (finding: object) => void,
+ *   canReveal: (finding: object) => boolean}} refs
+ *   [v12] `printChecks` is the line beside the print control; `reveal` takes
+ *   the user to the row a finding is about and `canReveal` says whether there
+ *   is one to take them to, and both belong to shell.js
  */
 export function mountViews(refs) {
   workbench = refs.workbench;
@@ -87,7 +112,13 @@ export function mountViews(refs) {
     printTarget = printPicker.value;
     document.documentElement.dataset.print = printTarget;
   });
-  refs.printButton.addEventListener('click', () => printDocument(printPicker.value));
+  printButton = refs.printButton;
+  printButton.addEventListener('click', () => requestPrint(printPicker.value));
+
+  // [v12] §12 — what is outstanding, said where the print is started.
+  checksLine = refs.printChecks || null;
+  reveal = typeof refs.reveal === 'function' ? refs.reveal : null;
+  canReveal = typeof refs.canReveal === 'function' ? refs.canReveal : null;
 
   document.documentElement.dataset.view = EDIT;
   document.documentElement.dataset.print = printTarget;
@@ -129,7 +160,7 @@ function createPreview(doc) {
     class: 'btn btn--primary',
     text: `Print ${doc.label}`
   });
-  print.addEventListener('click', () => printDocument(doc.id));
+  print.addEventListener('click', () => requestPrint(doc.id));
 
   const node = el('div', { class: 'docview', 'data-view': doc.id, hidden: true }, [
     el('div', { class: 'docview__bar' }, [
@@ -212,6 +243,254 @@ function focusInside(root) {
   return active && root && root.contains(active) ? active : null;
 }
 
+/* --------------------------------------------------- [v12] the pre-print check */
+
+/**
+ * §12 [v12] — what is outstanding, shown at the moment it is about to become
+ * paper.
+ *
+ * The editor has been saying all of this quietly for as long as the event has
+ * been open, beside the rows it is about. This is the other job: printing is
+ * the point at which a mistake stops being a field on a screen and starts being
+ * a sheet somebody acts on, so the outstanding list is put in front of the
+ * person pressing the button, once, deliberately.
+ *
+ * **It warns and never blocks** (§12). "Print anyway" is not a dare — it is the
+ * ordinary way out of this panel, and it is the primary action, because Brian
+ * knows things the app does not: a guest with no room is rooming with their
+ * parents, a count set by hand came off a phone call, and the paper is right.
+ *
+ * A clean event never sees the panel at all. It says so on one line and prints
+ * — a dialog congratulating somebody for an event with nothing wrong with it is
+ * a dialog they will learn to dismiss without reading, and then they will
+ * dismiss the one that mattered.
+ *
+ * @param {string} id the document about to print
+ */
+function requestPrint(id) {
+  const doc = documentById(id);
+  if (!doc) return;
+
+  const outstanding = findings();
+  if (!outstanding.length) {
+    // Said briefly, and then out of the way. §12 [v12].
+    sayChecks('Nothing outstanding.', { fades: true });
+    printDocument(id);
+    return;
+  }
+  openPanel(doc, outstanding);
+}
+
+/** The panel's markup, built once and patched from then on. */
+function createPanel() {
+  const title = el('h2', { class: 'prepanel__title', id: 'prepanel-title' });
+  const lead = el('p', { class: 'prepanel__lead' });
+  const groups = el('div', { class: 'prepanel__groups' });
+
+  const back = el('button', { type: 'button', class: 'btn', text: 'Back to the order' });
+  const go = el('button', { type: 'button', class: 'btn btn--primary' });
+
+  const box = el('section', {
+    class: 'prepanel__box',
+    role: 'dialog',
+    'aria-modal': 'true',
+    'aria-labelledby': 'prepanel-title'
+  }, [
+    el('header', { class: 'prepanel__head' }, [title, lead]),
+    groups,
+    el('footer', { class: 'prepanel__foot' }, [back, go])
+  ]);
+
+  const scrim = el('div', { class: 'prepanel__scrim' });
+  const node = el('div', { class: 'prepanel', hidden: true }, [scrim, box]);
+
+  back.addEventListener('click', () => closePanel());
+  scrim.addEventListener('click', () => closePanel());
+
+  // Escape and Tab are handled on the document rather than on the panel: a
+  // listener on the panel stops working the moment focus leaves it, which is
+  // the first Tab, and Escape is expected to work from anywhere while a dialog
+  // is up.
+  const keys = (event) => {
+    if (event.key === 'Escape') {
+      closePanel();
+      return;
+    }
+    if (event.key !== 'Tab') return;
+    const stops = [...box.querySelectorAll('button')].filter((stop) => !stop.disabled);
+    if (!stops.length) return;
+    const first = stops[0];
+    const last = stops[stops.length - 1];
+    // Wrap, so focus cannot wander out into the editors underneath a scrim.
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    } else if (!box.contains(document.activeElement)) {
+      event.preventDefault();
+      first.focus();
+    }
+  };
+
+  // A plain element rather than `<dialog>`: `showModal()` would give the trap
+  // and Escape for free, but it puts the panel in the top layer, and §8 [v8]
+  // is the one rule in this app worth being paranoid about — nothing may reach
+  // another document's print output. Appended to `<body>`, this is switched off
+  // by print.css's `body > *` rule like everything else, which is a thing that
+  // can be read rather than a thing that has to be trusted.
+  document.body.append(node);
+  return { node, title, lead, groups, back, go, keys };
+}
+
+/** Open it on one document's outstanding findings. */
+function openPanel(doc, outstanding) {
+  if (!panel) panel = createPanel();
+
+  const counts = severityCounts(outstanding);
+  panel.title.textContent = `Before the ${doc.label} goes to the printer`;
+  panel.lead.textContent = `${countPhrase(counts)}. Nothing here stops the print — this is what `
+    + 'is outstanding on the paper you are about to hand over.';
+  panel.go.textContent = `Print the ${doc.label} anyway`;
+
+  const groups = findingsForPrint(outstanding);
+  const entries = reconcile(panel.groups, groups, (group) => group.severity, createPanelGroup);
+  entries.forEach((entry, index) => entry.update(groups[index]));
+
+  panel.go.onclick = () => {
+    closePanel();
+    printDocument(doc.id);
+  };
+
+  setHidden(panel.node, false);
+  document.body.classList.add('prepanel-open');
+  document.addEventListener('keydown', panel.keys, true);
+  panel.go.focus();
+}
+
+function closePanel({ restoreFocus = true } = {}) {
+  if (!panel) return;
+  setHidden(panel.node, true);
+  document.body.classList.remove('prepanel-open');
+  document.removeEventListener('keydown', panel.keys, true);
+  if (restoreFocus && printButton) printButton.focus();
+}
+
+/**
+ * One severity's worth of findings.
+ *
+ * Warnings first, which is the order `findingsForPrint` returns them in
+ * (§12 [v12]): they are the ones that change what comes out of the printer,
+ * and a panel that leads with the notes teaches the reader to scroll.
+ */
+function createPanelGroup() {
+  const heading = el('h3', { class: 'prepanel__grouptitle' });
+  const list = el('ul', { class: 'prepanel__list' });
+  const node = el('section', { class: 'prepanel__group' }, [heading, list]);
+
+  return {
+    node,
+    update(group) {
+      const warning = group.severity === 'warning';
+      node.dataset.severity = group.severity;
+      heading.textContent = warning
+        ? `${group.findings.length === 1 ? 'One warning' : `${group.findings.length} warnings`} — probably wrong`
+        : `${group.findings.length === 1 ? 'One note' : `${group.findings.length} notes`} — deliberate, worth seeing`;
+
+      const entries = reconcile(list, group.findings, (item) => item.key, createPanelItem);
+      entries.forEach((entry, index) => entry.update(group.findings[index]));
+    }
+  };
+}
+
+/** One finding — a sentence, and a way into the thing it is about. */
+function createPanelItem() {
+  const where = el('span', { class: 'prepanel__where' });
+  const text = el('span', { class: 'prepanel__text' });
+  const button = el('button', { type: 'button', class: 'prepanel__item' }, [where, text]);
+  const node = el('li', {}, [button]);
+  let current = null;
+
+  button.addEventListener('click', () => {
+    // Closing first: `reveal` scrolls, and scrolling behind a scrim is scrolling
+    // nobody can see. Focus is not sent back to the print button on the way
+    // out, because the whole point of the press was to go somewhere else.
+    closePanel({ restoreFocus: false });
+    if (reveal && current) reveal(current);
+  });
+
+  return {
+    node,
+    update(item) {
+      current = item;
+      const label = AREA_LABELS[item.area] || 'This event';
+      // A finding can be about a section this order does not carry — §12.1
+      // names a meal service, and since v9 an event is not seeded with a Food &
+      // Beverage section. The finding is still true and still listed; what is
+      // not true is that pressing it goes anywhere, so it says so instead of
+      // being a button that does nothing.
+      const open = canReveal ? canReveal(item) : true;
+      setText(where, open ? label : `${label} · not in this order`);
+      setText(text, item.text);
+      button.disabled = !open;
+      toggleClass(button, 'is-closed', !open);
+    }
+  };
+}
+
+/**
+ * What each area is called in a sentence. The panel names where a finding
+ * lives, not what type it is: "Rooming", not "rooming".
+ */
+const AREA_LABELS = {
+  meta: 'Event details',
+  guests: 'Guests',
+  schedule: 'Itinerary',
+  foodAndBev: 'Food & Beverage',
+  staff: 'Staff',
+  departments: 'Departments',
+  rooming: 'Rooming',
+  menu: 'Menu'
+};
+
+/** "Two warnings and one note", "One warning", "Three notes". */
+function countPhrase(counts) {
+  const parts = [];
+  if (counts.warning) parts.push(`${counts.warning} warning${counts.warning === 1 ? '' : 's'}`);
+  if (counts.note) parts.push(`${counts.note} note${counts.note === 1 ? '' : 's'}`);
+  return parts.join(' and ') || 'Nothing outstanding';
+}
+
+/**
+ * The line beside the print control. Hidden when it has nothing to say.
+ *
+ * "Nothing outstanding." is the one thing here that is said and then taken
+ * back down: §12 [v12] asks for it briefly and then out of the way, and a line
+ * announcing that nothing is wrong, sitting there for the rest of the session,
+ * is the celebration that rule exists to prevent. The count line stays as long
+ * as the count does.
+ */
+function sayChecks(text, { fades = false } = {}) {
+  if (!checksLine) return;
+  if (checksTimer) {
+    window.clearTimeout(checksTimer);
+    checksTimer = 0;
+  }
+  setText(checksLine, text);
+  setHidden(checksLine, !text);
+  toggleClass(checksLine, 'is-clean', fades);
+  if (fades) {
+    checksTimer = window.setTimeout(() => {
+      checksTimer = 0;
+      sayChecks('');
+    }, CLEAN_LINE_MS);
+  }
+}
+
+/** Long enough to read at a glance, short enough not to become furniture. */
+const CLEAN_LINE_MS = 6000;
+
 /**
  * Print one document. §8 [v8] — the other two, and the shell, stay out of it.
  *
@@ -252,4 +531,10 @@ function onEvent(event) {
   for (const doc of DOCUMENTS) stale.add(doc.id);
   if (view !== EDIT) build(view);
   pageStyle.textContent = printRule(event);
+
+  // [v12] The count beside the print control, kept current so the panel is
+  // never the first anybody hears of it. A clean event says nothing at all
+  // until somebody actually presses Print.
+  const counts = severityCounts(findings());
+  sayChecks(counts.total ? `${countPhrase(counts)} outstanding` : '');
 }

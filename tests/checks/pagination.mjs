@@ -151,6 +151,69 @@ export async function run({ browser, origin, fixture, savePdf, check }) {
       await context.close();
     }
   }
+
+  await panelStaysOffThePaper({ browser, origin, check });
+}
+
+/**
+ * [v12] The pre-print panel is not on the paper — BUILD-SPEC §8 [v8], §12 [v12].
+ *
+ * §12's second destination is a panel raised at the moment of printing, which
+ * makes it the one surface in this app that can be on screen while a print is
+ * running: a keyboard print, or the browser's own menu, reaches `window.print()`
+ * without going near the button that would have closed it. §8 [v8] is strict —
+ * nothing but the document may be in the output, "not collapsed, not behind a
+ * page break, not present in the DOM and unstyled" — so this prints the sample
+ * event's Event Order twice, once with the panel open, and compares the ink
+ * mark for mark.
+ *
+ * Reading `display: none` out of print.css would be the cheaper check and it is
+ * the one that proves nothing: the rule is `body > *`, and the whole risk is a
+ * future panel that stops being a child of `<body>`.
+ */
+async function panelStaysOffThePaper({ browser, origin, check }) {
+  const context = await browser.newContext();
+  const page = await context.newPage();
+
+  try {
+    await page.goto(`${origin}/index.html`, { waitUntil: 'networkidle' });
+    await page.click('#btn-sample');
+    await page.waitForFunction(
+      (count) => document.getElementById('section-blocks').children.length === count,
+      await sectionCount(path.join(ROOT, 'data', 'sample.json'))
+    );
+    await page.click('.viewtab[data-view="order"]');
+    await page.waitForSelector('.docview[data-view="order"] .doc__body');
+    await page.waitForFunction(() => [...window.document.images].every((image) => image.complete));
+
+    const shut = await print(page);
+
+    // The sample raises §12.8 on every meal with no menu, so the panel opens.
+    await page.click('#btn-print');
+    await page.waitForSelector('.prepanel:not([hidden])');
+    const open = await print(page);
+
+    check(
+      'the pre-print panel is open on screen',
+      await page.evaluate(() => !document.querySelector('.prepanel').hidden),
+      'the sample event must raise findings for this check to mean anything'
+    );
+
+    check(
+      'the pre-print panel leaves no mark on the printed Event Order',
+      open.pages.length === shut.pages.length
+        && open.pages.every((sheet, index) => inkOf(sheet) === inkOf(shut.pages[index])),
+      `${shut.pages.length} pages shut / ${open.pages.length} open — `
+        + `${open.pages.map(inkOf).join(' ')} against ${shut.pages.map(inkOf).join(' ')}`
+    );
+  } finally {
+    await context.close();
+  }
+}
+
+/** One page's ink as a comparable string. */
+function inkOf(sheet) {
+  return sheet ? `${sheet.ink.text}/${sheet.ink.images}/${sheet.ink.marks}` : 'missing';
 }
 
 /**

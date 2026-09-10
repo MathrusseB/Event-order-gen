@@ -17,6 +17,8 @@
 
 import { defaultSections } from './sections.js';
 import { DEFAULT_BRAND_ID } from './reference.js';
+import { nowStamp } from './dates.js';
+import { findingsByArea, findingsByRow, validateEvent } from './validate.js';
 import {
   loadFromFile,
   saveToFile,
@@ -32,6 +34,19 @@ let event = null;
 
 /** Change listeners, called with the current event after every write. */
 const subscribers = new Set();
+
+/**
+ * [v12] The §12 findings on the event currently loaded, computed once and held
+ * until the next write. BUILD-SPEC §12 [v12].
+ *
+ * `validate.js` is pure and stateless on purpose — an event in, findings out —
+ * so the memo lives here, beside the one thing that knows when the event has
+ * changed. Without it every row in every editor would run the whole validator
+ * to ask what is wrong with itself, on every keystroke.
+ *
+ * Null means "not computed since the last write", never "no findings".
+ */
+let checked = null;
 
 /**
  * [v4] What `migrate()` did to the event currently loaded, or null for one this
@@ -60,6 +75,9 @@ function freezeDeep(value) {
 /** Store a private, deeply frozen event and notify. The only assignment to `event`. */
 function commit(next) {
   event = freezeDeep(next);
+  // [v12] Dropped rather than recomputed: the subscribers about to run are the
+  // only things that read it, and an event nobody looks at is never validated.
+  checked = null;
   notify();
 }
 
@@ -123,8 +141,70 @@ export function update(mutate) {
   const draft = structuredClone(event);
   const returned = mutate(draft);
   // Clone only a foreign object: the draft is already private to this call.
-  commit(returned === undefined || returned === draft ? draft : structuredClone(returned));
+  const next = returned === undefined || returned === draft ? draft : structuredClone(returned);
+
+  // [v12] The edit is recorded here because here is the only place an edit
+  // happens. §12.11 asks whether the revision line is older than the most
+  // recent edit, and until v12 nothing knew when that was; a stamp written
+  // anywhere else would be a stamp some write path could get past. Local wall
+  // clock, no zone — see `nowStamp` (dates.js).
+  if (!next.meta || typeof next.meta !== 'object') next.meta = {};
+  next.meta.touchedAt = nowStamp();
+
+  commit(next);
   return event;
+}
+
+/**
+ * [v12] The §12 findings on the current event, in rule order.
+ *
+ * Computed on first ask after each write and held until the next one, so a
+ * render that asks twelve times computes once. Frozen state is what makes that
+ * safe: the event cannot change under the memo without going through `commit`.
+ *
+ * @returns {import('./validate.js').Finding[]} empty when no event is loaded
+ */
+export function findings() {
+  return event ? checkedNow().list : [];
+}
+
+/**
+ * [v12] The findings about one row — what a row asks to mark itself in place.
+ *
+ * @param {string} rowId
+ * @returns {import('./validate.js').Finding[]} empty when there are none
+ */
+export function findingsFor(rowId) {
+  if (!event || !rowId) return [];
+  return checkedNow().byRow.get(rowId) || [];
+}
+
+/**
+ * [v12] The findings belonging to one area — what the navigator marks.
+ *
+ * @param {string} area see `AREAS` in validate.js
+ * @returns {import('./validate.js').Finding[]} empty when there are none
+ */
+export function findingsIn(area) {
+  if (!event || !area) return [];
+  return checkedNow().byArea.get(area) || [];
+}
+
+/** The memo, filled on demand. */
+function checkedNow() {
+  if (!checked) {
+    // Frozen for the same reason the event is: these arrays are handed to every
+    // row in every editor, and one caller sorting the list in place would
+    // reorder it for everybody who asked after them. `filter` still works;
+    // `sort` and `reverse` throw at the line that wrote them.
+    const list = Object.freeze(validateEvent(event));
+    const byRow = findingsByRow(list);
+    const byArea = findingsByArea(list);
+    for (const bucket of byRow.values()) Object.freeze(bucket);
+    for (const bucket of byArea.values()) Object.freeze(bucket);
+    checked = { list, byRow, byArea };
+  }
+  return checked;
 }
 
 /**
@@ -178,7 +258,11 @@ export function emptyEvent() {
       brandId: DEFAULT_BRAND_ID,
       // [v9] Both false: the Menu and the Rooming Assignment are their own
       // documents, and an order that also carries them is the exception (§5).
-      includeInOrder: { rooming: false, menu: false }
+      includeInOrder: { rooming: false, menu: false },
+      // [v12] When this event was last edited (§5 [v12]). Empty until the first
+      // write, which is the truth: a new event has not been edited. §12.11
+      // stays quiet on an empty one rather than guessing.
+      touchedAt: ''
     },
     sections: defaultSections(),
     attendees: [],

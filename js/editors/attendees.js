@@ -14,7 +14,7 @@
 //     than a stale row the validator will point at. The confirmation says how
 //     many rows it is about to strand.
 
-import { getEvent, update } from '../app.js';
+import { findingsFor, getEvent, update } from '../app.js';
 import { newId } from '../ids.js';
 import {
   attendeeName,
@@ -36,6 +36,11 @@ import {
   setValue,
   toggleClass
 } from '../dom.js';
+// [v12] The one warning line the whole form uses, so a §12 finding reads the
+// same beside a guest as it does beside a room. This editor keeps its own
+// field controls (see the note at the top of fields.js) but not its own way of
+// saying what is wrong.
+import { warnLine } from './fields.js';
 
 /** A blank guest, in the shape of BUILD-SPEC §5. */
 function blankAttendee() {
@@ -338,7 +343,7 @@ function createGuestRow(list, id) {
   moveDown.addEventListener('click', () => moveGuest(list, id, 1));
   remove.addEventListener('click', () => deleteGuest(id));
 
-  const warning = el('p', { class: 'rowwarn', hidden: true });
+  const warning = warnLine();
 
   const node = el('li', { class: 'row row--guest', 'data-row': id }, [
     last.root,
@@ -349,7 +354,7 @@ function createGuestRow(list, id) {
     dietary.root,
     note.root,
     el('div', { class: 'cell cell--actions' }, [moveUp, moveDown, remove]),
-    warning
+    warning.node
   ]);
 
   return {
@@ -374,26 +379,34 @@ function createGuestRow(list, id) {
       moveUp.disabled = index === 0;
       moveDown.disabled = index === total - 1;
 
-      const messages = stayWarnings(attendee, meta);
-      setHidden(warning, messages.length === 0);
-      setText(warning, messages.join(' '));
+      // [v12] §12's own findings about this guest — rule 2 and rule 10 — written
+      // once in validate.js and shown here beside the guest they are about
+      // (§12 [v12]), followed by this editor's own checks on the stay, which are
+      // not §12 rules and are nobody else's to make.
+      const mine = findingsFor(id).filter((item) => item.area === 'guests');
+      warning.set([...mine, ...stayWarnings(attendee, meta)]);
+      // Marked only where the sentence is: a row marked for a finding filed
+      // under another editor is a mark with no explanation under it, which
+      // reads as a glitch rather than as a warning.
+      toggleClass(node, 'has-finding', mine.length > 0);
     }
   };
 }
 
 /**
- * What is wrong with a guest's stay, in plain sentences. Warnings only —
- * BUILD-SPEC §12 warns and never blocks, and validation proper arrives in its
- * own module.
+ * What is wrong with a guest's stay, beyond what §12 says about it.
+ *
+ * [v12] A stay dated outside the event is *not* a §12 rule — §12.9 is about
+ * schedule entries and meal services, and a guest who arrives the day before
+ * the event opens is an ordinary thing that the header editor also lists where
+ * the dates are typed. §12.10 — departing before arriving — used to be
+ * duplicated here and is now written once, in validate.js, and shown above.
  */
 function stayWarnings(attendee, meta) {
   const arrive = attendee.arrive || meta.startDate || '';
   const depart = attendee.depart || meta.endDate || '';
   const messages = [];
 
-  if (arrive && depart && depart < arrive) {
-    messages.push('Departs before arriving.');
-  }
   if (meta.startDate && arrive && arrive < meta.startDate) {
     messages.push(`Arrives ${formatDateShort(arrive)}, before the event starts.`);
   }

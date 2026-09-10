@@ -510,6 +510,22 @@ body.outline-open .outline {
   color: var(--text-faint);
 }
 
+/* [v12] §12 — what is outstanding in this section, counted in the navigator.
+   Quiet by default and amber only when something is probably wrong. */
+.outline__checks {
+  grid-column: 2;
+  color: var(--forest-600);
+  font-size: var(--text-xs);
+}
+
+.outline__checks.is-warning {
+  color: var(--amber-700);
+}
+
+.outline__docs .outline__checks {
+  grid-column: 1;
+}
+
 .outline__item.is-meta .outline__label {
   font-family: var(--font-serif);
   font-size: var(--text-base);
@@ -856,7 +872,8 @@ body.outline-open .outline {
 .row .cell--dietary,
 .row .cell--note,
 .row .cell--actions,
-.row .rowwarn {
+.row .rowwarn,
+.row .rowwarn__repairs {
   grid-column: 1 / -1;
 }
 
@@ -900,13 +917,46 @@ body.outline-open .outline {
   background: #fffdf6;
 }
 
+/* [v12] One line per thing wrong with the row — a §12 finding, or this
+   editor's own check. A note is set apart from a warning rather than made
+   smaller: rule 1's overrides and rule 2's unlisted children are normal ways to
+   run an event, and amber on all of them would teach the eye to skip amber. */
 .rowwarn {
   margin-top: var(--space-1);
-  padding: var(--space-1) var(--space-2);
-  background: var(--amber-100);
-  border-left: 3px solid var(--amber-400);
-  color: var(--amber-700);
   font-size: var(--text-sm);
+}
+
+.rowwarn__list {
+  display: grid;
+  gap: 2px;
+}
+
+.rowwarn__item {
+  padding: var(--space-1) var(--space-2);
+  border-left: 3px solid transparent;
+}
+
+.rowwarn__item--warning {
+  background: var(--amber-100);
+  border-left-color: var(--amber-400);
+  color: var(--amber-700);
+}
+
+.rowwarn__item--note {
+  background: var(--forest-100);
+  border-left-color: var(--forest-300);
+  color: var(--forest-800);
+}
+
+/* The one-press repairs sit under whatever was said about the row. */
+.rowwarn__repairs {
+  margin-top: var(--space-1);
+  padding: 0 var(--space-2);
+  font-size: var(--text-sm);
+}
+
+.rowwarn__repairs .linkish + .linkish {
+  margin-left: var(--space-2);
 }
 
 /* ---------------------------------------------------------- unknown section */
@@ -1595,8 +1645,16 @@ body.outline-open .outline {
   background: #fffdf6;
 }
 
-.rowwarn__text {
-  margin-right: var(--space-2);
+/* [v12] A row §12 has something to say about, marked in place. The mark is a
+   rule down the left edge rather than a wash, so a row can be marked without
+   the table looking like a fault report. */
+.row.has-finding,
+.menublock.has-finding {
+  box-shadow: inset 3px 0 0 var(--forest-300);
+}
+
+.row--rooming.has-warning {
+  box-shadow: inset 3px 0 0 var(--amber-400);
 }
 
 /* ------------------------------------------------------------ f&b counting */
@@ -3136,8 +3194,23 @@ body.outline-open .outline {
 .bar__print {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: var(--space-2);
   margin-right: var(--space-3);
+}
+
+/* [v12] §12 — what is outstanding, on the bar where the print is started.
+   Amber on the dark slab, because this is the one thing up here that is about
+   the document rather than about the tool. Hidden entirely on a clean event. */
+.bar__checks {
+  flex-basis: 100%;
+  margin: var(--space-1) 0 0;
+  color: var(--amber-400);
+  font-size: var(--text-xs);
+}
+
+.bar__checks.is-clean {
+  color: var(--forest-300);
 }
 
 .input--onbar {
@@ -3242,4 +3315,143 @@ body.outline-open .outline {
 .ways__sent.is-over {
   color: var(--brick-600);
   font-weight: 600;
+}
+
+/* ------------------------------------------------ [v12] the pre-print check */
+
+/* BUILD-SPEC §12 [v12]. The one deliberate interruption in the app, and it
+   interrupts exactly one thing: the moment a mistake becomes paper. It warns
+   and never blocks — "Print anyway" is the primary action and is where the
+   eye lands, because Brian knows things this app does not.
+
+   It lives as a direct child of <body>, which is where print.css switches
+   everything off before putting the one document back (§8 [v8]), so it cannot
+   reach the paper even if it were somehow open when a print began. */
+
+.prepanel {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+}
+
+.prepanel__scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(20, 24, 26, 0.45);
+}
+
+.prepanel__box {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: min(46rem, 100%);
+  max-height: min(40rem, 100%);
+  background: var(--paper);
+  border: 1px solid var(--rule-strong);
+  border-top: 4px solid var(--amber-400);
+  box-shadow: 0 12px 40px rgba(20, 24, 26, 0.25);
+}
+
+.prepanel__head {
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--rule);
+}
+
+.prepanel__title {
+  font-family: var(--font-serif);
+  font-size: var(--text-md);
+  font-weight: 600;
+}
+
+.prepanel__lead {
+  margin-top: var(--space-1);
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
+.prepanel__groups {
+  overflow-y: auto;
+  padding: var(--space-2) 0;
+}
+
+.prepanel__grouptitle {
+  padding: var(--space-2) var(--space-4);
+  color: var(--amber-700);
+  font-size: var(--text-xs);
+}
+
+.prepanel__group[data-severity="note"] .prepanel__grouptitle {
+  color: var(--forest-600);
+}
+
+.prepanel__item {
+  display: grid;
+  grid-template-columns: 8.5rem minmax(0, 1fr);
+  gap: var(--space-3);
+  width: 100%;
+  min-height: var(--touch-h);
+  padding: var(--space-2) var(--space-4);
+  border: 0;
+  border-left: 3px solid var(--amber-400);
+  background: none;
+  color: var(--ink-800);
+  font: inherit;
+  font-size: var(--text-sm);
+  text-align: left;
+  cursor: pointer;
+}
+
+.prepanel__group[data-severity="note"] .prepanel__item {
+  border-left-color: var(--forest-300);
+}
+
+.prepanel__item:hover {
+  background: var(--ink-50);
+}
+
+/* A finding about a section this order does not carry. Still listed — it is
+   still true — but there is nowhere to be taken to, and the label says why
+   rather than the press doing nothing. */
+.prepanel__item.is-closed {
+  cursor: default;
+  color: var(--text-muted);
+}
+
+.prepanel__item.is-closed:hover {
+  background: none;
+}
+
+.prepanel__where {
+  color: var(--text-faint);
+  font-size: var(--text-xs);
+}
+
+.prepanel__foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-top: 1px solid var(--rule);
+  background: var(--ink-50);
+}
+
+/* Nothing behind the panel scrolls under it — on screen only. print.css resets
+   the page box but not `overflow`, so a global rule here would still be in
+   force during a Ctrl+P raised while the panel is open, and an overflow-hidden
+   body truncates the print to one page in Chrome. */
+@media screen {
+  body.prepanel-open {
+    overflow: hidden;
+  }
+}
+
+@media (max-width: 40rem) {
+  .prepanel__item {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
 }

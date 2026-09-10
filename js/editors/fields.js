@@ -18,7 +18,7 @@
 //     value means something — "follow the guest's stay", "no end time" — that
 //     the user did not mean to say halfway through typing.
 
-import { autoGrow, el, reconcile, setHidden, setText, setValue } from '../dom.js';
+import { autoGrow, el, reconcile, setHidden, setValue } from '../dom.js';
 
 /**
  * A row action button: a glyph where the row is a table row, words where it is
@@ -251,22 +251,54 @@ export function defaultedDateField({ field, label, defaultLabel, resetLabel, onC
 }
 
 /**
- * The warning line under a row. Hidden when there is nothing to say.
+ * The line under a row saying what is wrong with it. Hidden when there is
+ * nothing to say.
  *
- * Warnings only: BUILD-SPEC §12 warns and never blocks, and the validator
- * proper is its own module. What these say is the same truth, at the moment the
- * edit is made rather than held until print.
+ * BUILD-SPEC §12 warns and never blocks, and this is where that warning is at
+ * the moment the edit is made rather than held until print.
  *
- * @returns {{node: HTMLElement, set: (messages: string[]) => void}}
+ * [v12] It takes two kinds of item and tells them apart on the page:
+ *
+ *   * a **finding** from `validate.js` — `{severity, text}` — which is a §12
+ *     rule, written once there and shown here. A `note` is set apart from a
+ *     `warning`, because rule 1's overrides and rule 2's unlisted children are
+ *     normal ways to run an event and must not read as faults.
+ *   * a plain **string**, which is this editor's own check on its own rows —
+ *     "Ends before it starts", "No name on this assignment". Those are not §12
+ *     rules and are not in the validator; they are shown as warnings.
+ *
+ * The list is rebuilt only when what it says changes. It holds nothing
+ * focusable, but the form writes on every keystroke and replacing a node under
+ * a row sixty times a minute is work nobody asked for — see the note at the top
+ * of dom.js.
+ *
+ * @returns {{node: HTMLElement,
+ *   set: (items: Array<string|{severity: string, text: string}>) => void}}
  */
 export function warnLine() {
-  const node = el('p', { class: 'rowwarn', hidden: true });
+  const list = el('ul', { class: 'rowwarn__list' });
+  const node = el('div', { class: 'rowwarn', hidden: true }, [list]);
+  let signature = '';
+
   return {
     node,
-    set(messages) {
-      const text = messages.filter(Boolean).join(' ');
-      setHidden(node, !text);
-      setText(node, text);
+    set(items) {
+      const lines = (items || [])
+        .filter(Boolean)
+        .map((item) => (typeof item === 'string'
+          ? { severity: 'warning', text: item }
+          : { severity: item.severity === 'note' ? 'note' : 'warning', text: item.text }))
+        .filter((line) => line.text);
+
+      const next = lines.map((line) => `${line.severity}\u0000${line.text}`).join('\u0001');
+      if (next !== signature) {
+        signature = next;
+        list.replaceChildren(...lines.map((line) => el('li', {
+          class: `rowwarn__item rowwarn__item--${line.severity}`,
+          text: line.text
+        })));
+      }
+      setHidden(node, lines.length === 0);
     }
   };
 }

@@ -21,7 +21,7 @@
 // dull, they are unambiguous, they work with a keyboard, and they keep focus on
 // the control that was pressed.
 
-import { getEvent, subscribe, update } from './app.js';
+import { findingsIn, getEvent, subscribe, update } from './app.js';
 import {
   SEEDED_SECTION_TYPES,
   addSection,
@@ -34,7 +34,7 @@ import {
   setSectionTitle,
   typeInfo
 } from './sections.js';
-import { mountViews } from './views.js';
+import { mountViews, setView } from './views.js';
 import { createMetaEditor } from './editors/meta.js';
 import { createMenuEditor } from './editors/menu.js';
 import { createRoomingEditor } from './editors/rooming.js';
@@ -86,6 +86,7 @@ function grab() {
   refs.viewNav = document.getElementById('view-nav');
   refs.printTarget = document.getElementById('print-target');
   refs.printButton = document.getElementById('btn-print');
+  refs.printChecks = document.getElementById('print-checks');
   refs.workbench = document.getElementById('workbench');
   refs.previews = document.getElementById('previews');
 }
@@ -142,8 +143,18 @@ function goToNode(node) {
     block: 'start',
     behavior: prefersReducedMotion() ? 'auto' : 'smooth'
   });
-  const field = node.querySelector('[data-field="title"], .input');
-  if (field) field.focus({ preventScroll: true });
+  // [v12] A menu block has neither a title nor a field — its one control is the
+  // offer to write a menu, which is exactly what somebody arriving from §12.8
+  // came to press. The list is in preference order and is asked for one at a
+  // time: `querySelector` with a selector list answers in *document* order, and
+  // a row's move button would win over the field beside it.
+  for (const want of ['[data-field="title"]', '.input', '.btn--primary']) {
+    const field = node.querySelector(want);
+    if (field) {
+      field.focus({ preventScroll: true });
+      return;
+    }
+  }
 }
 
 /** Add a section and drop the caret into its title, ready to be renamed. */
@@ -213,7 +224,11 @@ function createOutlineItem(item) {
   const index = el('span', { class: 'outline__index', 'aria-hidden': 'true' });
   const label = el('span', { class: 'outline__label' });
   const state = el('span', { class: 'outline__state' });
-  const button = el('button', { type: 'button', class: 'outline__link' }, [index, label, state]);
+  // [v12] §12 — a section holding findings says so from the navigator, so what
+  // is outstanding is visible without scrolling the form looking for it.
+  const checks = el('span', { class: 'outline__checks', hidden: true });
+  const button = el('button', { type: 'button', class: 'outline__link' },
+    [index, label, state, checks]);
   button.addEventListener('click', () => goToBlock(item.key));
   const node = el('li', { class: 'outline__item' }, [button]);
 
@@ -232,8 +247,127 @@ function createOutlineItem(item) {
       toggleClass(node, 'is-off', off);
       toggleClass(node, 'is-pending', unknown && !off);
       toggleClass(node, 'is-meta', current.kind === 'meta');
+
+      // The area a section's findings are filed under is its type; the header
+      // block's is `meta`. A `freeText` section has no rule about it and so
+      // never carries one.
+      markChecks(checks, current.kind === 'meta' ? 'meta' : current.section.type);
     }
   };
+}
+
+/**
+ * [v12] The count on a navigator entry. §12 — quietly and continuously.
+ *
+ * Words rather than a glyph: "2 warnings" is read at a glance and "⚠ 2" is
+ * read twice. Hidden entirely when there is nothing, because a navigator of
+ * zeroes is a navigator nobody looks at.
+ *
+ * @param {HTMLElement} node the span to fill
+ * @param {string} area see `AREAS` in validate.js
+ */
+function markChecks(node, area) {
+  const found = area ? findingsIn(area) : [];
+  const warnings = found.filter((item) => item.severity === 'warning').length;
+  const notes = found.length - warnings;
+
+  const parts = [];
+  if (warnings) parts.push(`${warnings} warning${warnings === 1 ? '' : 's'}`);
+  if (notes) parts.push(`${notes} note${notes === 1 ? '' : 's'}`);
+
+  setText(node, parts.join(', '));
+  setHidden(node, parts.length === 0);
+  toggleClass(node, 'is-warning', warnings > 0);
+}
+
+/**
+ * [v12] The same mark on the two document destinations, which are static markup
+ * rather than reconciled entries (index.html) because nothing in the outline can
+ * add or remove them.
+ */
+function markDocChecks() {
+  for (const node of document.querySelectorAll('[data-checks]')) {
+    markChecks(node, node.dataset.checks);
+  }
+}
+
+/**
+ * [v12] Take the user to the thing a finding is about. §12 [v12] — "each item
+ * taking you to the thing it is about".
+ *
+ * Handed to views.js at mount rather than imported by it: this module already
+ * imports views.js, and everything below is knowledge this module has and that
+ * one does not — where a section block is, which document block holds the
+ * rooming rows, and that they are behind a Board / Rows switch.
+ *
+ * A finding whose row is not on screen still lands somewhere useful: an event
+ * with no Guests section in its outline has no attendee rows to scroll to, and
+ * §12.2 still has something to say about it, so the fall-back is the area's own
+ * block and then nothing at all rather than a dead button.
+ *
+ * @param {object} finding
+ */
+function revealFinding(finding) {
+  if (!finding || !revealTarget(finding)) return;
+  setView('edit');
+
+  // The rooming rows are one of two panels behind a switch, and a row inside a
+  // hidden panel cannot be scrolled to.
+  if (finding.area === 'rooming' && roomingBlock) roomingBlock.showRows();
+
+  // Inside the finding's own area first. A meal service and its menu block both
+  // carry the same row id — the meal is the thing they are both about — and
+  // §12.8 is filed under the Menu because writing the menu is what fixes it.
+  goToNode(revealTarget(finding));
+}
+
+/**
+ * [v12] Whether there is anywhere to take somebody, and where.
+ *
+ * Every section is optional (§4), and `validate.js` reports on areas this
+ * order's outline may not carry — §12.1 names a meal service on an event whose
+ * outline has no Food & Beverage section, which since v9 is the normal case.
+ * The print panel asks this so that an item it cannot open is drawn as an item
+ * it cannot open, rather than as a button that does nothing when pressed.
+ *
+ * @param {object} finding
+ * @returns {Element|null}
+ */
+export function revealTarget(finding) {
+  if (!finding) return null;
+  const block = areaNode(finding.area);
+  return finding.rowIds.map((id) => findRowNode(id, block)).find(Boolean)
+    || finding.rowIds.map((id) => findRowNode(id)).find(Boolean)
+    || block;
+}
+
+/**
+ * The node carrying `data-row="<id>"` anywhere in the workbench.
+ *
+ * A scan rather than a selector, for the reason `rowNode` gives in dom.js: row
+ * ids are opaque and a hand-edited file's id is not bound to be selector-safe.
+ *
+ * @param {string} id
+ * @param {Element} [within] where to look — the finding's own block, before
+ *   the whole workbench
+ * @returns {Element|null}
+ */
+function findRowNode(id, within) {
+  const root = within || refs.workbench;
+  if (!id || !root) return null;
+  for (const node of root.querySelectorAll('[data-row]')) {
+    if (node.dataset.row === id) return node;
+  }
+  return null;
+}
+
+/** The block an area lives in, when there is one in this event's outline. */
+function areaNode(area) {
+  if (area === 'meta') return refs.metaBlock;
+  if (area === 'rooming') return document.getElementById('rooming-block');
+  if (area === 'menu') return document.getElementById('menu-block');
+  const section = sectionsOf(getEvent()).find((row) => row && row.type === area);
+  return section ? rowNode(refs.blocks, section.id) : null;
 }
 
 /* ------------------------------------------------------------- section block */
@@ -385,6 +519,17 @@ function mountRooming() {
   ];
 
   const tabs = el('div', { class: 'ways__tabs', role: 'group', 'aria-label': 'How to edit rooming' });
+
+  /** Show one of the two panels and press its tab. */
+  const show = (id) => {
+    panels.forEach((panel, index) => {
+      const on = panel.id === id;
+      setHidden(panel.node, !on);
+      buttons[index].setAttribute('aria-pressed', String(on));
+      toggleClass(buttons[index], 'is-on', on);
+    });
+  };
+
   const buttons = panels.map((panel) => {
     const button = el('button', {
       type: 'button',
@@ -392,14 +537,7 @@ function mountRooming() {
       'aria-pressed': String(panel.id === 'board'),
       text: panel.label
     });
-    button.addEventListener('click', () => {
-      panels.forEach((other, index) => {
-        const on = other === panel;
-        setHidden(other.node, !on);
-        buttons[index].setAttribute('aria-pressed', String(on));
-        toggleClass(buttons[index], 'is-on', on);
-      });
-    });
+    button.addEventListener('click', () => show(panel.id));
     toggleClass(button, 'is-on', panel.id === 'board');
     tabs.append(button);
     return button;
@@ -418,6 +556,12 @@ function mountRooming() {
     update(event) {
       board.update(event);
       rows.update(event);
+    },
+    // [v12] A rooming finding names a row, and the rows are the panel that is
+    // not open by default. Showing them is the difference between "take me to
+    // it" and a scroll to a hidden node.
+    showRows() {
+      show('rows');
     }
   };
 }
@@ -525,6 +669,10 @@ function render(event) {
   if (!roomingBlock) roomingBlock = mountRooming();
   roomingBlock.update(event);
 
+  // [v12] The two documents are not sections, so their navigator entries are
+  // markup rather than reconciled entries — marked here, from the same count.
+  markDocChecks();
+
   if (!menuEditor) {
     menuEditor = createMenuEditor();
     refs.menuBody.append(menuEditor.node);
@@ -548,7 +696,12 @@ function mount() {
     workbench: refs.workbench,
     region: refs.previews,
     printTarget: refs.printTarget,
-    printButton: refs.printButton
+    printButton: refs.printButton,
+    // [v12] §12 — the outstanding count beside the print control, and the way
+    // from a finding in the pre-print panel to the row it is about.
+    printChecks: refs.printChecks,
+    reveal: revealFinding,
+    canReveal: (finding) => Boolean(revealTarget(finding))
   });
 }
 

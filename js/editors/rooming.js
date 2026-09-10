@@ -24,7 +24,7 @@
 //     `attendeeName`, and an id that resolves to nobody is shown as an
 //     unresolved *name*, not as an id (§12.3).
 
-import { getEvent, update } from '../app.js';
+import { findingsFor, getEvent, update } from '../app.js';
 import {
   attendeeById,
   attendeeName,
@@ -44,7 +44,7 @@ import {
   setValue,
   toggleClass
 } from '../dom.js';
-import { defaultedDateField, optionSignature, rowButton, selectField } from './fields.js';
+import { defaultedDateField, optionSignature, rowButton, selectField, warnLine } from './fields.js';
 import { draftList, fieldWriter, moveRow, removeRow, rowById } from './rows.js';
 
 const write = fieldWriter('rooming');
@@ -199,9 +199,12 @@ function createRoomingRow(list, id) {
   moveDown.addEventListener('click', () => moveEntry(list, id, 1));
   remove.addEventListener('click', () => deleteRow(id));
 
-  // A warning with its own repairs attached: the two things that go wrong here
-  // are both one press to fix, and neither is fixed behind the user's back.
-  const warnText = el('span', { class: 'rowwarn__text' });
+  // [v12] What is wrong with the row, and the repairs for the two things that
+  // are one press to fix. The sentences come from validate.js — §12.3, §12.5
+  // and §12.6 are rules about a rooming row, and a rule written twice is a rule
+  // that will one day be worded two ways — and neither repair happens behind
+  // the user's back.
+  const warn = warnLine();
   const clearRoom = el('button', { type: 'button', class: 'linkish', text: 'Clear the room' });
   const dropLegacy = el('button', { type: 'button', class: 'linkish', text: 'Remove the name' });
   clearRoom.addEventListener('click', () => write(id, 'room', null));
@@ -211,7 +214,7 @@ function createRoomingRow(list, id) {
       if (row) delete row.guest;
     });
   });
-  const warn = el('p', { class: 'rowwarn', hidden: true }, [warnText, clearRoom, dropLegacy]);
+  const repairs = el('p', { class: 'rowwarn__repairs', hidden: true }, [clearRoom, dropLegacy]);
 
   const node = el('li', { class: 'row row--rooming', 'data-row': id }, [
     building.root,
@@ -221,7 +224,8 @@ function createRoomingRow(list, id) {
     to.root,
     el('div', { class: 'cell cell--actions' }, [moveUp, moveDown, remove]),
     nights,
-    warn
+    warn.node,
+    repairs
   ]);
 
   return {
@@ -281,12 +285,19 @@ function createRoomingRow(list, id) {
       moveUp.disabled = index === 0;
       moveDown.disabled = index === total - 1;
 
-      const { messages, showClearRoom, showDropLegacy } = rowWarnings(event, row, mode, inventory);
-      setHidden(warn, messages.length === 0);
-      setText(warnText, messages.join(' '));
+      // [v12] The §12 findings naming this row — 3, 4, 5 and 6 — and then what
+      // this editor checks that §12 does not. A rule-4 clash names both rows,
+      // so both say the same sentence, which is the point: the row you are
+      // looking at is one of the two.
+      const mine = findingsFor(id).filter((item) => item.area === 'rooming');
+      const showClearRoom = mode === 'pooled' && Boolean(storedRoom);
+      const showDropLegacy = Boolean(row.guest);
+      warn.set(mine);
       setHidden(clearRoom, !showClearRoom);
       setHidden(dropLegacy, !showDropLegacy);
-      toggleClass(node, 'has-warning', messages.length > 0);
+      setHidden(repairs, !showClearRoom && !showDropLegacy);
+      toggleClass(node, 'has-finding', mine.length > 0);
+      toggleClass(node, 'has-warning', mine.some((item) => item.severity === 'warning'));
     }
   };
 }
@@ -452,60 +463,12 @@ function createChip(rowId, guestId) {
   };
 }
 
-/**
- * What is wrong with a rooming row, in plain sentences, and which of the two
- * one-press repairs to offer. §12.3, §12.5, §12.6.
- */
-function rowWarnings(event, row, mode, inventory) {
-  const messages = [];
-  let showClearRoom = false;
-  let showDropLegacy = false;
-
-  const ids = Array.isArray(row.guestIds) ? row.guestIds : [];
-  const missing = ids.filter((id) => !attendeeById(event, id)).length;
-  if (missing) {
-    messages.push(missing === 1
-      ? 'One name on this room is not on the attendee list — usually a guest who was deleted. The '
-        + 'room stays booked; take the name off, or put the guest back.'
-      : `${missing} names on this room are not on the attendee list. The room stays booked.`);
-  }
-
-  // [v5] A name migration could not match, kept verbatim so the row can still
-  // be read by the name it was authored with (migrate.js, rule 6).
-  if (row.guest) {
-    messages.push(`This row came in naming "${row.guest}", and no guest by that name was on the `
-      + 'list. Add the right guest above, then remove the old name.');
-    showDropLegacy = true;
-  }
-
-  const storedRoom = row.room === null || row.room === undefined ? '' : String(row.room);
-  if (mode === 'pooled' && storedRoom) {
-    messages.push(`${row.building} is assigned by building, so the room "${storedRoom}" on this row `
-      + 'is ignored everywhere it is read.');
-    showClearRoom = true;
-  }
-  if (mode === 'named' && !storedRoom) {
-    messages.push(`${row.building} is assigned room by room, and this row has no room.`);
-  }
-  if (mode === 'named' && storedRoom && inventory.length && !inventory.includes(storedRoom)) {
-    messages.push(`"${storedRoom}" is not a room in ${row.building}.`);
-  }
-
-  // §12.5 — the booking sits outside the stay of the guest it is booked under.
-  const booked = ids.map((id) => attendeeById(event, id)).find(Boolean);
-  if (booked) {
-    const stay = roomingWindow(event, { ...row, from: '', to: '' });
-    const window = roomingWindow(event, row);
-    if (window.from && stay.from && window.from < stay.from) {
-      messages.push(`Starts ${formatDateShort(window.from)}, before ${attendeeName(booked) || 'the guest'} arrives.`);
-    }
-    if (window.to && stay.to && window.to > stay.to) {
-      messages.push(`Runs to ${formatDateShort(window.to)}, after ${attendeeName(booked) || 'the guest'} leaves.`);
-    }
-  }
-
-  return { messages, showClearRoom, showDropLegacy };
-}
+// [v12] This editor no longer has warnings of its own. §12.3, §12.5 and §12.6
+// were each spelled out here as well as in the spec, in this editor's own
+// words, and the last of them — a room the building does not carry — is now
+// part of §12.6 too, where migrate.js and reference.js always said it was.
+// Everything under a row comes from validate.js, so a rooming fault reads the
+// same here, in the navigator, and on the pre-print panel.
 
 /** Move a row one place, and keep the finger on the button that moved it. */
 function moveEntry(list, id, delta) {

@@ -75,6 +75,36 @@ export const BUILDING_ASSIGNMENT_MODES = Object.fromEntries(
 export const ASSIGNMENT_MODE_NONE = 'none';
 
 /**
+ * [v12] Rooms built to be shared. BUILD-SPEC §6 [v12].
+ *
+ * True for the Lodge Bunk Rooms and nothing else. It is **not** capacity —
+ * nothing here models capacity (§5, v5 changes) — and it changes nothing about
+ * how a room is assigned, printed, or counted. It says one thing: two separate
+ * parties in that room on the same night is the normal use of it.
+ *
+ * §12.4 is the only reader. "Same named room claimed on the same night by two
+ * separate rooming rows" is a warning on a suite and a fact of life in a room
+ * that sleeps twelve, so the Bunk Room gets a note naming who else is in there
+ * and every other room gets the warning. A second room built the same way would
+ * be added here; there is nothing to compute it from.
+ */
+export const BUILDING_SHARES_FREELY = {
+  'Lodge Bunk Rooms': true
+};
+
+/**
+ * [v12] Whether a building's rooms are shared by unrelated parties as a matter
+ * of course. BUILD-SPEC §6 [v12].
+ *
+ * @param {string} building name as stored on a rooming row
+ * @returns {boolean} false for every building but the Lodge Bunk Rooms
+ */
+export function sharesFreely(building) {
+  return Object.hasOwn(BUILDING_SHARES_FREELY, building)
+    && BUILDING_SHARES_FREELY[building] === true;
+}
+
+/**
  * A building's assignment mode. BUILD-SPEC §6 [v3].
  *
  * @param {string} building name as stored on a rooming row
