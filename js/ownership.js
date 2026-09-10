@@ -9,7 +9,7 @@
 // find a Load button, or pick a file: they tap an attachment in a text message,
 // standing up, on a phone, with one thumb. Everything below follows from that
 // sentence. The night is always on screen. The rooms an event actually uses are
-// open and the other six buildings are folded, because sixty-six rooms is a
+// open and the other seven buildings are folded, because sixty-six rooms is a
 // minute of scrolling to reach the four that matter. Nothing is smaller than a
 // thumb.
 //
@@ -1104,7 +1104,7 @@ function guestRow(guest, d, gone) {
  * Which buildings open on their own.
  *
  * `buildingsInUse` and `overflowBuildings` are already on the event (§5 [v9])
- * and this is what they are for: ten buildings and sixty-six rooms, of which an
+ * and this is what they are for: eleven buildings and sixty-six rooms, of which an
  * event uses four, and on a phone the rest are a minute of scrolling. Anything
  * holding a guest is in as well, ticked or not — `buildingsFor` returns that
  * third list precisely so a building nobody remembered to name is still on the

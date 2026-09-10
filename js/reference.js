@@ -1,56 +1,73 @@
 // Static reference data — BUILD-SPEC §6.
 // Property facts, not event data. Never written to the event JSON.
 // Constants and pure lookups over them: no DOM, no state, no imports.
+//
+// [v13] THIS FILE WAS WRONG, AND THE WAY IT WAS WRONG IS WORTH KEEPING AT THE
+// TOP OF IT. The non-lodging list v9 carried — Bucket Shop, Wood Shop, MRSO,
+// Dock / Boathouse, Hummer Bar, Food Plot, Cottage — was transcribed from the
+// events department's Loch Lloyd order and never checked against the private
+// side. None of those is a private-side location. MRSO is the staff offices;
+// the Food Plot is a snack nook in an RLI hallway; the Wood Shop and the Hummer
+// Bar are corporate-event spaces; the Bucket Shop is a gift shop whose hours
+// belong in a note; and there is no building called Cottage — Mallard, Wigeon
+// and Pintail *are* the cottages.
+//
+// The structure came from a reference document, and taking the structure was
+// right. Taking the contents was not: **a reference document is not a property
+// inventory.** Anything else in this app lifted from that order is suspect for
+// the same reason, and the next thing added here gets asked about rather than
+// copied.
 
 /**
- * [v9] The property's lodging, in display order. BUILD-SPEC §6.
+ * [v13] The property's lodging, in five groups. BUILD-SPEC §6 [v13].
  *
- * The order is the order these get used in — least-assigned first — so the
- * building somebody reaches for is the building at the top of the list, and the
- * room grid reads the way the property fills up.
+ * The group is property data, not a layout hint that drifted into the model: a
+ * building belongs to exactly one, and every surface that lists buildings can
+ * read it. The building picker is why it is here — a two-column grid over a
+ * flat list of eleven puts Pintail next to a Lodge room and cuts the cabins in
+ * half, and a coordinator looking for "the cottages" finds them in two pieces.
+ * Each group lays out on its own instead (§5, v13 changes).
  *
- * v3's registry was the Lodge's named suites and a pooled Red Leaf Inn, and
- * both were wrong for the private side. Master, Brian's, Michael's and Upland
- * are gone; the Lodge is here as the two groups that are actually assigned, its
- * bunk rooms and its two lower suites. The Clubhouse King Suite is a building
- * of its own because it is assigned on its own — a master suite down the hall
- * from the six Clubhouse rooms, rarely used but real.
+ * Order is the order these get used in — least-assigned first — group by group,
+ * so the building somebody reaches for is near the top of the list and the room
+ * grid reads the way the property fills up.
+ *
+ * [v13] The Lodge is three buildings of one room each, named as the rooms are:
+ * nobody says "the Lodge Lower Suites Timber", they say "the Timber". A
+ * single-room building is how a room assigned on its own is modelled here, and
+ * the Clubhouse King Suite has been one since v9.
  */
-export const LODGING_BUILDINGS = [
-  'Remington',
-  'Winchester',
-  'Mallard',
-  'Wigeon',
-  'Pintail',
-  'Lodge Bunk Rooms',
-  'Lodge Lower Suites',
-  'RLI',
-  'Clubhouse',
-  'Clubhouse King Suite'
+export const LODGING_GROUPS = [
+  { name: 'Cabins', buildings: ['Remington', 'Winchester'] },
+  { name: 'Cottages', buildings: ['Mallard', 'Wigeon', 'Pintail'] },
+  { name: 'Lodge', buildings: ['Bunk Room', 'Timber', 'Wetland'] },
+  { name: 'RLI', buildings: ['RLI'] },
+  { name: 'Clubhouse', buildings: ['Clubhouse', 'Clubhouse King Suite'] }
 ];
+
+/** Every lodging building, in display order. BUILD-SPEC §6. */
+export const LODGING_BUILDINGS = LODGING_GROUPS.flatMap((group) => group.buildings);
 
 /**
- * Buildings that take no assignments and appear as locations. BUILD-SPEC §6.
+ * [v13] Every building on property. The same eleven.
  *
- * [v9] "Lodge" and "Red Leaf Inn" are not among them any more: the lodging
- * registry above names their parts, and a location called "Lodge" beside two
- * buildings called "Lodge Bunk Rooms" and "Lodge Lower Suites" is the kind of
- * near-duplicate a coordinator picks wrongly once and then distrusts for ever.
+ * v9's `BUILDINGS` was the lodging list plus a list of non-lodging "buildings"
+ * that turned out not to be buildings (see the head of this file). There is
+ * nothing left to add: a place that takes no assignment is a location, and the
+ * locations are `MEAL_LOCATIONS` below.
  */
-export const VENUE_BUILDINGS = [
-  'The Wheel',
-  'Bucket Shop',
-  'Wood Shop',
-  'MRSO',
-  'Dock / Boathouse',
-  'Hummer Bar',
-  'Food Plot',
-  'Lake',
-  'Cottage'
-];
+export const BUILDINGS = LODGING_BUILDINGS;
 
-/** Every building on property, lodging first. BUILD-SPEC §6. */
-export const BUILDINGS = [...LODGING_BUILDINGS, ...VENUE_BUILDINGS];
+/**
+ * [v13] The group a building belongs to. BUILD-SPEC §6 [v13].
+ *
+ * @param {string} building name as stored on a rooming row or a buildings list
+ * @returns {string} empty for a building this registry does not carry
+ */
+export function groupOf(building) {
+  const found = LODGING_GROUPS.find((group) => group.buildings.includes(building));
+  return found ? found.name : '';
+}
 
 /**
  * [v3] Building assignment modes. BUILD-SPEC §6.
@@ -77,9 +94,9 @@ export const ASSIGNMENT_MODE_NONE = 'none';
 /**
  * [v12] Rooms built to be shared. BUILD-SPEC §6 [v12].
  *
- * True for the Lodge Bunk Rooms and nothing else. It is **not** capacity —
- * nothing here models capacity (§5, v5 changes) — and it changes nothing about
- * how a room is assigned, printed, or counted. It says one thing: two separate
+ * True for the Bunk Room and nothing else. It is **not** capacity — nothing
+ * here models capacity (§5, v5 changes) — and it changes nothing about how a
+ * room is assigned, printed, or counted. It says one thing: two separate
  * parties in that room on the same night is the normal use of it.
  *
  * §12.4 is the only reader. "Same named room claimed on the same night by two
@@ -87,9 +104,12 @@ export const ASSIGNMENT_MODE_NONE = 'none';
  * that sleeps twelve, so the Bunk Room gets a note naming who else is in there
  * and every other room gets the warning. A second room built the same way would
  * be added here; there is nothing to compute it from.
+ *
+ * [v13] Keyed by the building's own name, now that the building is called what
+ * the room is called. The flag follows the room, never the retired name.
  */
 export const BUILDING_SHARES_FREELY = {
-  'Lodge Bunk Rooms': true
+  'Bunk Room': true
 };
 
 /**
@@ -97,7 +117,7 @@ export const BUILDING_SHARES_FREELY = {
  * of course. BUILD-SPEC §6 [v12].
  *
  * @param {string} building name as stored on a rooming row
- * @returns {boolean} false for every building but the Lodge Bunk Rooms
+ * @returns {boolean} false for every building but the Bunk Room
  */
 export function sharesFreely(building) {
   return Object.hasOwn(BUILDING_SHARES_FREELY, building)
@@ -130,10 +150,14 @@ function numbered(count) {
 }
 
 /**
- * [v9] Room inventory by building. BUILD-SPEC §6.
+ * [v13] Room inventory by building. BUILD-SPEC §6.
  *
  * Plain strings, in the order they hang on the board. Buildings with no lodging
  * are absent.
+ *
+ * A single-room building still carries its room: every building is `named`
+ * (above), §12.6 warns on a named building with no room set, and the grid has
+ * to have something to draw. So the Timber holds the Timber.
  *
  * [v5] Bedding is not stored — even rooms are kings, odd rooms are double
  * queens, and everyone at the ranch knows it. Nothing here models capacity
@@ -146,8 +170,9 @@ export const ROOMS_BY_BUILDING = {
   'Mallard': numbered(8),
   'Wigeon': numbered(8),
   'Pintail': numbered(8),
-  'Lodge Bunk Rooms': ['Bunk Room'],
-  'Lodge Lower Suites': ['Timber', 'Wetland'],
+  'Bunk Room': ['Bunk Room'],
+  'Timber': ['Timber'],
+  'Wetland': ['Wetland'],
   'RLI': numbered(24),
   'Clubhouse': numbered(6),
   'Clubhouse King Suite': ['King Suite']
@@ -159,15 +184,110 @@ export function roomsIn(building) {
 }
 
 /**
- * [v10] Where a meal happens. BUILD-SPEC §6 [v10].
+ * [v13] Buildings this registry has renamed, and how a file's old name is read
+ * back. BUILD-SPEC §6 [v13].
  *
- * Three places and Other, because the meals happen in the same few rooms.
- * `location` stays one string in the file whichever way it was chosen: nothing
- * downstream needs to know that "The Wheel" came from a list and "Food Plot"
- * was typed, and storing the difference would be a second field to keep in step
- * with the first.
+ * `migrate()` is the only caller. A rooming row is migrated **by its room**,
+ * which is the part that is unambiguous: "Lodge Lower Suites" alone could be
+ * either suite, and `Lodge Lower Suites` + `Timber` can only be the Timber. A
+ * row naming a retired building and a room it never held is not guessed at — it
+ * is left exactly as it was authored and §12.6 reports it, which is the v9 rule
+ * and is unchanged.
  */
-export const MEAL_LOCATIONS = ['The Wheel', 'The Clubhouse', 'The Lodge'];
+export const RENAMED_BUILDINGS = [
+  { building: 'Lodge Lower Suites', room: 'Timber', becomes: 'Timber' },
+  { building: 'Lodge Lower Suites', room: 'Wetland', becomes: 'Wetland' },
+  { building: 'Lodge Bunk Rooms', room: 'Bunk Room', becomes: 'Bunk Room' }
+];
+
+/**
+ * [v13] The building a retired name and room resolve to. BUILD-SPEC §6 [v13].
+ *
+ * @param {string} building the name as the file carries it
+ * @param {string} room the room as the file carries it
+ * @returns {string} empty when this is not a rename this registry knows —
+ *   a current building included, which is what keeps the migration idempotent
+ */
+export function renamedBuilding(building, room) {
+  const from = String(building || '');
+  const which = String(room === null || room === undefined ? '' : room);
+  const found = RENAMED_BUILDINGS.find((entry) =>
+    entry.building === from && entry.room === which);
+  return found ? found.becomes : '';
+}
+
+/**
+ * [v13] The buildings a retired building name could have meant, for a list that
+ * carries no room to disambiguate it — `buildingsInUse[]`, `overflowBuildings[]`.
+ *
+ * "Lodge Bunk Rooms" can only have meant the Bunk Room. "Lodge Lower Suites"
+ * meant one suite or both, and the list has nothing on it that says which; the
+ * caller narrows it by what the event's rooming rows actually use, and falls
+ * back to both, because "the lower suites are in use" named both of them.
+ *
+ * @param {string} building
+ * @returns {string[]} empty when this registry has not renamed that name
+ */
+export function renamedBuildingsFor(building) {
+  const from = String(building || '');
+  return RENAMED_BUILDINGS.filter((entry) => entry.building === from)
+    .map((entry) => entry.becomes);
+}
+
+/**
+ * [v13] Where a meal or an activity happens. BUILD-SPEC §6 [v13].
+ *
+ * Four places and Other, because it happens in the same few places. `location`
+ * stays one string in the file whichever way it was chosen: nothing downstream
+ * needs to know that "The Wheel" came from a list and "the north blind" was
+ * typed, and storing the difference would be a second field to keep in step
+ * with the first.
+ *
+ * The Clubhouse and the Lodge are on this list and in the lodging registry
+ * above. Ordinary, and not a duplication to resolve: a building can be a bed
+ * and a dining room in the same weekend. Lake / Dock is one place rather than
+ * the two v9 carried, and it is here because fishing gets planned.
+ */
+export const MEAL_LOCATIONS = ['The Wheel', 'The Clubhouse', 'The Lodge', 'Lake / Dock'];
+
+/**
+ * [v13] Locations this registry used to carry and does not. BUILD-SPEC §6 [v13].
+ *
+ * §12.13 is the only reader, and this list is the reason that rule can exist at
+ * all. `location` is free text (`MEAL_LOCATIONS` above): "the north blind"
+ * typed into a meal is a perfectly good location, so a rule reading "not in the
+ * list" would fire on every deliberate one and teach the coordinator to stop
+ * reading the panel. These eight are different — this app offered them, they
+ * are on rows somebody authored in good faith, and they are the ones worth
+ * saying something about.
+ *
+ * `becomes` is the current location covering the same ground, where there is
+ * one. Nothing is rewritten: the row keeps the words it was authored with, and
+ * the finding suggests rather than repairs.
+ */
+export const RETIRED_LOCATIONS = [
+  { name: 'Lake', becomes: 'Lake / Dock' },
+  { name: 'Dock / Boathouse', becomes: 'Lake / Dock' },
+  { name: 'Bucket Shop', becomes: '' },
+  { name: 'Wood Shop', becomes: '' },
+  { name: 'MRSO', becomes: '' },
+  { name: 'Hummer Bar', becomes: '' },
+  { name: 'Food Plot', becomes: '' },
+  { name: 'Cottage', becomes: '' }
+];
+
+/**
+ * [v13] The retired location a stored string names, if it is one.
+ *
+ * @param {string} location as stored on a meal or an itinerary row
+ * @returns {{name: string, becomes: string}|null} null for a current location,
+ *   an empty one, and free text somebody typed
+ */
+export function retiredLocation(location) {
+  const text = String(location || '').trim();
+  if (!text) return null;
+  return RETIRED_LOCATIONS.find((entry) => entry.name === text) || null;
+}
 
 /** The value the location and activity selects use for their free-text option. */
 export const OTHER_OPTION = '__other__';

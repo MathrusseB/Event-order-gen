@@ -94,6 +94,33 @@ a room that has left the property registry is reported and **left alone**, never
 remapped and never dropped. The run is checked to be idempotent, and to leave
 the caller's event untouched.
 
+[v13] The three renamed buildings are here too, and they are the other half of
+that rule: a rooming row is renamed **by its room**, because that part is not a
+guess — `Lodge Lower Suites` + `Timber` can only be the Timber — while the same
+building with a room it never held falls through to the v9 rule and is left
+exactly as it was. A buildings-in-use entry carries no room to place it by, so
+it is narrowed by what the event actually uses. A retired *location* is kept as
+free text and only reported.
+
+**`checks/dates.mjs` — a range that moves, and the way into a new order.**
+BUILD-SPEC §5, §10 [v13]. Narrowing the dates deletes nothing and shifting is a
+different act, so the three answers to the offer are tapped out on the real
+editor: accepted, declined, and an edit that is not a shift at all. Accepted
+moves every dated row and the seeding ledger with it, and the check is that
+nothing was duplicated on the way — the days that arrive carrying an itinerary
+must not be seeded on top of it. Declined leaves every row on the day it was
+written for and seeds the new range exactly as any other date change does.
+
+The transform underneath runs in plain Node: whole days across a daylight-saving
+boundary, the ledger travelling with the content, and the blank rows seeding
+puts down while the dates are half-typed — which an accepted shift clears, and
+only where they are still exactly as seeding made them.
+
+The same file checks §10 [v13]: a first run opens on an empty order rather than
+the sample and lands on the start date, New over an untouched order asks
+nothing, New over an order with work in it does ask, and the sample says in its
+own name that it is a sample.
+
 **`checks/entry.mjs` — seeding, vacancies, and one guest in one room.** The
 three v10 rules that are easy to state and easy to break later. Seeding fills
 gaps and does nothing else: the checks cover a second pass, an edited row, a day
@@ -103,7 +130,7 @@ one. And a guest cannot hold two rooms on the same night, while turnover between
 two rooms on consecutive nights stays expressible — the difference between
 overlap and "assigned anywhere".
 
-**`checks/validation.mjs` — the twelve rules of §12, and what must not trip
+**`checks/validation.mjs` — the thirteen rules of §12, and what must not trip
 them.** BUILD-SPEC §12: every rule had been written down since v2 and none of
 them had ever run. Each gets an event that trips it and an event that does not,
 against `js/validate.js` directly in Node — an event in, findings out, so there
@@ -118,11 +145,18 @@ blank seeded itinerary row, a file saved before v12 with no `touchedAt` — and
 the two that must fire as *notes* rather than warnings: two parties in the Bunk
 Room, and a count set by hand on purpose.
 
+[v13] Rule 8 is the negative case arriving in real life, and it is checked in
+both directions: a meal with no menu is a note, a menu started and left empty is
+the warning, and a fresh day of three seeded meals raises three notes and not
+one warning — which is what nine warnings on an untouched event bought. Rule 13
+is checked the same way round: a location the app itself used to offer is
+reported, and free text somebody typed is not.
+
 Three checks are about the module rather than about any one rule. One event
-trips all twelve, which is how a rule that was never written is told from a rule
-that always passes. Validating a deeply frozen event must not throw, which is
-what "pure" means here. And every finding is read back as English: no ISO date,
-no row id, no rule number, and a finished sentence.
+trips all thirteen, which is how a rule that was never written is told from a
+rule that always passes. Validating a deeply frozen event must not throw, which
+is what "pure" means here. And every finding is read back as English: no ISO
+date, no row id, no rule number, and a finished sentence.
 
 ## Fixtures
 
@@ -131,7 +165,7 @@ a user loads to see what the tool does; these exist to be printed at sizes
 nobody would choose to look at.
 
 - `large-event.json` — five days, 26 guests, a full Lodge, a mid-event turnover
-  in the Timber Suite, and every section enabled. Every document runs to several
+  in the Timber, and every section enabled. Every document runs to several
   pages.
 - `empty-event.json` — no dates, no guests, no sections. The degenerate case:
   three documents with nothing to say, which must still be one page each.

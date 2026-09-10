@@ -665,7 +665,7 @@ button.ob-row:active {
 
 /* ------------------------------------------------------------- disclosure */
 
-/* Sixty-six rooms in ten buildings, and an event uses four of them. The rest
+/* Sixty-six rooms in eleven buildings, and an event uses four of them. The rest
    fold; none of them hides. Every folded building still says its name and how
    many rooms it has free that night. */
 .ob-fold {

@@ -22,7 +22,13 @@
 
 import { attendeeName } from './derive.js';
 import { newId } from './ids.js';
-import { assignmentModeFor, roomsIn } from './reference.js';
+import {
+  assignmentModeFor,
+  renamedBuilding,
+  renamedBuildingsFor,
+  retiredLocation,
+  roomsIn
+} from './reference.js';
 import { markSeeded } from './seed.js';
 
 /**
@@ -77,6 +83,24 @@ import { markSeeded } from './seed.js';
  *      file is opened. Guessing which of the new rooms was meant is the one
  *      thing that would lose it.
  *
+ *  13. [v13] A rooming row in a building v13 **renamed** is renamed, because
+ *      that one is not a guess: `Lodge Lower Suites` + `Timber` can only be the
+ *      Timber, and the room says so (§6 [v13]). This is the difference between
+ *      rule 11 and this one, and it is the whole difference — 11 is a room that
+ *      has left the property and 13 is the same room under the name it is
+ *      actually called by. A retired building with a room it never held falls
+ *      through to 11 and is left alone.
+ *  14. [v13] `buildingsInUse[]` and `overflowBuildings[]` carry a building name
+ *      and no room, so the same rename is narrower there: `Lodge Bunk Rooms`
+ *      can only have meant the Bunk Room, and `Lodge Lower Suites` is resolved
+ *      from the rows this event actually has, falling back to both suites
+ *      because that is what the entry named. A name this build cannot place is
+ *      left in the list and §12.13 reports it.
+ *  15. [v13] A meal or an itinerary row naming a **location** the registry has
+ *      retired is left exactly as it is and reported. Nothing here rewrites it:
+ *      `location` is free text (§6 [v13]), somebody planned something there,
+ *      and §12.13 keeps saying so long after this summary has gone.
+ *
  * `foodAndBev[].serves` needs no rule: it defaults to `all` where it is read
  * (`fnbCount`), so a pre-v5 entry counts exactly as it always did.
  *
@@ -96,7 +120,9 @@ export function migrate(event) {
     sectionsDropped: 0,
     menusFlattened: 0,
     retiredRooms: [],
-    datesMarkedSeeded: 0
+    datesMarkedSeeded: 0,
+    buildingsRenamed: [],
+    retiredLocations: []
   };
 
   if (!event || typeof event !== 'object' || Array.isArray(event)) {
@@ -260,6 +286,55 @@ export function migrate(event) {
     next.sections = kept;
   }
 
+  // 13. [v13] The three buildings v13 renamed, resolved by the room on the row.
+  //     Before rule 11, so a renamed row is a current row by the time the
+  //     retired-room scan reads it. Idempotent: `renamedBuilding` answers
+  //     nothing for a building that is already current.
+  for (const row of Array.isArray(next.rooming) ? next.rooming : []) {
+    if (!row || typeof row !== 'object') continue;
+    const became = renamedBuilding(row.building, row.room);
+    if (!became) continue;
+    summary.buildingsRenamed.push({ from: String(row.building), room: String(row.room), to: became });
+    row.building = became;
+    summary.changed = true;
+  }
+
+  // 14. [v13] The same rename in the two lists that name a building and no
+  //     room. "Lodge Lower Suites" is narrowed by what this event actually
+  //     uses, and names both suites when the event says nothing either way.
+  const suitesInUse = (Array.isArray(next.rooming) ? next.rooming : [])
+    .map((row) => (row && typeof row === 'object' ? String(row.building || '') : ''));
+  for (const key of BUILDING_LIST_KEYS) {
+    if (!Array.isArray(next[key])) continue;
+    const kept = [];
+    for (const name of next[key]) {
+      const candidates = renamedBuildingsFor(name);
+      if (!candidates.length) {
+        if (!kept.includes(name)) kept.push(name);
+        continue;
+      }
+      const narrowed = candidates.filter((building) => suitesInUse.includes(building));
+      const becomes = narrowed.length ? narrowed : candidates;
+      for (const building of becomes) {
+        if (!kept.includes(building)) kept.push(building);
+        summary.buildingsRenamed.push({ from: String(name), room: '', to: building });
+      }
+      summary.changed = true;
+    }
+    next[key] = kept;
+  }
+
+  // 15. [v13] Locations the registry has retired. Reported, never touched —
+  //     the same rule as rule 11 above, one field over.
+  for (const key of LOCATION_ROW_ARRAYS) {
+    for (const row of Array.isArray(next[key]) ? next[key] : []) {
+      if (!row || typeof row !== 'object') continue;
+      const retired = retiredLocation(row.location);
+      if (!retired) continue;
+      summary.retiredLocations.push({ list: key, location: retired.name, becomes: retired.becomes });
+    }
+  }
+
   // 11. [v9] Rooms the registry no longer carries. Reported, never touched.
   for (const row of Array.isArray(next.rooming) ? next.rooming : []) {
     if (!row || typeof row !== 'object') continue;
@@ -311,6 +386,20 @@ const OLD_GUEST_TITLES = new Set([
 /** [v7] The arrays whose rows were identified by position before v7. */
 const ROW_ID_ARRAYS = ['rooming', 'schedule', 'staff', 'departments'];
 
+/** [v13] The two lists that name a building and carry no room to place it by. */
+const BUILDING_LIST_KEYS = ['buildingsInUse', 'overflowBuildings'];
+
+/**
+ * [v13] The arrays whose rows can carry a `location`.
+ *
+ * `foodAndBev[]` is the only one an editor writes today — an itinerary row
+ * names its activity and takes its place from the activity (§6 [v10]) — and
+ * `schedule[]` is walked anyway, because a hand-edited file may carry one and
+ * the point of this rule is to say what the registry no longer recognises
+ * wherever it is written down.
+ */
+const LOCATION_ROW_ARRAYS = ['foodAndBev', 'schedule'];
+
 /**
  * [v7] Titles a `rooming` section carried by default, which are renamed on the
  * way to `accommodations`. Anything else was chosen by a person and is kept.
@@ -355,4 +444,12 @@ function nameKey(name) {
  *   retiredRooms [v9] rooming rows naming a building or a room the registry no
  *   longer carries. Reported and left alone: the row still holds its room, and
  *   §12.6 keeps reporting it until somebody moves that guest themselves
+ * @property {{from: string, room: string, to: string}[]} buildingsRenamed
+ *   [v13] rooming rows and buildings-list entries moved onto the name v13 gives
+ *   that building. `room` is empty for a list entry, which carries none
+ * @property {{list: string, location: string, becomes: string}[]}
+ *   retiredLocations [v13] rows naming a location the registry has retired.
+ *   Reported and left alone, exactly as `retiredRooms` is: the words are the
+ *   only record that somebody planned something there, and §12.13 goes on
+ *   saying so every time the file is opened
  */

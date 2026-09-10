@@ -19,10 +19,18 @@
 // building nobody can find. A file naming something the registry does not carry
 // keeps it and shows it, checked, at the end of the list — the same rule the
 // rooming editor follows for a building that has left the registry.
+//
+// [v13] AND THE LIST IS GROUPED, which is what the groups in the registry are
+// for (§6 [v13]). Eleven checkboxes in an auto-filling grid wrap wherever the
+// column happens to end: Remington in one column and Winchester in the next,
+// Pintail beside a Lodge room, the cottages in two pieces. A coordinator
+// looking for "the cottages" is looking for a set, so each group is drawn under
+// its own heading and laid out on its own — a group of two is a row of two, and
+// nothing is ever cut in half by a column boundary.
 
 import { update } from '../app.js';
 import { buildingsSentence } from '../derive.js';
-import { BUILDINGS } from '../reference.js';
+import { BUILDINGS, LODGING_GROUPS } from '../reference.js';
 import { el, reconcile, setChecked, setHidden, setText } from '../dom.js';
 import { createAttendeesEditor } from './attendees.js';
 
@@ -97,18 +105,25 @@ export function createGuestsEditor(section) {
 }
 
 /**
- * One list of buildings, as checkboxes over the registry.
+ * [v13] The heading a group of buildings the registry no longer carries is
+ * drawn under. Named rather than empty: a checked box under no heading at all
+ * reads as part of whatever is above it.
+ */
+const UNKNOWN_GROUP = 'Named in this file';
+
+/**
+ * One list of buildings, as checkboxes over the registry, in its groups.
  *
  * The two lists are not exclusive of one another on purpose. A building can be
  * in use and still be holding a room back, and a control that refused to let
  * both be ticked would be enforcing a rule the property does not have.
  */
 function createBuildingList({ key, label, hint }) {
-  const boxes = el('div', { class: 'buildings__set' });
+  const groups = el('div', { class: 'buildings__groups' });
   const node = el('fieldset', { class: 'buildings__list' }, [
     el('legend', { class: 'buildings__legend', text: label }),
     el('p', { class: 'buildings__hint', text: hint }),
-    boxes
+    groups
   ]);
 
   return {
@@ -116,14 +131,33 @@ function createBuildingList({ key, label, hint }) {
     update(event) {
       const stored = Array.isArray(event[key]) ? event[key] : [];
       // A building the file names that this build's registry does not carry is
-      // offered rather than dropped: it was authored that way, and §6 [v9]
-      // retired some names that files in hand still use.
+      // offered rather than dropped: it was authored that way, §6 [v13] retired
+      // names that files in hand still use, and §12.13 is what says so.
       const extra = stored.filter((building) => !BUILDINGS.includes(building));
-      const offered = [...BUILDINGS, ...extra];
+      const offered = extra.length
+        ? [...LODGING_GROUPS, { name: UNKNOWN_GROUP, buildings: extra }]
+        : LODGING_GROUPS;
 
-      const entries = reconcile(boxes, offered, (building) => building, (building) =>
+      const entries = reconcile(groups, offered, (group) => group.name, () =>
+        createBuildingGroup(key));
+      entries.forEach((entry, index) => entry.update(offered[index], stored));
+    }
+  };
+}
+
+/** [v13] One group of buildings, under its own heading and on its own grid. */
+function createBuildingGroup(key) {
+  const heading = el('h4', { class: 'buildinggroup__name' });
+  const boxes = el('div', { class: 'buildings__set' });
+  const node = el('div', { class: 'buildinggroup' }, [heading, boxes]);
+
+  return {
+    node,
+    update(group, stored) {
+      setText(heading, group.name);
+      const entries = reconcile(boxes, group.buildings, (building) => building, (building) =>
         createBuildingBox(key, building));
-      entries.forEach((entry, index) => entry.update(stored.includes(offered[index])));
+      entries.forEach((entry, index) => entry.update(stored.includes(group.buildings[index])));
     }
   };
 }

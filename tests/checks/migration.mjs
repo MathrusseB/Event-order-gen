@@ -10,6 +10,8 @@
 //   v7      `rooming` and `menu` sections, and rows with no `id`
 //   v8      `menu[].courses[]`, `attendees` and `accommodations` sections, and
 //           rooms in buildings the v9 registry no longer carries
+//   v12     the three buildings v13 renamed — `Lodge Lower Suites` and
+//           `Lodge Bunk Rooms` — and the locations v13 retired
 //
 // Each is checked here on the shape as it was actually written, not on a
 // hand-tidied version of it, and the run is checked to be idempotent: a file
@@ -22,6 +24,7 @@
 // completely — §12.6 goes on reporting it until a person moves the guest.
 
 import { migrate } from '../../js/migrate.js';
+import { sharesFreely } from '../../js/reference.js';
 
 export const title = 'Migration — every shape this app has written still opens';
 
@@ -199,6 +202,107 @@ export async function run({ check }) {
         && gone.event.rooming[0].room === '99';
     })(),
     'RLI 99 should be reported by room and left on the row'
+  );
+
+  /* ---------------------------------------------------------------- v13 */
+
+  /**
+   * A v12 file: the two Lodge buildings under their old names, one suite the
+   * registry never had, a retired location, and the buildings-in-use list that
+   * carries a building name and no room to place it by.
+   */
+  const v12 = () => ({
+    meta: { eventName: 'v12 file', startDate: '2026-11-14', endDate: '2026-11-16' },
+    sections: [],
+    attendees: [{ id: 'a-1', first: 'Dana', last: 'Reyes' }],
+    rooming: [
+      { id: 'r-1', building: 'Lodge Lower Suites', room: 'Timber', guestIds: ['a-1'],
+        from: '2026-11-14', to: '2026-11-16' },
+      { id: 'r-2', building: 'Lodge Bunk Rooms', room: 'Bunk Room', guestIds: [],
+        from: '2026-11-14', to: '2026-11-16' },
+      // A suite this property never had. Rule 13 keys on the room, so this one
+      // is not renamed — it falls through to rule 11 and stays as authored.
+      { id: 'r-3', building: 'Lodge Lower Suites', room: 'Cedar', guestIds: [],
+        from: '2026-11-14', to: '2026-11-16' }
+    ],
+    schedule: [],
+    foodAndBev: [{ id: 'f-1', date: '2026-11-15', start: '17:00', meal: 'Cocktails',
+      location: 'Hummer Bar', countBasis: 'present', serves: 'adults' }],
+    menu: [], staff: [], departments: [],
+    buildingsInUse: ['Lodge Lower Suites', 'Lodge Bunk Rooms'],
+    overflowBuildings: []
+  });
+
+  const thirteen = migrate(v12());
+
+  check(
+    'v13: a Lodge suite is renamed by its room — the one part that is unambiguous',
+    thirteen.event.rooming[0].building === 'Timber'
+      && thirteen.event.rooming[0].room === 'Timber'
+      && thirteen.event.rooming[0].guestIds.join() === 'a-1',
+    JSON.stringify(thirteen.event.rooming[0])
+  );
+
+  check(
+    'v13: the Bunk Room is renamed the same way, and keeps sharesFreely by its new name',
+    thirteen.event.rooming[1].building === 'Bunk Room'
+      && thirteen.event.rooming[1].room === 'Bunk Room'
+      && sharesFreely(thirteen.event.rooming[1].building),
+    JSON.stringify(thirteen.event.rooming[1])
+  );
+
+  check(
+    'v13: a retired building with a room it never held is LEFT ALONE and reported',
+    thirteen.event.rooming[2].building === 'Lodge Lower Suites'
+      && thirteen.event.rooming[2].room === 'Cedar'
+      && thirteen.summary.retiredRooms.some((entry) => entry.room === 'Cedar'),
+    JSON.stringify(thirteen.summary.retiredRooms)
+  );
+
+  check(
+    'v13: the three renames are reported in the migration summary',
+    thirteen.summary.buildingsRenamed.filter((entry) => entry.room).length === 2
+      && thirteen.summary.buildingsRenamed.some((entry) => entry.to === 'Timber')
+      && thirteen.summary.buildingsRenamed.some((entry) => entry.to === 'Bunk Room'),
+    JSON.stringify(thirteen.summary.buildingsRenamed)
+  );
+
+  check(
+    'v13: a buildings-in-use entry with no room is narrowed by what the event uses',
+    thirteen.event.buildingsInUse.join(',') === 'Timber,Bunk Room',
+    thirteen.event.buildingsInUse.join(',')
+  );
+
+  check(
+    'v13: "Lodge Lower Suites" with nothing to narrow it by names both suites',
+    (() => {
+      const bare = migrate({
+        meta: {}, sections: [], attendees: [], rooming: [], schedule: [], foodAndBev: [],
+        menu: [], staff: [], departments: [],
+        buildingsInUse: ['Lodge Lower Suites'], overflowBuildings: []
+      });
+      return bare.event.buildingsInUse.join(',') === 'Timber,Wetland';
+    })(),
+    'the entry named the lower suites, and both of them is the closest true statement'
+  );
+
+  check(
+    'v13: a retired LOCATION is kept as free text and reported, never rewritten',
+    thirteen.event.foodAndBev[0].location === 'Hummer Bar'
+      && thirteen.summary.retiredLocations.length === 1
+      && thirteen.summary.retiredLocations[0].location === 'Hummer Bar',
+    JSON.stringify(thirteen.summary.retiredLocations)
+  );
+
+  check(
+    'v13: the whole rename is idempotent — a second run changes nothing',
+    (() => {
+      const again = migrate(structuredClone(thirteen.event));
+      return again.summary.changed === false
+        && again.summary.buildingsRenamed.length === 0
+        && JSON.stringify(again.event) === JSON.stringify(thirteen.event);
+    })(),
+    'a renamed file must migrate to itself'
   );
 
   /* --------------------------------------------------------- idempotence */

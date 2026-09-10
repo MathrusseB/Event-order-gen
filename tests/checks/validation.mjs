@@ -1,10 +1,16 @@
 // Validation — BUILD-SPEC §12.
 //
-// Twelve rules, none of which had ever run before v12. Each gets an event that
-// trips it and an event that does not, because the negative case is the one
-// that matters here: a rule that fires on everything is worse than a rule that
-// never fires, since it teaches the coordinator to stop reading the panel, and
-// then the one finding that mattered goes past unread.
+// Thirteen rules, none of which had ever run before v12. Each gets an event
+// that trips it and an event that does not, because the negative case is the
+// one that matters here: a rule that fires on everything is worse than a rule
+// that never fires, since it teaches the coordinator to stop reading the panel,
+// and then the one finding that mattered goes past unread.
+//
+// [v13] That failure is not hypothetical any more, and rule 8 is where it
+// happened: a meal with no menu was a warning, v10 seeds three meals a day, and
+// a fresh three-day event opened with nine warnings on it. The rule now splits
+// — a meal with no menu at all is a note, a menu started and left empty is the
+// warning — and both halves are checked here, in both directions.
 //
 // The cases that must *not* fire are called out by name below and are the
 // reason several of these rules have the shape they do:
@@ -27,7 +33,7 @@ import { validateEvent } from '../../js/validate.js';
 import { assignmentModeFor, sharesFreely } from '../../js/reference.js';
 import { LODGING_BUILDINGS } from '../../js/reference.js';
 
-export const title = 'Validation — the twelve rules of §12, and what must not trip them';
+export const title = 'Validation — the thirteen rules of §12, and what must not trip them';
 
 const N14 = '2026-11-14';
 const N15 = '2026-11-15';
@@ -59,7 +65,7 @@ function base() {
       { id: 'a-tom', first: 'Tom', last: 'Whitfield', arrive: N14, depart: N16, isChild: false }
     ],
     rooming: [
-      { id: 'r-dana', building: 'Lodge Lower Suites', room: 'Timber',
+      { id: 'r-dana', building: 'Timber', room: 'Timber',
         guestIds: ['a-dana'], from: N14, to: N16 },
       { id: 'r-tom', building: 'Remington', room: '1',
         guestIds: ['a-tom'], from: N14, to: N16 }
@@ -241,7 +247,7 @@ export async function run({ check }) {
         { id: 'a-nora', first: 'Nora', last: 'Illig', arrive: N14, depart: N16, isChild: true },
         { id: 'a-charlie', first: 'Charlie', last: 'Illig', arrive: N14, depart: N16, isChild: true }
       );
-      event.rooming.push({ id: 'r-bunk', building: 'Lodge Bunk Rooms', room: 'Bunk Room',
+      event.rooming.push({ id: 'r-bunk', building: 'Bunk Room', room: 'Bunk Room',
         guestIds: ['a-nora', 'a-charlie'], from: N14, to: N16 });
     }), 2).length === 0,
     'two children on one Bunk Room row are both named on the sheet'
@@ -285,7 +291,7 @@ export async function run({ check }) {
   /* -------------------------------------------------- 4. a room claimed twice */
 
   const clash = withEvent((event) => {
-    event.rooming.push({ id: 'r-clash', building: 'Lodge Lower Suites', room: 'Timber',
+    event.rooming.push({ id: 'r-clash', building: 'Timber', room: 'Timber',
       guestIds: ['a-tom'], from: N15, to: N16 });
   });
   const clashFound = forRule(clash, 4);
@@ -312,12 +318,12 @@ export async function run({ check }) {
     '§12.4 — TURNOVER is not a clash: out on the 15th, in on the 15th',
     forRule(withEvent((event) => {
       event.rooming[0].to = N15;
-      event.rooming.push({ id: 'r-next', building: 'Lodge Lower Suites', room: 'Timber',
+      event.rooming.push({ id: 'r-next', building: 'Timber', room: 'Timber',
         guestIds: ['a-tom'], from: N15, to: N16 });
     }), 4).length === 0,
     say(forRule(withEvent((event) => {
       event.rooming[0].to = N15;
-      event.rooming.push({ id: 'r-next', building: 'Lodge Lower Suites', room: 'Timber',
+      event.rooming.push({ id: 'r-next', building: 'Timber', room: 'Timber',
         guestIds: ['a-tom'], from: N15, to: N16 });
     }), 4))
   );
@@ -337,9 +343,9 @@ export async function run({ check }) {
       { id: 'a-kim', first: 'Kim', last: 'Palmer', arrive: N14, depart: N16, isChild: false }
     );
     event.rooming.push(
-      { id: 'r-bunk-a', building: 'Lodge Bunk Rooms', room: 'Bunk Room',
+      { id: 'r-bunk-a', building: 'Bunk Room', room: 'Bunk Room',
         guestIds: ['a-nora'], from: N14, to: N16 },
-      { id: 'r-bunk-b', building: 'Lodge Bunk Rooms', room: 'Bunk Room',
+      { id: 'r-bunk-b', building: 'Bunk Room', room: 'Bunk Room',
         guestIds: ['a-kim'], from: N14, to: N16 }
     );
   });
@@ -356,7 +362,7 @@ export async function run({ check }) {
     forRule(withEvent((event) => {
       event.attendees.push({ id: 'a-kim', first: 'Kim', last: 'Palmer',
         arrive: N14, depart: N16, isChild: false });
-      event.rooming.push({ id: 'r-second', building: 'Lodge Lower Suites', room: 'Timber',
+      event.rooming.push({ id: 'r-second', building: 'Timber', room: 'Timber',
         guestIds: ['a-kim'], from: N14, to: N16 });
     }), 4).every((item) => item.severity === 'warning'),
     'only a sharesFreely room may soften to a note'
@@ -370,9 +376,9 @@ export async function run({ check }) {
         { id: 'a-nora', first: 'Nora', last: 'Illig', arrive: N14, depart: N16, isChild: true }
       );
       event.rooming.push(
-        { id: 'r-b', building: 'Lodge Lower Suites', room: 'Timber',
+        { id: 'r-b', building: 'Timber', room: 'Timber',
           guestIds: ['a-kim'], from: N14, to: N16 },
-        { id: 'r-c', building: 'Lodge Lower Suites', room: 'Timber',
+        { id: 'r-c', building: 'Timber', room: 'Timber',
           guestIds: ['a-nora'], from: N14, to: N16 }
       );
     }), 4).length === 1,
@@ -381,7 +387,7 @@ export async function run({ check }) {
 
   check(
     'the Bunk Room is the only room that shares freely (§6 [v12])',
-    sharesFreely('Lodge Bunk Rooms')
+    sharesFreely('Bunk Room')
       && LODGING_BUILDINGS.filter((building) => sharesFreely(building)).length === 1,
     LODGING_BUILDINGS.filter((building) => sharesFreely(building)).join(',')
   );
@@ -535,7 +541,7 @@ export async function run({ check }) {
     say(forRule(base(), 7))
   );
 
-  /* --------------------------------------------------- 8. a meal with no menu */
+  /* ------------------------------------- 8. a meal with no menu, and an empty one */
 
   const noMenu = withEvent((event) => {
     event.foodAndBev.push({ id: 'f-breakfast', date: N15, start: '09:00', end: '11:00',
@@ -549,9 +555,128 @@ export async function run({ check }) {
   );
 
   check(
+    '§12.8 — A MEAL WITH NO MENU IS A NOTE: nobody writes a dish list for a nightcap [v13]',
+    noMenuFound.length === 1 && noMenuFound[0].severity === 'note',
+    say(noMenuFound)
+  );
+
+  check(
+    '§12.8 — a fresh day of seeded meals raises three notes and not one warning [v13]',
+    (() => {
+      const day = withEvent((event) => {
+        event.menu = [];
+        event.foodAndBev = ['Breakfast', 'Lunch', 'Dinner'].map((meal, index) => ({
+          id: `f-${index}`, date: N15, start: '09:00', end: '11:00', meal,
+          location: '', countBasis: 'present', serves: 'all'
+        }));
+      });
+      const found = forRule(day, 8);
+      return found.length === 3 && found.every((item) => item.severity === 'note');
+    })(),
+    'v10 seeds three meals a day; nine warnings on an untouched event is what split this rule'
+  );
+
+  const emptyMenu = withEvent((event) => {
+    // What the editor writes the moment "Write a menu" is pressed: one line,
+    // nothing on it.
+    event.menu = [{ fnbId: 'f-dinner', dishes: [''] }];
+  });
+  const emptyMenuFound = forRule(emptyMenu, 8);
+  check(
+    '§12.8 — A MENU STARTED AND LEFT EMPTY IS THE WARNING, and says which [v13]',
+    emptyMenuFound.length === 1
+      && emptyMenuFound[0].severity === 'warning'
+      && emptyMenuFound[0].text.includes('Dinner on Nov 14')
+      && emptyMenuFound[0].text.includes('no dishes'),
+    say(emptyMenuFound)
+  );
+
+  check(
+    '§12.8 — a block holding nothing at all is the same warning, not the no-menu note [v13]',
+    (() => {
+      const found = forRule(withEvent((event) => {
+        event.menu = [{ fnbId: 'f-dinner' }];
+      }), 8);
+      return found.length === 1 && found[0].severity === 'warning';
+    })(),
+    'an absent dishes[] is an empty menu, not an absent one'
+  );
+
+  check(
+    '§12.8 stops the moment a dish is typed — whitespace is not a dish [v13]',
+    forRule(withEvent((event) => {
+      event.menu = [{ fnbId: 'f-dinner', dishes: ['   ', 'Walleye'] }];
+    }), 8).length === 0,
+    say(forRule(withEvent((event) => {
+      event.menu = [{ fnbId: 'f-dinner', dishes: ['   ', 'Walleye'] }];
+    }), 8))
+  );
+
+  check(
     '§12.8 does not fire on a meal that has one',
     forRule(base(), 8).length === 0,
     say(forRule(base(), 8))
+  );
+
+  /* ------------------------------------------- 13. a name the registry retired */
+
+  const retired = withEvent((event) => {
+    event.foodAndBev[0].location = 'Hummer Bar';
+  });
+  const retiredFound = forRule(retired, 13);
+  check(
+    '§12.13 fires on a meal at a location the registry retired, and keeps the words [v13]',
+    retiredFound.length === 1
+      && retiredFound[0].severity === 'note'
+      && retiredFound[0].area === 'foodAndBev'
+      && retiredFound[0].text.includes('Hummer Bar')
+      && retired.foodAndBev[0].location === 'Hummer Bar',
+    say(retiredFound)
+  );
+
+  check(
+    '§12.13 names the location that covers the same ground, where there is one [v13]',
+    forRule(withEvent((event) => {
+      event.foodAndBev[0].location = 'Dock / Boathouse';
+    }), 13)[0].text.includes('Lake / Dock'),
+    say(forRule(withEvent((event) => {
+      event.foodAndBev[0].location = 'Dock / Boathouse';
+    }), 13))
+  );
+
+  check(
+    '§12.13 — FREE TEXT SOMEBODY TYPED IS NOT A RETIRED NAME and must stay silent [v13]',
+    forRule(withEvent((event) => {
+      event.foodAndBev[0].location = 'The north blind';
+    }), 13).length === 0,
+    'location is free text (§6); a rule firing on every typed one is a rule nobody reads'
+  );
+
+  check(
+    '§12.13 does not fire on a location that is still on the list [v13]',
+    forRule(base(), 13).length === 0,
+    say(forRule(base(), 13))
+  );
+
+  check(
+    '§12.13 fires on a building in use that the registry does not carry [v13]',
+    (() => {
+      const found = forRule(withEvent((event) => {
+        event.buildingsInUse = ['Remington', 'Food Plot'];
+      }), 13);
+      return found.length === 1 && found[0].area === 'guests' && found[0].text.includes('Food Plot');
+    })(),
+    'buildings are ticked from the registry, so an unknown one is an old file'
+  );
+
+  check(
+    '§12.13 does not fire on the eleven buildings this registry carries [v13]',
+    forRule(withEvent((event) => {
+      event.buildingsInUse = [...LODGING_BUILDINGS];
+    }), 13).length === 0,
+    say(forRule(withEvent((event) => {
+      event.buildingsInUse = [...LODGING_BUILDINGS];
+    }), 13))
   );
 
   /* ------------------------------------------------- 9. dated off the event */
@@ -722,14 +847,14 @@ export async function run({ check }) {
     'a blank label matches nothing'
   );
 
-  /* ------------------------------------------------------------- all twelve */
+  /* ----------------------------------------------------------- all thirteen */
 
   const everything = kitchenSink();
   const tripped = new Set(validateEvent(everything).map((item) => item.rule));
   const missing = [];
-  for (let rule = 1; rule <= 12; rule += 1) if (!tripped.has(rule)) missing.push(rule);
+  for (let rule = 1; rule <= 13; rule += 1) if (!tripped.has(rule)) missing.push(rule);
   check(
-    'every one of the twelve rules can be tripped — one event trips all of them',
+    'every one of the thirteen rules can be tripped — one event trips all of them',
     missing.length === 0,
     missing.length ? `never fired: ${missing.map((rule) => `§12.${rule}`).join(', ')}` : ''
   );
@@ -792,7 +917,7 @@ export async function run({ check }) {
 }
 
 /**
- * One event that trips all twelve rules at once.
+ * One event that trips all thirteen rules at once.
  *
  * Not a realistic event — it is the check that no rule is silently absent from
  * the module. A rule that is never written and a rule that always passes look
@@ -820,9 +945,9 @@ function kitchenSink() {
     ],
     rooming: [
       // Rules 4 and 5: the Timber twice over, and past Dana's departure.
-      { id: 'r-dana', building: 'Lodge Lower Suites', room: 'Timber',
+      { id: 'r-dana', building: 'Timber', room: 'Timber',
         guestIds: ['a-dana'], from: N14, to: N16 },
-      { id: 'r-tom', building: 'Lodge Lower Suites', room: 'Timber',
+      { id: 'r-tom', building: 'Timber', room: 'Timber',
         guestIds: ['a-tom'], from: N14, to: N16 },
       // Rule 3: a name that is not on the list.
       { id: 'r-ghost', building: 'Remington', room: '1', guestIds: ['a-gone'],
@@ -839,13 +964,18 @@ function kitchenSink() {
     foodAndBev: [
       { id: 'f-dinner', date: N14, start: '18:30', end: '20:30', meal: 'Dinner',
         location: 'The Wheel', countBasis: 'present', serves: 'all' },
-      // Rules 1 and 8: counted by hand, and no menu under it.
+      // Rules 1, 8 and 13: counted by hand, a menu started and left empty, and
+      // a location this registry retired.
       { id: 'f-cocktails', date: N15, start: '17:00', meal: 'Cocktails',
-        location: 'Hummer Bar', countBasis: 'custom', count: 14, serves: 'adults' }
+        location: 'Hummer Bar', countBasis: 'custom', count: 14, serves: 'adults' },
+      // Rule 8, the other half: no menu at all.
+      { id: 'f-nightcap', date: N15, start: '21:00', meal: 'Nightcap',
+        location: 'The Lodge', countBasis: 'overnight', serves: 'adults' }
     ],
     // Rule 7: written for a meal that is not in the file.
     menu: [
       { fnbId: 'f-dinner', dishes: ['Pan-Roasted Walleye'] },
+      { fnbId: 'f-cocktails', dishes: [''] },
       { fnbId: 'f-gone', dishes: ['Skillet Apple Crisp'] }
     ],
     staff: [],
