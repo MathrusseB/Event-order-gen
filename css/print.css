@@ -1,0 +1,230 @@
+/* Print — BUILD-SPEC §10, §8 [v8].
+
+   Loaded with media="print", so nothing here touches the screen. The documents
+   are *designed* in css/styles.css and look identical in both places; this file
+   decides three things and nothing else:
+
+     1. the page box,
+     2. what is in the output at all,
+     3. where the paper is allowed to break.
+
+   ------------------------------------------------------------------------
+   1. THE PAGE BOX
+
+   Letter, 0.75in margins. The `@page` rule below carries the size and the
+   margins; the running footer — the revision line and the page number — is a
+   second `@page` rule written by js/render.js at print time, because the
+   revision line is event data and `content` in a margin box takes a string.
+
+   The page number is `counter(page)` and it has to live in a margin box.
+   Everywhere else — including a `position: fixed` footer element — the same
+   counter renders as zero. That was measured, not assumed.
+
+   The running *header* is not here either. It is the `<thead>` of the wrapper
+   table each document is built inside (see render.js): a thead repeats at the
+   top of every page and reserves its own height, which is what keeps the body
+   from sliding under it on page two. A `position: fixed` header reserves
+   nothing and, in Chrome, is dropped from the last page altogether.
+
+   ------------------------------------------------------------------------
+   2. ONLY THE ACTIVE DOCUMENT PRINTS
+
+   §8 [v8] is strict about this: no document may appear in another's print
+   output — not collapsed, not behind a page break, not present in the DOM and
+   unstyled. Everything is switched off, then the one document stamped on
+   `<html data-print>` is switched back on. `display: none` takes an element out
+   of the box tree entirely, so the two documents that are not printing produce
+   no boxes, no page breaks, and no blank sheets where they used to be. The
+   editors, the toolbar, the outline and the preview's own print button go the
+   same way.
+
+   ------------------------------------------------------------------------
+   3. BREAKS
+
+   The correction v2 made to v1, restated in §10 because it is the rule most
+   likely to be "tidied" back: `break-inside: avoid` does NOT go on sections.
+   Sections have no length limit and must be free to flow across pages — a
+   free-text note longer than a page has to break somewhere, and a section held
+   together would instead be pushed whole onto a fresh page and then overflow it
+   anyway. What is held together is small: a table row, a meal, one person's
+   staff block, one department's list. Every heading gets `break-after: avoid`
+   so it cannot strand at the foot of a page above the thing it names. */
+
+@page {
+  size: letter;
+  margin: 0.75in;
+}
+
+/* -------------------------------------------------------------- 2. what prints */
+
+@media print {
+  html,
+  body {
+    margin: 0;
+    padding: 0;
+    background: #fff;
+    /* The page box owns the width now. */
+    width: auto;
+    min-height: 0;
+  }
+
+  /* Everything off. The rules below put exactly one thing back. */
+  body > * {
+    display: none !important;
+  }
+
+  #previews {
+    display: block !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: none !important;
+    min-height: 0 !important;
+  }
+
+  /* Including the two documents that are not being printed, and the preview's
+     own print button — a screenshot of a button is not part of a document. */
+  #previews > .docview {
+    display: none !important;
+    max-width: none;
+    margin: 0;
+  }
+
+  .docview__bar {
+    display: none !important;
+  }
+
+  html[data-print="order"] #previews > .docview[data-view="order"],
+  html[data-print="menu"] #previews > .docview[data-view="menu"],
+  html[data-print="rooming"] #previews > .docview[data-view="rooming"] {
+    display: block !important;
+  }
+
+  /* The sheet is the page now: no simulated paper, no shadow, no second margin
+     inside the one @page already set. */
+  .paper {
+    width: auto;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+    background: none;
+  }
+
+  /* ------------------------------------------------------ 1. page furniture */
+
+  /* The running header. `table-header-group` is the whole mechanism — it
+     repeats on every page and reserves its height. */
+  .doc__sheet {
+    width: 100%;
+  }
+
+  .doc__runhead {
+    display: table-header-group;
+  }
+
+  /* A little air under the repeated header on continuation pages. */
+  .runhead {
+    padding-bottom: 7pt;
+  }
+
+  /* Logos must not pixelate at print resolution and must not shift the
+     header's height between brands (§6 [v8]). Constrained by height, capped in
+     width: the five run from 3.48:1 to 0.83:1 and every one of them lands
+     inside the same box. The sources are ~360px tall, which is over 500 dpi at
+     this size — there is nothing to pixelate. */
+  .runhead__brandbox {
+    height: 0.52in;
+  }
+
+  .runhead__logo {
+    height: 100%;
+    width: auto;
+    max-width: 2.6in;
+    object-fit: contain;
+    /* A wordmark rendered as a pale grey block is worse than no wordmark. */
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  /* --------------------------------------------------------------- 3. breaks */
+
+  /* NOT on .sec, .sec__body, .doc__body or .doc. See the note at the top. */
+  .tbl tr,
+  .diet__item,
+  .mealcourse__item,
+  .plainlist li,
+  .unroomed__night {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Blocks that are meaningless split: one meal's courses, one person's day,
+     one department's tasks, one day of the itinerary. Each is short by nature;
+     a section made of them still flows. */
+  .meal,
+  .mealcourse,
+  .block-person,
+  .block-dept__part,
+  .day {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* A heading never strands at the foot of a page above nothing. */
+  .sec__title,
+  .day__head,
+  .diet__head,
+  .meal__head,
+  .mealcourse__head,
+  .block-person__name,
+  .block-dept__name,
+  .block-dept__head,
+  .unroomed__head,
+  .runhead__event {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  /* Long table headers repeat on continuation pages (§10 [v8]) — this is why
+     every render's header row is a real `<thead>`. */
+  .tbl thead {
+    display: table-header-group;
+  }
+
+  .tbl tbody {
+    /* Chrome only breaks between rows when the group is allowed to. */
+    break-inside: auto;
+  }
+
+  /* Never one line of a paragraph alone at either end of a page. */
+  .para,
+  .sec__lead,
+  .mealcourse__item,
+  .unroomed__names {
+    orphans: 2;
+    widows: 2;
+  }
+
+  /* A section that has just started should not leave its bar alone at the foot
+     of the page — but the section itself stays free to run over the next one. */
+  .sec {
+    break-inside: auto;
+    page-break-inside: auto;
+  }
+
+  /* The rooming grid keeps its verticals; without them a vacant cell is
+     indistinguishable from the end of the table. */
+  .tbl--grid,
+  .tbl--grid th,
+  .tbl--grid td {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  /* Links inside a document are prose, not navigation. No URL footnotes. */
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+}

@@ -5,6 +5,10 @@
 // remove); the section model itself lives in sections.js and the per-type
 // editors in js/editors/.
 //
+// [v8] The three document destinations (§8) are views.js. They sit beside the
+// editors rather than inside them: a document is not a section, and the switch
+// between editing and previewing is about the frame, not about the outline.
+//
 // Loaded as its own module script after app.js. It imports app.js, so app.js is
 // evaluated first whatever order the tags are in, and the import graph stays
 // acyclic: app.js knows nothing about the interface, and the interface reaches
@@ -30,6 +34,7 @@ import {
   setSectionTitle,
   typeInfo
 } from './sections.js';
+import { mountViews } from './views.js';
 import { createMetaEditor } from './editors/meta.js';
 import { createMenuEditor } from './editors/menu.js';
 import { createRoomingEditor } from './editors/rooming.js';
@@ -76,6 +81,9 @@ function grab() {
   refs.emptyQuick = document.getElementById('empty-quick');
   refs.roomingBody = document.getElementById('rooming-body');
   refs.menuBody = document.getElementById('menu-body');
+  refs.viewNav = document.getElementById('view-nav');
+  refs.workbench = document.getElementById('workbench');
+  refs.previews = document.getElementById('previews');
 }
 
 /**
@@ -406,6 +414,15 @@ function mount() {
   wireDocLinks();
   wireAddSection();
   subscribe(render);
+
+  // [v8] The three document destinations (§8). Mounted after the editors
+  // subscribe, so the first render has already built the workbench by the time
+  // a preview can be opened over it.
+  mountViews({
+    nav: refs.viewNav,
+    workbench: refs.workbench,
+    region: refs.previews
+  });
 }
 
 mount();

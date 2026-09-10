@@ -7,6 +7,9 @@
   <title>Event Order Generator — Maple Ranch</title>
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="./css/styles.css">
+  <!-- [v8] Print only: @page rules, the break rules of BUILD-SPEC §10, and the
+       hiding that leaves exactly one document in the output (§8). -->
+  <link rel="stylesheet" href="./css/print.css" media="print">
 </head>
 <body>
   <a class="skiplink" href="#section-blocks">Skip to the order</a>
@@ -18,6 +21,11 @@
     </div>
 
     <div class="bar__tools">
+      <!-- [v8] Edit, and one destination per document (§8). Filled by shell.js
+           from the render registry, so the three documents are listed in one
+           place and cannot drift apart from the ones that actually render. -->
+      <nav class="bar__views" id="view-nav" aria-label="View"></nav>
+
       <button type="button" class="btn btn--onbar bar__disclosure" id="btn-outline"
               aria-expanded="false" aria-controls="outline">Sections</button>
       <nav class="bar__file" aria-label="Event file">
@@ -30,7 +38,7 @@
     </div>
   </header>
 
-  <div class="workbench">
+  <div class="workbench" id="workbench">
     <aside class="outline" id="outline" aria-label="Sections in this order">
       <h2 class="outline__heading">In this order</h2>
       <ol class="outline__list" id="outline-list"></ol>
@@ -115,6 +123,13 @@
       </div>
     </main>
   </div>
+
+  <!-- [v8] The three document previews (§8), built by shell.js. Each is the
+       real render, on paper, with its own print action — what is on screen here
+       is what comes out of the printer. The editors above stay mounted while a
+       preview is open, so switching views loses no unsaved work and no scroll
+       position. -->
+  <div class="previews" id="previews" hidden></div>
 
   <!-- app.js holds the event; shell.js draws it. shell.js imports app.js, so
        app.js is evaluated first whichever order these tags run in. -->

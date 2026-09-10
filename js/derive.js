@@ -1,16 +1,17 @@
 // Derived fields — BUILD-SPEC §7.
 //
-// Pure functions. No DOM access, no module state, and no import but the static
-// property data in `reference.js` — itself constants and pure lookups, so
-// nothing here depends on application state. Every value the renders show as a
-// count comes from here, so a count is computed once and never re-typed
-// (BUILD-SPEC §1).
+// Pure functions. No DOM access, no module state, and nothing imported but
+// `reference.js` (static property data) and `dates.js` (ISO helpers) — both
+// constants and pure lookups, so nothing here depends on application state.
+// Every value the renders show as a count comes from here, so a count is
+// computed once and never re-typed (BUILD-SPEC §1).
 //
 // Dates are ISO `YYYY-MM-DD` strings throughout. They are compared as strings:
 // ISO dates sort lexicographically, which sidesteps `Date` parsing and
 // timezone drift entirely. Never convert these to `Date` for comparison.
 
 import { assignmentModeFor } from './reference.js';
+import { datesBetween } from './dates.js';
 
 /**
  * Effective stay window for an attendee.
@@ -492,4 +493,176 @@ export function itineraryFor(event, date) {
     if (!b.start) return -1;
     return a.start < b.start ? -1 : (a.start > b.start ? 1 : 0);
   });
+}
+
+/**
+ * [v8] The nights of an event. BUILD-SPEC §7 [v3].
+ *
+ * The last day of an event has no night — everyone has gone home — so it is
+ * dropped, unless somebody is in fact staying past the end date, in which case
+ * the night is real and showing it is the only way the coordinator finds out.
+ * A three-day event is therefore normally two nights wide.
+ *
+ * This is the spine of the Accommodations summary and of the Rooming
+ * Assignment's grid, and the two must agree about how many nights there are, so
+ * the rule is written once here rather than once per reader.
+ *
+ * @param {object} event
+ * @returns {string[]} ISO dates, each naming the night that begins on it
+ */
+export function eventNights(event) {
+  const meta = (event && event.meta) || {};
+  const days = datesBetween(meta.startDate, meta.endDate);
+  if (!days.length) return [];
+  const last = days[days.length - 1];
+  const occupied = Object.keys(lodgingByBuilding(event, last)).length > 0
+    || overnightCountFor(event, last) > 0;
+  return occupied ? days : days.slice(0, -1);
+}
+
+/**
+ * [v8] The dates the itinerary covers: the event's own days, plus any date
+ * carrying a schedule entry or a meal service.
+ *
+ * The union rather than the event range alone, because §12.9 warns about an
+ * entry dated outside the event and does not block it. A document that printed
+ * only the range would drop that entry silently, which is the one outcome worse
+ * than printing it in the wrong place — the warning tells the coordinator to
+ * fix it, and the page has to show the thing being complained about.
+ *
+ * @param {object} event
+ * @returns {string[]} ISO dates, ascending
+ */
+export function itineraryDates(event) {
+  const meta = (event && event.meta) || {};
+  const dates = new Set(datesBetween(meta.startDate, meta.endDate));
+  for (const key of ['schedule', 'foodAndBev']) {
+    for (const entry of (event && event[key]) || []) {
+      if (entry && entry.date) dates.add(entry.date);
+    }
+  }
+  // ISO dates sort lexicographically — see the note at the top of this module.
+  return [...dates].sort();
+}
+
+/**
+ * [v8] Meal services in the order they are served: by date, then by start time,
+ * untimed entries last within their day.
+ *
+ * The Menu's spine (§8 B). A children's seating is an ordinary entry here and
+ * sorts into place by its own time — hot dogs at 17:30 print above the adult
+ * buffet at 18:30 rather than in a section of their own (§5, v5 changes).
+ *
+ * @param {object} event
+ * @returns {object[]} rows of `foodAndBev`, not copies
+ */
+export function mealServices(event) {
+  const services = [...((event && event.foodAndBev) || [])].filter(Boolean);
+  return services.sort((a, b) => {
+    const date = String(a.date || '').localeCompare(String(b.date || ''));
+    if (date !== 0) return date;
+    if (!a.start && !b.start) return 0;
+    if (!a.start) return 1;
+    if (!b.start) return -1;
+    return a.start < b.start ? -1 : (a.start > b.start ? 1 : 0);
+  });
+}
+
+/**
+ * [v8] The menu block written for a meal, or null. BUILD-SPEC §5 `menu[]`.
+ *
+ * Blocks are addressed by `fnbId` and never by position — a block is added when
+ * a menu is written and removed when one is deleted, so an index would be
+ * pointing at a different meal by the second edit.
+ *
+ * Null is a real answer, not a missing one: §12.8 is a meal with no menu block,
+ * and the Menu prints that meal's heading with a note rather than skipping it.
+ *
+ * @param {object} event
+ * @param {string} fnbId
+ * @returns {object|null}
+ */
+export function menuFor(event, fnbId) {
+  if (!fnbId) return null;
+  const blocks = (event && event.menu) || [];
+  return blocks.find((block) => block && block.fnbId === fnbId) || null;
+}
+
+/**
+ * [v8] Staff assignments grouped by person, each person's in time order.
+ *
+ * BUILD-SPEC §14: by person, not by daypart. One stew in a duck blind at dawn
+ * and behind the bar at night is one person's day, and splitting that across an
+ * AM table and a PM table is what makes it unreadable.
+ *
+ * People appear in the order they first appear in `staff[]`, so the order the
+ * coordinator typed is the order that prints. Assignments sort by date, then by
+ * daypart with AM before PM; rows carrying neither keep their array order,
+ * because `sort` is stable.
+ *
+ * @param {object} event
+ * @returns {{name: string, assignments: object[]}[]}
+ */
+export function staffByPerson(event) {
+  const rows = (event && event.staff) || [];
+  const people = new Map();
+
+  for (const row of rows) {
+    if (!row) continue;
+    const name = String(row.name || '').trim();
+    // An unnamed row is its own person rather than joining the first blank one:
+    // two blanks are two rows somebody has yet to name, not one person's day.
+    const key = name || ` unnamed:${row.id || people.size}`;
+    if (!people.has(key)) people.set(key, { name, assignments: [] });
+    people.get(key).assignments.push(row);
+  }
+
+  for (const person of people.values()) {
+    person.assignments.sort((a, b) => {
+      const date = String(a.date || '').localeCompare(String(b.date || ''));
+      if (date !== 0) return date;
+      return daypartRank(a.daypart) - daypartRank(b.daypart);
+    });
+  }
+  return [...people.values()];
+}
+
+/** AM before PM; anything else keeps its place between them rather than jumping an end. */
+function daypartRank(daypart) {
+  if (daypart === 'AM') return 0;
+  if (daypart === 'PM') return 2;
+  return 1;
+}
+
+/**
+ * [v8] The names a rooming row is known by, ready to print. §5 (v5 changes).
+ *
+ * Not a head count — a row naming one guest may hold a couple, and a row naming
+ * nobody still occupies its room. Array order is display order, and the first
+ * name is the guest the room is booked under.
+ *
+ * An id resolving to no attendee is reported as an unresolved *name*, never as
+ * an id: ids are opaque and are never displayed. §12.3 is usually a deleted
+ * guest, and the room stays booked either way.
+ *
+ * @param {object} event
+ * @param {object} roomingRow
+ * @returns {{text: string, resolved: boolean, isChild: boolean}[]}
+ */
+export function partyOf(event, roomingRow) {
+  const ids = (roomingRow && Array.isArray(roomingRow.guestIds)) ? roomingRow.guestIds : [];
+  const party = ids.map((id) => {
+    const attendee = attendeeById(event, id);
+    return {
+      text: attendee ? (attendeeName(attendee) || 'Unnamed guest') : 'Not on the guest list',
+      resolved: Boolean(attendee),
+      isChild: Boolean(attendee && attendee.isChild)
+    };
+  });
+  // [v5] A name a migration could not match is kept verbatim so the row can
+  // still be read by the name it was authored with (migrate.js, rule 6).
+  if (roomingRow && roomingRow.guest) {
+    party.push({ text: String(roomingRow.guest), resolved: false, isChild: false });
+  }
+  return party;
 }

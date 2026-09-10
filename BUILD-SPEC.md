@@ -1,11 +1,11 @@
-# EVENT-ORDER-GEN — Build Spec v7
+# EVENT-ORDER-GEN — Build Spec v8
 
 Static document generator for Maple Ranch private-side event orders, menus, and rooming lists.
 
 **Repo:** `MathrusseB/EVENT-ORDER-GEN`
 **Deploy:** `event-order-gen-production.up.railway.app`
 
-Supersedes v6. Each change carries the version that introduced it, **[v2]** through **[v7]**;
+Supersedes v7. Each change carries the version that introduced it, **[v2]** through **[v8]**;
 §5 keeps a change block per version.
 
 ---
@@ -107,7 +107,8 @@ sections per event. Nothing is mandatory except the header block.
     "endDate": "2026-11-16",
     "eventLead": "Brian Mathrusse",
     "revisionDate": "2026-11-10",
-    "revisedBy": "Brian Mathrusse"
+    "revisedBy": "Brian Mathrusse",
+    "brandId": "maple-ranch"
   },
 
   "sections": [ /* see section 4 */ ],
@@ -321,6 +322,33 @@ and a control bound to an index edits the wrong row the moment a row above it mo
 assigned once, on creation, never displayed, and never edited, exactly as in v4. `migrate()` mints
 them for rows arriving without one, so a file saved before v7 opens with stable rows.
 
+### Changes from v7
+
+**[v8] Events carry a brand, and the three documents do not all use the same one.**
+`meta.brandId` selects an entry from the brand registry in `reference.js` (§6), defaulting to
+`maple-ranch`. The registry is static property data — a display name and a logo path under
+`logos/` per brand — and is never written into the event JSON; the event stores the id alone.
+
+The ranch hosts groups that are not the ranch. A Bloody Feather weekend, an RNT weekend, a KUIU
+shoot, a Navy SEALs retreat — each arrives with its own identity, and paperwork handed to that
+group should carry it.
+
+- **Event Order** and **Rooming Assignment** carry the **event's** brand. They are operational
+  paperwork for the group in the building, and they should identify the group they are for.
+- **Menu** always carries **`maple-ranch`**, whatever the event's brand. The menu is the ranch's
+  culinary product, not the visiting group's: the kitchen writes it, the ranch stands behind it,
+  and it is the one document that leaves as a piece of the ranch rather than a piece of the
+  weekend.
+
+**This asymmetry is deliberate and is not to be "fixed" into consistency.** It mirrors how the
+events department already issues these documents, and a future reader who makes all three
+documents agree will be undoing a decision, not tidying an oversight. `brandId` is read at render
+time only; nothing else in the app branches on it.
+
+An unknown or absent `brandId` resolves to `maple-ranch` rather than rendering an empty header, so
+a file authored before v8 — and a file hand-edited to a brand this build has never heard of — opens
+and prints exactly as it always did.
+
 ## 6. Static reference data
 
 Seeded in `js/reference.js`. Not part of event JSON.
@@ -352,6 +380,25 @@ Guest Arrival, Guest Departure, Range, Skeet
 
 Room inventory is fixed property data — selected from, never typed.
 
+**[v8] Brand registry.** Each entry is an id, a display name, and a logo path under `logos/`.
+`meta.brandId` holds the id alone; nothing here is ever written into the event JSON.
+
+| id | Display name | Logo |
+|---|---|---|
+| `maple-ranch` | Maple Ranch | `logos/maple-ranch.png` |
+| `bloody-feather` | Bloody Feather | `logos/bloody-feather.png` |
+| `rnt` | RNT | `logos/rnt.png` |
+| `kuiu` | KUIU | `logos/kuiu.png` |
+| `navy-seals` | Navy SEALs | `logos/navy-seals.png` |
+
+`maple-ranch` is the default and the fallback: an id matching no entry resolves to it rather than
+printing a document with no identity on it.
+
+The five logos differ in proportion by a factor of four — Maple Ranch is a wide wordmark at 3.48:1,
+the Navy SEALs crest is portrait at 0.83:1. Each is fitted into one fixed box in the running header
+(§10) so the header occupies the same height whichever brand an event carries, and a page of a
+Bloody Feather order lines up with a page of a Maple Ranch one.
+
 ## 7. Derived fields
 
 | Field | Rule |
@@ -374,6 +421,17 @@ Room inventory is fixed property data — selected from, never typed.
 arranges; **B** and **C** are always generated from the same event data and have no sections of
 their own.
 
+**[v8] Brand per document.** **A** and **C** carry `meta.brandId`; **B** always carries
+`maple-ranch` (§5, v8 changes). The Menu is the ranch's culinary product, not the visiting group's.
+Do not make the three agree.
+
+**[v8] Each document is printed on its own.** There is no combined print, and **no document may
+appear in another's print output** — not collapsed, not hidden behind a page break, not present in
+the DOM and unstyled. Printing the Menu produces the Menu: not the Menu preceded by four blank
+pages where the Event Order was, and not a rooming grid the print stylesheet forgot. The editors
+and the application shell are equally absent. This is a property of the print stylesheet and it is
+the one thing about printing worth testing by printing.
+
 **A. Event Order** — header block, then enabled sections in array order, then footer with page
 number and revision line. **[v7]** Three section types render something other than their own array:
 `accommodations` prints the per-night lodging summary derived from `rooming[]` (§7) rather than the
@@ -387,6 +445,14 @@ the F&B schedule table, which the Menu prints too.
 totals, attendee list with arrival/departure and notes. **[v7]** Always generated; never a section
 of the Event Order. The Event Order's Accommodations summary is the only rooming figure that
 crosses over.
+
+**[v8] Absence is printed, not omitted.** A disabled section does not print at all — that is what
+disabling is for. But an *enabled* section holding nothing prints its heading and a quiet note
+saying so, and a meal with no menu block prints its heading and a note that no menu is set. The
+reasoning is the same in both cases and is worth stating once: a heading with "None" under it was
+checked, and a heading that is simply missing was forgotten. Ownership cannot tell those apart from
+the page, and the kitchen discovers the second one at service. The same rule governs the Menu's
+allergies block, which prints "None known" rather than disappearing when nobody has a dietary note.
 
 ## 9. Rooming editor **[v2]**
 
@@ -424,7 +490,11 @@ length limit and must be free to flow across pages. Apply `break-inside: avoid` 
 table rows, and staff blocks only. Section headings get `break-after: avoid` so a heading never
 strands at the bottom of a page.
 
-Each render gets its own print button — no combined print.
+Each render gets its own print button — no combined print (§8 [v8]): the two documents that are
+not being printed must be out of the print output entirely, along with the editors and the shell.
+
+**[v8]** Long table headers repeat on continuation pages. Logos are fitted into a fixed box so the
+running header keeps one height across the five brands (§6).
 
 Server-side PDF (Hibiscus.dev) is the port path when this becomes a PSO module. Clean semantic HTML
 now keeps that port cheap.
@@ -446,11 +516,14 @@ now keeps that port cheap.
 /js/migrate.js       forward migration of inbound JSON
 /js/derive.js        counts and lodging, derived from the event
 /js/reference.js     buildings, rooms, static lists
-/js/render.js        JSON -> document renders
+/js/render.js        document shell — page furniture, brand header, print
+/js/renders/         one module per document: order, menu, rooming
+/js/views.js         edit / document destinations, and the per-document print
 /js/rooming.js       drag-and-drop assignment editor
 /js/validate.js      pre-print checks
 /js/io.js            JSON download / upload, localStorage autosave
 /data/sample.json    fixture for development
+/logos/              brand logos, one per registry entry (§6)
 ```
 
 ## 12. Validation rules
@@ -473,10 +546,14 @@ Run before any print. Warn, do not block.
 
 ## 13. Open items
 
-- Whether `staff` renders grouped by person or by daypart as the default
+- None outstanding.
 
 ## 14. Resolved
 
+- ~~Whether `staff` renders grouped by person or by daypart~~ — **[v8]** by person. A stew in a
+  duck blind at dawn and behind the bar at night is one person's day, and grouping by daypart
+  splits it across two tables so nobody can see the shape of it. Each person's assignments print
+  under their name in time order.
 - ~~Which departments exist on the private side~~ — same structure as corporate, but rarely used.
   Now optional and off by default; `staff[]` covers the normal case.
 - ~~Additional sample orders needed~~ — not blocking. No boilerplate library is being written;
