@@ -447,6 +447,25 @@ still the source of truth (§3) and still the only thing that can reopen an even
 duplicate it, which a PDF cannot — but it is the quieter of the two actions in the interface, and
 it says what it is for.
 
+### Changes from v10
+
+**[v11] The rooming board exports as a self-contained file for ownership.** A read-and-rearrange
+copy of the rooming sheet, sent as an attachment. It carries its own copy of the event and sends
+nothing back. Ownership's changes are read off the screen, not merged. The board marks what changed
+against the assignment it was exported with, so the differences are visible without comparing two
+sheets by eye.
+
+**[v11] There is no round trip, and that is a decision rather than a gap.** An import, a paste-back
+blob and a sync were all considered and declined. Ownership rearranges rooms; Brian reads what they
+did and either amends the event order himself or emails the staff. A merge would have to answer
+what happens when both sides moved the same guest, and the answer nobody would trust is the one an
+automatic merge gives.
+
+**[v11] The exported board and the generator cannot disagree.** It is not a second implementation
+of the rooming rules: the export inlines `js/rooming.js` and the pure parts of `js/derive.js`
+verbatim, so the same move produces the same `rooming[]` in both. §11 names the files. The harness
+checks that claim by making the same rearrangement on both sides and comparing the arrays.
+
 ## 6. Static reference data
 
 Seeded in `js/reference.js`. Not part of event JSON.
@@ -656,8 +675,7 @@ now keeps that port cheap.
 ## 11. File layout
 
 ```
-/index.html          application shell
-/rooming.html        standalone rooming editor
+/index.html          application shell — the board mounts inside it (see below)
 /css/styles.css      design tokens, screen styles
 /css/print.css       @page rules, print-only styles
 /js/app.js           form state, event JSON in memory
@@ -676,12 +694,24 @@ now keeps that port cheap.
 /js/renders/         one module per document: order, menu, rooming
 /js/include.js       [v9] what meta.includeInOrder appends to the Event Order
 /js/views.js         edit / document destinations, and the per-document print
-/js/rooming.js       drag-and-drop assignment editor
+/js/rooming.js       the rooming board — the transforms, and the in-app board
+/js/ownership.js     [v11] the board ownership is sent, built on the same transforms
+/css/ownership.css   [v11] its own visual system — a screen, not a document
+/js/export.js        [v11] the self-contained export: inlining, the logo, the file
 /js/validate.js      pre-print checks
 /js/io.js            JSON download / upload, localStorage autosave
 /data/sample.json    fixture for development
 /logos/              brand logos, one per registry entry (§6)
 ```
+
+**[v11] There is no `/rooming.html`.** v2 listed the board as a standalone page and that was
+wrong: §9 puts two ways into `rooming[]` — the board and the typed rows — and a change made in one
+has to be in the other with no reload. A second page cannot do that without shared state, which is
+the thing v1 explicitly does not have. So the board mounts inside `index.html`, in the rooming
+block, behind a **Board / Rows** switch; both are mounted for the life of the session and both are
+handed every change. `js/rooming.js` is still self-contained in the sense §9 asks for — an event
+in, a new event out — and `js/ownership.js` is the proof of it: a second caller, in a file with no
+application state anywhere near it.
 
 ## 12. Validation rules
 
