@@ -17,7 +17,14 @@ import { getEvent, update } from '../app.js';
 import { itineraryFor } from '../derive.js';
 import { datesBetween, formatDate, formatTime, formatTimeRange } from '../dates.js';
 import { newId } from '../ids.js';
-import { SCHEDULE_LABEL_SUGGESTIONS } from '../reference.js';
+import { OTHER_OPTION } from '../reference.js';
+import {
+  activityOptions,
+  customActivities,
+  forgetActivity,
+  isKnownActivity,
+  rememberActivity
+} from '../activities.js';
 import {
   el,
   focusRowControl,
@@ -29,7 +36,7 @@ import {
   setValue,
   toggleClass
 } from '../dom.js';
-import { dateField, rowButton, textField, timeField, warnLine } from './fields.js';
+import { dateField, optionSignature, rowButton, timeField, warnLine } from './fields.js';
 import { draftList, fieldWriter, moveRow, removeRow } from './rows.js';
 
 const write = fieldWriter('schedule');
@@ -88,12 +95,6 @@ function mealEcho(event, entry) {
  * @returns {{node: HTMLElement, update: (event: object, section: object) => void}}
  */
 export function createScheduleEditor() {
-  // One datalist for the whole editor, with an id of its own so a second
-  // instance could never collide with this one's.
-  const listId = `schedule-labels-${newId()}`;
-  const datalist = el('datalist', { id: listId },
-    SCHEDULE_LABEL_SUGGESTIONS.map((label) => el('option', { value: label })));
-
   const previewBody = el('div', { class: 'preview__days' });
   const previewEmpty = el('p', {
     class: 'preview__empty',
@@ -148,15 +149,29 @@ export function createScheduleEditor() {
 
   const legend = el('p', {
     class: 'editor__legend',
-    text: 'Labels autocomplete from the standing list and accept anything you type. An entry with '
-      + 'no start time prints at the end of its day.'
+    text: 'Three blank rows a day, ready to fill in. An entry with no start time prints at the '
+      + 'end of its day, and an empty one prints nothing at all.'
   });
 
+  // [v10] The custom activities, and the way off the list. Removing one takes
+  // it off this machine's list and off this event's copy; every itinerary row
+  // that used it keeps the words, because a row stores the words (§6 [v10]).
+  const customList = el('ul', { class: 'activities' });
+  const customs = el('div', { class: 'activities__wrap', hidden: true }, [
+    el('h4', { class: 'activities__title', text: 'Activities you have added' }),
+    customList,
+    el('p', {
+      class: 'activities__note',
+      text: 'Removing one takes it off the list here and in the saved file. Itinerary rows that '
+        + 'already say it are not touched.'
+    })
+  ]);
+
   const node = el('div', { class: 'editor editor--schedule' }, [
-    datalist,
     preview,
     el('div', { class: 'editor__table' }, [columns, list, emptyNote]),
-    el('div', { class: 'editor__foot' }, [addButton, legend])
+    el('div', { class: 'editor__foot' }, [addButton, legend]),
+    customs
   ]);
 
   return {
@@ -177,6 +192,12 @@ export function createScheduleEditor() {
       const rows = reconcile(list, entries, (entry) => entry.id, (entry) =>
         createScheduleRow(list, entry.id));
       rows.forEach((row, index) => row.update(event, entries[index], index, entries.length));
+
+      const added = customActivities(event);
+      setHidden(customs, added.length === 0);
+      const chips = reconcile(customList, added, (name) => name.toLowerCase(), (name) =>
+        createActivityChip(name));
+      chips.forEach((chip, index) => chip.update(added[index]));
     }
   };
 }
@@ -223,6 +244,127 @@ function createPreviewLine() {
   };
 }
 
+/**
+ * [v10] What is happening: a select of the activity list, and Other, which
+ * takes free text and offers to keep it. BUILD-SPEC §6 [v10].
+ *
+ * The row stores the words, never an index into the list — which is what lets a
+ * custom activity be removed from the list without touching a single itinerary
+ * that used it, and what lets a file authored anywhere open here with its
+ * labels intact under Other.
+ */
+function createActivityCell(id) {
+  let typed = '';
+
+  const select = el('select', { class: 'input input--select', 'data-field': 'label' });
+  const other = el('input', {
+    type: 'text',
+    class: 'input',
+    'data-field': 'labelOther',
+    placeholder: 'What is happening',
+    autocomplete: 'off',
+    autocapitalize: 'words'
+  });
+  const keep = el('button', {
+    type: 'button',
+    class: 'linkish',
+    'data-control': 'keep-activity',
+    text: 'Add to the list'
+  });
+
+  select.addEventListener('change', () => {
+    if (select.value === OTHER_OPTION) {
+      write(id, 'label', typed);
+      other.focus();
+      return;
+    }
+    write(id, 'label', select.value);
+  });
+
+  other.addEventListener('input', () => {
+    typed = other.value;
+    write(id, 'label', other.value);
+  });
+
+  keep.addEventListener('click', () => {
+    const event = getEvent();
+    const next = rememberActivity(event, other.value);
+    if (!next) return;
+    update((draft) => {
+      draft.customActivities = next;
+    });
+    other.focus();
+  });
+
+  const root = el('div', { class: 'cell cell--activity' }, [
+    el('label', { class: 'field' }, [
+      el('span', { class: 'field__label', text: 'What is happening' }),
+      select
+    ]),
+    el('div', { class: 'activity__other' }, [other, keep])
+  ]);
+
+  let signature = '';
+
+  return {
+    root,
+    update(event, entry) {
+      const stored = String((entry && entry.label) || '');
+      const options = activityOptions(event);
+
+      const next = optionSignature(options.map((name) => ({ value: name, label: name })));
+      if (next !== signature) {
+        signature = next;
+        select.replaceChildren(
+          el('option', { value: '', text: 'Not set' }),
+          ...options.map((name) => el('option', { value: name, text: name })),
+          el('option', { value: OTHER_OPTION, text: 'Other' })
+        );
+      }
+
+      const listed = options.includes(stored);
+      const isOther = Boolean(stored) && !listed;
+      if (isOther) typed = stored;
+
+      setValue(select, listed ? stored : (isOther ? OTHER_OPTION : ''));
+      const showing = select.value === OTHER_OPTION;
+      setHidden(root.querySelector('.activity__other'), !showing);
+      setValue(other, showing ? (stored || typed) : '');
+      // Nothing to add when the box is empty, and nothing to add when the list
+      // already has it — an offer that does nothing is worse than no offer.
+      setHidden(keep, !showing || !other.value.trim() || isKnownActivity(event, other.value));
+    }
+  };
+}
+
+/** One custom activity, with the way off the list. */
+function createActivityChip(name) {
+  const label = el('span', { class: 'chip__name' });
+  const drop = el('button', {
+    type: 'button',
+    class: 'chip__drop',
+    'data-control': 'forget-activity',
+    'aria-label': `Remove ${name} from the list`,
+    title: `Remove ${name} from the list`
+  }, [el('span', { 'aria-hidden': 'true', text: '✕' })]);
+
+  drop.addEventListener('click', () => {
+    const next = forgetActivity(getEvent(), name);
+    update((draft) => {
+      draft.customActivities = next;
+    });
+  });
+
+  const node = el('li', { class: 'chip' }, [label, drop]);
+
+  return {
+    node,
+    update(current) {
+      setText(label, current);
+    }
+  };
+}
+
 /** One schedule entry. Built once per id, patched from then on. */
 function createScheduleRow(list, id) {
   const date = dateField({
@@ -240,12 +382,7 @@ function createScheduleRow(list, id) {
     label: 'End',
     onChange: (value) => write(id, 'end', value)
   });
-  const label = textField({
-    field: 'label',
-    label: 'What is happening',
-    placeholder: 'Duck Hunt',
-    onInput: (value) => write(id, 'label', value)
-  });
+  const activity = createActivityCell(id);
 
   const moveUp = rowButton('up', 'Move up', '↑');
   const moveDown = rowButton('down', 'Move down', '↓');
@@ -263,7 +400,7 @@ function createScheduleRow(list, id) {
     date.root,
     start.root,
     end.root,
-    label.root,
+    activity.root,
     el('div', { class: 'cell cell--actions' }, [moveUp, moveDown, remove]),
     warn.node
   ]);
@@ -275,7 +412,7 @@ function createScheduleRow(list, id) {
       setValue(date.input, entry.date || '');
       setValue(start.input, entry.start || '');
       setValue(end.input, entry.end || '');
-      setValue(label.input, entry.label || '');
+      activity.update(event, entry);
 
       // A nudge, not a fence: §12.9 warns about a date outside the event and
       // never blocks it, so a date typed or pasted outside the range is kept.

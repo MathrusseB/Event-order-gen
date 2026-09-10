@@ -22,14 +22,17 @@
 // shown at the moment the change is made.
 
 import { update } from '../app.js';
-import { attendeeName, roomingWindow } from '../derive.js';
-import { formatDateShort } from '../dates.js';
+import { attendeeName, includeFlags, roomingWindow } from '../derive.js';
+import { datesBetween, formatDateShort } from '../dates.js';
 import { BRANDS, DEFAULT_BRAND_ID, brandFor } from '../reference.js';
-import { includeFlags } from '../derive.js';
+import { seedForDates } from '../seed.js';
 import { el, reconcile, setChecked, setHidden, setText, setValue } from '../dom.js';
 
 /** How many outside-the-range items are named before the list summarises. */
 const MAX_LISTED = 8;
+
+/** [v10] The fields that seed a day when they change. §5 (v10 changes). */
+const DATE_FIELDS = new Set(['startDate', 'endDate']);
 
 const FIELDS = [
   { key: 'eventName', label: 'Event name', type: 'text', cell: 'wide', autocapitalize: 'words' },
@@ -61,6 +64,11 @@ function writeMeta(key, value) {
   update((draft) => {
     if (!draft.meta || typeof draft.meta !== 'object') draft.meta = {};
     draft.meta[key] = value;
+    // [v10] Setting or changing the event dates seeds the days that have not
+    // been offered rows yet (§5, v10 changes). Inside the same write, so a date
+    // change and the three meals it creates are one edit and one render — and
+    // so that an undo of the date, if this ever grows one, takes them with it.
+    if (DATE_FIELDS.has(key)) seedForDates(draft);
   });
 }
 
@@ -145,6 +153,8 @@ export function createMetaEditor() {
     })
   ]);
 
+  const seededNote = el('p', { class: 'editor__legend editor__legend--seeded' });
+
   const hint = el('p', { class: 'editor__legend' });
 
   const warnTitle = el('h3', { class: 'notice__title' });
@@ -163,7 +173,7 @@ export function createMetaEditor() {
     warnFoot
   ]);
 
-  const node = el('div', { class: 'editor editor--meta' }, [grid, includes, hint, notice]);
+  const node = el('div', { class: 'editor editor--meta' }, [grid, seededNote, includes, hint, notice]);
 
   return {
     node,
@@ -188,6 +198,18 @@ export function createMetaEditor() {
 
       const flags = includeFlags(event);
       for (const [key, input] of includeBoxes) setChecked(input, flags[key]);
+
+      // [v10] What the dates did, said plainly. Rows appearing in two other
+      // editors because a date was typed here is the sort of thing that reads
+      // as a bug when it is not explained where it happened.
+      const days = datesBetween(meta.startDate, meta.endDate).length;
+      setText(seededNote, days
+        ? `Each day of the event starts with breakfast, lunch and dinner and three blank `
+          + `itinerary rows — ${days} ${days === 1 ? 'day' : 'days'} so far. Edit or delete them `
+          + 'like any other row; a day already set up is never set up twice, and narrowing the '
+          + 'dates deletes nothing.'
+        : 'Set both dates and each day of the event starts with breakfast, lunch and dinner and '
+          + 'three blank itinerary rows.');
 
       // The end date cannot sensibly precede the start; the picker says so,
       // and a range typed backwards is still accepted and warned about below.

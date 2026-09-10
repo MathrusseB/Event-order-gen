@@ -291,6 +291,21 @@ ul, ol {
   color: #ffffff;
 }
 
+/* [v10] Print is the primary action in the shell (§10) and is the one control
+   on the bar that is filled rather than outlined — the difference between "this
+   is what the tool does" and "these are the other things you can do". */
+#btn-print {
+  background: var(--forest-300);
+  border-color: var(--forest-300);
+  color: var(--forest-900);
+  font-weight: 600;
+}
+
+#btn-print:hover:not(:disabled) {
+  background: #a9c4b0;
+  border-color: #a9c4b0;
+}
+
 .bar :focus-visible {
   outline-color: var(--focus-on-dark);
 }
@@ -1830,6 +1845,63 @@ body.outline-open .outline {
   flex: 1 1 18rem;
 }
 
+/* [v10] Who the guest picker left out, and why (§5, v10 changes). Amber: it is
+   a rule being explained, not a fault to fix. */
+.party__taken {
+  margin: var(--space-1) 0 0;
+  color: var(--amber-700);
+  font-size: var(--text-xs);
+  line-height: var(--leading-normal);
+}
+
+/* [v10] The Other box on a location or an activity, and the offer to keep it. */
+.activity__other {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+  margin-top: var(--space-1);
+}
+
+.activity__other .input {
+  flex: 1 1 8rem;
+}
+
+.cell--location .input[data-field="locationOther"] {
+  margin-top: var(--space-1);
+}
+
+/* [v10] The activities somebody has added, and the way off the list. */
+.activities__wrap {
+  margin-top: var(--space-5);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--rule);
+}
+
+.activities__title {
+  margin: 0 0 var(--space-2);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--ink-700);
+}
+
+.activities {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.activities__note {
+  margin: var(--space-2) 0 0;
+  color: var(--text-faint);
+  font-size: var(--text-xs);
+  max-width: 52em;
+}
+
 /* ------------------------------------------------------------ rooming board */
 
 /* BUILD-SPEC §9. The other way into the same assignments, and the one built
@@ -3012,6 +3084,31 @@ body.outline-open .outline {
   color: var(--brick-600);
 }
 
+/* [v10] The vacancies, in one line under a building's grid (§8 C). Quiet type:
+   it is the answer to a question nobody has asked yet, and the grid above it is
+   what the sheet is for. */
+.vacancy {
+  margin: 4pt 0 0;
+  font-size: 9pt;
+  color: var(--ink-600);
+}
+
+.vacancy__label {
+  font-family: var(--font-sans);
+  font-size: 7.5pt;
+  font-weight: 600;
+  color: var(--ink-500);
+}
+
+.vacancy__label::after {
+  content: " ";
+}
+
+.vacancy--none {
+  font-style: italic;
+  color: var(--ink-500);
+}
+
 /* --------------------------------------------------------- unassigned list */
 
 .unroomed__night {
@@ -3029,6 +3126,53 @@ body.outline-open .outline {
 .unroomed__names {
   margin: 0;
   font-size: 10pt;
+}
+
+/* ------------------------------------------------------- print and save [v10] */
+
+/* §10: printing is the primary output, so it sits in the bar with the document
+   it is about to print named beside it, and Save is a plain button with a line
+   under it saying what it is for. */
+.bar__print {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-right: var(--space-3);
+}
+
+.input--onbar {
+  height: var(--control-h);
+  min-width: 10rem;
+  padding: 0 var(--space-2);
+  border-color: var(--forest-600);
+  background: var(--forest-900);
+  color: var(--paper);
+  font-size: var(--text-sm);
+}
+
+.input--onbar:focus-visible {
+  outline: 2px solid var(--focus-on-dark);
+  outline-offset: 1px;
+}
+
+.bar__savenote {
+  flex-basis: 100%;
+  margin: var(--space-1) 0 0;
+  color: var(--forest-300);
+  font-size: var(--text-xs);
+  max-width: 34ch;
+}
+
+@media (max-width: 60rem) {
+  /* On a tablet the bar is already three rows; the note is the first thing that
+     can go, and the button still says Save. */
+  .bar__savenote {
+    display: none;
+  }
+
+  .input--onbar {
+    min-width: 8rem;
+  }
 }
 
 /* ------------------------------------------------------------- view tabs */

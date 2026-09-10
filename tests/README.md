@@ -55,6 +55,15 @@ a room that has left the property registry is reported and **left alone**, never
 remapped and never dropped. The run is checked to be idempotent, and to leave
 the caller's event untouched.
 
+**`checks/entry.mjs` — seeding, vacancies, and one guest in one room.** The
+three v10 rules that are easy to state and easy to break later. Seeding fills
+gaps and does nothing else: the checks cover a second pass, an edited row, a day
+trimmed by hand, a narrowed range and a widened one, and a day added to the
+front of an event. Vacancies collapse into ranges and a named room never joins
+one. And a guest cannot hold two rooms on the same night, while turnover between
+two rooms on consecutive nights stays expressible — the difference between
+overlap and "assigned anywhere".
+
 ## Fixtures
 
 `fixtures/` is test data and is not `data/sample.json`. The sample is the event

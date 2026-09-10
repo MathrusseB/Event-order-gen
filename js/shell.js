@@ -83,6 +83,8 @@ function grab() {
   refs.roomingBody = document.getElementById('rooming-body');
   refs.menuBody = document.getElementById('menu-body');
   refs.viewNav = document.getElementById('view-nav');
+  refs.printTarget = document.getElementById('print-target');
+  refs.printButton = document.getElementById('btn-print');
   refs.workbench = document.getElementById('workbench');
   refs.previews = document.getElementById('previews');
 }
@@ -487,7 +489,9 @@ function mount() {
   mountViews({
     nav: refs.viewNav,
     workbench: refs.workbench,
-    region: refs.previews
+    region: refs.previews,
+    printTarget: refs.printTarget,
+    printButton: refs.printButton
   });
 }
 

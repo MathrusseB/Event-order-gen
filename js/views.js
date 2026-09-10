@@ -44,6 +44,9 @@ const previews = new Map();
 const stale = new Set();
 const scrollByView = new Map();
 
+/** [v10] The shell's print control — a document to print, and the button. */
+let printPicker = null;
+
 let view = EDIT;
 let printTarget = DEFAULT_PRINT;
 let lastEditFocus = null;
@@ -54,7 +57,8 @@ let pageStyle = null;
 /**
  * Build the view switcher and the previews, and start listening.
  *
- * @param {{nav: HTMLElement, workbench: HTMLElement, region: HTMLElement}} refs
+ * @param {{nav: HTMLElement, workbench: HTMLElement, region: HTMLElement,
+ *   printTarget: HTMLSelectElement, printButton: HTMLElement}} refs
  */
 export function mountViews(refs) {
   workbench = refs.workbench;
@@ -71,6 +75,19 @@ export function mountViews(refs) {
     region.append(createPreview(doc));
     stale.add(doc.id);
   }
+
+  // [v10] §10 — print is the primary output and does not require opening a
+  // preview first. The select carries the same three documents as the tabs, so
+  // there is one list and it cannot come to disagree with what exists.
+  printPicker = refs.printTarget;
+  printPicker.replaceChildren(...DOCUMENTS.map((doc) =>
+    el('option', { value: doc.id, text: doc.label })));
+  printPicker.value = printTarget;
+  printPicker.addEventListener('change', () => {
+    printTarget = printPicker.value;
+    document.documentElement.dataset.print = printTarget;
+  });
+  refs.printButton.addEventListener('click', () => printDocument(printPicker.value));
 
   document.documentElement.dataset.view = EDIT;
   document.documentElement.dataset.print = printTarget;
@@ -176,6 +193,9 @@ export function setView(next) {
     // no button press in between.
     printTarget = view;
     document.documentElement.dataset.print = view;
+    // [v10] And the shell's print control follows, so the two never disagree
+    // about which document the next print will produce.
+    if (printPicker) printPicker.value = view;
     build(view);
   }
 
@@ -205,6 +225,11 @@ export function printDocument(id) {
   if (!documentById(id)) return;
   printTarget = id;
   document.documentElement.dataset.print = id;
+  if (printPicker) printPicker.value = id;
+  // [v10] Built even when its preview is hidden behind the editing view: print
+  // reaches the document through print.css, which shows the one stamped on
+  // `<html data-print>` whatever the screen is doing, so the only requirement
+  // is that the DOM be there and current.
   build(id);
   window.print();
 }

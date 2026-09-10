@@ -8,7 +8,12 @@
 // caller ever sees a pre-v4 shape, and each returns migrate's own
 // `{ event, summary }` — the summary travels with the event that produced it
 // rather than being stashed somewhere and hoped for later.
+//
+// [v10] They all run `absorbActivities()` too: the activity list a file carries
+// joins this machine's list on the way in (§6 [v10]). It happens here rather
+// than in `migrate()` because it writes to `localStorage`, and migrate is pure.
 
+import { absorbActivities } from './activities.js';
 import { migrate } from './migrate.js';
 
 /** Single autosave key. One event in flight at a time. */
@@ -69,7 +74,18 @@ export async function loadFromFile(file) {
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
     throw new Error(`${file.name} does not contain an event object.`);
   }
-  return migrate(parsed);
+  return inbound(migrate(parsed));
+}
+
+/**
+ * [v10] The last thing every inbound path does.
+ *
+ * @param {{event: object, summary: object}} result
+ * @returns {{event: object, summary: object}} the same result
+ */
+function inbound(result) {
+  absorbActivities(result.event);
+  return result;
 }
 
 /**
@@ -165,7 +181,7 @@ export function restoreAutosave() {
     if (!text) return null;
     const parsed = JSON.parse(text);
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
-    return migrate(parsed);
+    return inbound(migrate(parsed));
   } catch (err) {
     return null;
   }
@@ -199,5 +215,5 @@ export async function loadSample() {
   if (!response.ok) {
     throw new Error(`Could not load sample.json (${response.status}).`);
   }
-  return migrate(await response.json());
+  return inbound(migrate(await response.json()));
 }
