@@ -104,6 +104,30 @@ export function nextDate(iso) {
 }
 
 /**
+ * [v12] The moment, as a local wall-clock string: `YYYY-MM-DDTHH:MM`.
+ *
+ * `meta.touchedAt` (§5 [v12]) — stamped by `update()` on every write, and read
+ * by §12.11 to tell whether the revision line is behind the work.
+ *
+ * Local, no zone, no seconds, and built the same way as everything else here:
+ * the parts are read off a local `Date` and rebuilt as a string. `toISOString()`
+ * is UTC, and an order revised at seven in the evening in Missouri would be
+ * stamped with tomorrow's date and reported stale the moment it was saved.
+ *
+ * Seconds are left off because nothing compares two edits to each other — the
+ * only comparison is the date half against `revisionDate`, and the time is
+ * there to be read by a person.
+ *
+ * @returns {string}
+ */
+export function nowStamp() {
+  const now = new Date();
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  return `${toIso(now)}T${hours}:${minutes}`;
+}
+
+/**
  * "Sat, Nov 14". For dated rows and tallies.
  * @param {string} iso
  * @returns {string} the input unchanged when it is not a date

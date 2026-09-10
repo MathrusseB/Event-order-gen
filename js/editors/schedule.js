@@ -13,7 +13,7 @@
 // through moving a meal across, and an editor that refused the keystroke would
 // be wrong about that.
 
-import { getEvent, update } from '../app.js';
+import { findingsFor, getEvent, update } from '../app.js';
 import { itineraryFor } from '../derive.js';
 import { datesBetween, formatDate, formatTime, formatTimeRange } from '../dates.js';
 import { newId } from '../ids.js';
@@ -422,7 +422,12 @@ function createScheduleRow(list, id) {
       moveUp.disabled = index === 0;
       moveDown.disabled = index === total - 1;
 
-      warn.set(entryWarnings(event, entry, meta));
+      // [v12] §12's findings about this row — rule 9's date and rule 12's meal
+      // typed into both arrays — written once in validate.js and shown here,
+      // then what this editor checks that §12 does not.
+      const mine = findingsFor(id).filter((item) => item.area === 'schedule');
+      warn.set([...mine, ...entryWarnings(event, entry, meta)]);
+      toggleClass(node, 'has-finding', mine.length > 0);
       toggleClass(node, 'is-echo', Boolean(mealEcho(event, entry)));
     }
   };
@@ -435,23 +440,20 @@ function createScheduleRow(list, id) {
 function entryWarnings(event, entry, meta) {
   const messages = [];
 
-  if (meta.startDate && meta.endDate && entry.date) {
-    if (entry.date < meta.startDate || entry.date > meta.endDate) {
-      messages.push(`Dated ${formatDate(entry.date)}, outside the event.`);
-    }
-  }
   if (entry.start && entry.end && entry.end < entry.start) {
     messages.push('Ends before it starts.');
   }
 
+  // [v12] The exact-time echo is §12.12 and is written once in validate.js.
+  // What is left here is the looser one it deliberately does not cover: the
+  // same meal on the same date at a *different* time, which will not print
+  // twice and so is not a §12 fault, but is almost always the leftover row from
+  // before the meal moved.
   const echo = mealEcho(event, entry);
-  if (echo) {
+  if (echo && !echo.sameTime) {
     const when = formatTime(echo.meal.start) || 'no time set';
-    messages.push(echo.sameTime
-      ? `"${echo.meal.meal}" is already a meal service at ${when} on this date, so it would print `
-        + 'twice on the itinerary. Meals belong in Food & Beverage — delete this entry.'
-      : `Food & Beverage already serves "${echo.meal.meal}" at ${when} on this date. Meals are `
-        + 'merged into the itinerary from there, so this entry is probably the leftover one.');
+    messages.push(`Food & Beverage already serves "${echo.meal.meal}" at ${when} on this date. `
+      + 'Meals are merged into the itinerary from there, so this entry is probably the leftover one.');
   }
   return messages;
 }

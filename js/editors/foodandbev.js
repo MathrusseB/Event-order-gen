@@ -15,7 +15,7 @@
 //     unknown provenance, and a `custom` basis is drawn as the deliberate
 //     override §12.1 calls it rather than as just another figure.
 
-import { getEvent, update } from '../app.js';
+import { findingsFor, getEvent, update } from '../app.js';
 import { attendeeName, fnbCount } from '../derive.js';
 import { formatDate, formatTime } from '../dates.js';
 import { newId } from '../ids.js';
@@ -380,20 +380,30 @@ function createFnbRow(list, id) {
       moveUp.disabled = index === 0;
       moveDown.disabled = index === total - 1;
 
-      warn.set(entryWarnings(event, entry, meta, override));
+      // [v12] §12's findings about this service — rule 1's override and rule
+      // 9's date — beside the row they are about, then this editor's own checks
+      // on the row's shape, which are not §12 rules. Rule 8's "no menu written"
+      // and rule 12's duplicate both name this row too and mark it below; their
+      // sentences belong beside the menu block and the itinerary row, which is
+      // where the fix is.
+      const mine = findingsFor(id).filter((item) => item.area === 'foodAndBev');
+      warn.set([...mine, ...entryWarnings(event, entry, meta, override)]);
+      toggleClass(node, 'has-finding', mine.length > 0);
     }
   };
 }
 
-/** What is wrong with a meal service, in plain sentences. §12.1, §12.9. */
+/**
+ * What is wrong with a meal service, beyond what §12 says about it.
+ *
+ * [v12] §12.1 and §12.9 used to be spelled out here as well as in the spec;
+ * they are now written once in validate.js and shown above, and what is left is
+ * this editor's own: a service that ends before it starts, an override with no
+ * number in it, and a service with no name. None of those is a §12 rule.
+ */
 function entryWarnings(event, entry, meta, override) {
   const messages = [];
 
-  if (meta.startDate && meta.endDate && entry.date) {
-    if (entry.date < meta.startDate || entry.date > meta.endDate) {
-      messages.push(`Dated ${formatDate(entry.date)}, outside the event.`);
-    }
-  }
   if (entry.start && entry.end && entry.end < entry.start) {
     messages.push('Ends before it starts.');
   }

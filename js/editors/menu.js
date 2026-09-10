@@ -19,7 +19,7 @@
 //     with its dishes intact, and can be pointed at another meal in one press.
 //     Nothing deletes it: an evening's menu is not something to lose quietly.
 
-import { getEvent, update } from '../app.js';
+import { findingsFor, getEvent, update } from '../app.js';
 import { attendeeName, fnbCount } from '../derive.js';
 import { formatDate, formatTimeRange } from '../dates.js';
 import { el, reconcile, setHidden, setText, toggleClass } from '../dom.js';
@@ -245,6 +245,16 @@ function createMealBlock(fnbId) {
       setHidden(none, Boolean(block));
       setHidden(written, !block);
       toggleClass(node, 'is-unwritten', !block);
+      // [v12] Marked, not narrated. §12.8's sentence is "Breakfast on Nov 14
+      // has no menu written", and printing it under a block already headed
+      // "Breakfast — Sat, Nov 14" and saying "No menu written for this service"
+      // would be the same fact three times. The mark is what the navigator
+      // counts and what the print panel lands on; the block says the rest.
+      //
+      // Only this area's findings: a meal service and its menu block carry the
+      // same row id, and the meal's own faults are marked on its F&B row.
+      toggleClass(node, 'has-finding',
+        findingsFor(fnbId).some((item) => item.area === 'menu'));
 
       dishes.update(block && Array.isArray(block.dishes) ? block.dishes : []);
     }
@@ -284,7 +294,7 @@ function createOrphanBlock(fnbId) {
   });
   remove.addEventListener('click', () => deleteMenu(fnbId));
 
-  const node = el('section', { class: 'menublock menublock--orphan' }, [
+  const node = el('section', { class: 'menublock menublock--orphan', 'data-row': fnbId }, [
     el('header', { class: 'menublock__head' }, [
       el('h4', { class: 'menublock__meal', text: 'Written for a meal that is gone' }),
       el('p', {
@@ -307,6 +317,9 @@ function createOrphanBlock(fnbId) {
     node,
     update(event, item) {
       const block = item.block || {};
+      // [v12] §12.7 names this block; the header above already explains it.
+      toggleClass(node, 'has-finding',
+        findingsFor(fnbId).some((item) => item.area === 'menu'));
       const written = (Array.isArray(block.dishes) ? block.dishes : [])
         .map((dish) => String(dish || '').trim())
         .filter(Boolean);

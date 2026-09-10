@@ -38,6 +38,12 @@
         <label class="sr-only" for="print-target">Document to print</label>
         <select class="input input--onbar" id="print-target"></select>
         <button type="button" class="btn btn--onbar btn--onbar-strong" id="btn-print">Print</button>
+        <!-- [v12] §12: what is outstanding, said where the print is started.
+             Pressing Print with anything outstanding shows it in full first and
+             then prints anyway — this warns, it never blocks. Empty and hidden
+             on a clean event: a line saying nothing is wrong, on every event
+             where nothing is wrong, is a line nobody reads. -->
+        <p class="bar__checks" id="print-checks" role="status" aria-live="polite" hidden></p>
       </div>
 
       <nav class="bar__file" aria-label="Event file">
@@ -71,12 +77,16 @@
           <button type="button" class="outline__link" data-goto="rooming-block">
             <span class="outline__label">Rooming Assignment</span>
             <span class="outline__state">Own document</span>
+            <!-- [v12] Filled by shell.js from the §12 findings filed under this
+                 area, exactly as a section's entry is. -->
+            <span class="outline__checks" data-checks="rooming" hidden></span>
           </button>
         </li>
         <li>
           <button type="button" class="outline__link" data-goto="menu-block">
             <span class="outline__label">Menu</span>
             <span class="outline__state">Own document</span>
+            <span class="outline__checks" data-checks="menu" hidden></span>
           </button>
         </li>
       </ul>

@@ -37,6 +37,16 @@ on that print came from the document body, so a page with no marks is a page
 with an empty body. `lib/pdf.mjs` reads the marks; it decodes no text and needs
 no PDF library.
 
+[v12] It also prints the sample event's Event Order twice, once with the
+pre-print findings panel open on screen. §12's second destination is a panel
+raised at the moment of printing, which makes it the one surface that can be up
+while a print is running — a keyboard print reaches `window.print()` without
+going near the button that would have closed it — and §8 [v8] says nothing but
+the document may be in the output. The two prints are compared page for page and
+mark for mark. Reading `display: none` out of print.css would be cheaper and
+would prove nothing: the rule is `body > *`, and the risk is a future panel that
+stops being a child of `<body>`.
+
 **`checks/rooming.mjs` — the board writes one row per stretch, not one per
 night.** BUILD-SPEC §9: assigning a guest across consecutive nights makes one
 row with a spanning range, and taking them out of a room for one night in the
@@ -92,6 +102,27 @@ front of an event. Vacancies collapse into ranges and a named room never joins
 one. And a guest cannot hold two rooms on the same night, while turnover between
 two rooms on consecutive nights stays expressible — the difference between
 overlap and "assigned anywhere".
+
+**`checks/validation.mjs` — the twelve rules of §12, and what must not trip
+them.** BUILD-SPEC §12: every rule had been written down since v2 and none of
+them had ever run. Each gets an event that trips it and an event that does not,
+against `js/validate.js` directly in Node — an event in, findings out, so there
+is nothing to render and no browser to start.
+
+The negative cases are the point. A rule that fires on everything is worse than
+a rule that never fires: it teaches the coordinator to stop reading the panel,
+and then the finding that mattered goes past unread. So the checks name the
+cases that must stay silent — several names on one rooming row, turnover between
+two rooms on consecutive nights, a room held under no name yet, a day guest, a
+blank seeded itinerary row, a file saved before v12 with no `touchedAt` — and
+the two that must fire as *notes* rather than warnings: two parties in the Bunk
+Room, and a count set by hand on purpose.
+
+Three checks are about the module rather than about any one rule. One event
+trips all twelve, which is how a rule that was never written is told from a rule
+that always passes. Validating a deeply frozen event must not throw, which is
+what "pure" means here. And every finding is read back as English: no ISO date,
+no row id, no rule number, and a finished sentence.
 
 ## Fixtures
 
