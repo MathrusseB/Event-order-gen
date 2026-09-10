@@ -39,6 +39,16 @@
 //
 // A guest can be taken off a party without disturbing the rest of it: the row
 // is split around that night and the others stay named on all three pieces.
+//
+// [v11] TWO BOARDS, ONE MODULE. js/ownership.js is the board ownership is sent
+// — a different surface with a different visual system, built for a phone — and
+// it is a caller of this file rather than a copy of it. Everything below the
+// transforms that a board needs in order to be a board is exported: which rows
+// hold a room on a night, which rooms to lay out, what to call a place, and the
+// sentence a move is remembered by. The range-splitting is the part that took
+// the work, and a second implementation of it would drift from this one inside
+// a month. Anything a second board needs is exported from here; nothing is
+// reimplemented over there.
 
 import {
   attendeeById,
@@ -64,7 +74,7 @@ const MAX_NIGHTS = 400;
  * ========================================================================== */
 
 /** The guest ids a row names, always an array. */
-function partyOfRow(row) {
+export function partyOfRow(row) {
   return Array.isArray(row && row.guestIds) ? row.guestIds : [];
 }
 
@@ -72,7 +82,7 @@ function partyOfRow(row) {
  * The key a row groups under within its building. §6 [v3] — a `pooled`
  * building has no rooms, so every one of its rows shares the empty key.
  */
-function roomKeyOf(row) {
+export function roomKeyOf(row) {
   if (assignmentModeFor((row && row.building) || '') === 'pooled') return '';
   return (row && row.room) || '';
 }
@@ -83,14 +93,14 @@ function isAt(row, building, room) {
 }
 
 /** Whether a row holds its room on this night. §7 [v3]: `from <= night < to`. */
-function coversNight(event, row, night) {
+export function coversNight(event, row, night) {
   const window = roomingWindow(event, row);
   if (!night || !window.from || !window.to) return false;
   return window.from <= night && night < window.to;
 }
 
 /** Whether a row still names somebody — an id, or a name a migration kept. */
-function namesAnybody(row) {
+export function namesAnybody(row) {
   return partyOfRow(row).length > 0 || Boolean(row.guest);
 }
 
@@ -198,13 +208,13 @@ function joinTouched(event, rows, touched) {
 }
 
 /** The row holding this guest on this night, or null. */
-function rowHolding(event, rows, guestId, night) {
+export function rowHolding(event, rows, guestId, night) {
   return rows.find((row) => row && coversNight(event, row, night)
     && partyOfRow(row).includes(guestId)) || null;
 }
 
 /** The rows at a place on a night, in array order. */
-function rowsAt(event, rows, building, room, night) {
+export function rowsAt(event, rows, building, room, night) {
   return rows.filter((row) => row && coversNight(event, row, night) && isAt(row, building, room));
 }
 
@@ -567,32 +577,20 @@ export function createRoomingBoard({ onEvent }) {
   }
 
   /**
-   * The three outcomes, as a question rather than a confirm box.
+   * The three outcomes, as a question rather than a confirm box — `window
+   * .confirm` can ask two things and this has to ask three.
    *
-   * `window.confirm` can ask two things and this has to ask three: a room is
-   * often *meant* to hold more than one person, so joining is the ordinary
-   * answer and has to be offered as plainly as the other two.
+   * [v11] The wording is `occupiedQuestion`'s, below, because the board
+   * ownership is sent asks the same question from the bottom of a phone and the
+   * two must not come to word it differently. This draws it.
    */
   function askOccupied({ guestId, source, occupied, label }) {
-    const guest = nameOf(event, guestId);
-    const holders = occupied.flatMap((row) => partyOfRow(row).map((id) => nameOf(event, id)));
-    const held = holders.length ? namesPhrase(holders) : 'somebody';
-    const many = holders.length > 1;
-    const from = source ? placeLabel(source.building, roomKeyOf(source)) : '';
-
-    const choices = [
-      ['add', `Add ${guest} to the room`,
-        `${namesPhrase([...holders, guest])} share ${label} that night.`],
-      source && ['swap', 'Swap them',
-        `${guest} takes ${label}; ${held} ${many ? 'take' : 'takes'} ${from}.`],
-      ['replace', `Replace ${held}`,
-        `${guest} takes ${label}; ${held} ${many ? 'come' : 'comes'} off the sheet for that night `
-          + `and ${many ? 'are' : 'is'} not deleted.`]
-    ].filter(Boolean);
+    const { choices, heading, lead } =
+      occupiedQuestion({ event, guestId, source, occupied, label, night });
 
     return new Promise((resolve) => {
       const form = el('form', { method: 'dialog', class: 'boardask__form' }, [
-        ...choices.map(([value, title, detail]) => el('button', {
+        ...choices.map(({ value, title, detail }) => el('button', {
           type: 'submit',
           class: 'boardask__choice',
           value
@@ -604,13 +602,8 @@ export function createRoomingBoard({ onEvent }) {
       ]);
 
       dialog.replaceChildren(
-        el('h2', {
-          class: 'boardask__head',
-          text: sentenceCase(`${label} is taken on ${formatDate(night)}`)
-        }),
-        el('p', { class: 'boardask__lead', text: `${held} ${many ? 'have' : 'has'} it. Rooms hold `
-          + `parties, so ${choices.length === 3 ? 'all three' : 'both'} of these are ordinary `
-          + 'answers.' }),
+        el('h2', { class: 'boardask__head', text: heading }),
+        el('p', { class: 'boardask__lead', text: lead }),
         form
       );
 
@@ -919,7 +912,7 @@ export function createRoomingBoard({ onEvent }) {
  * plus any room the file names that inventory does not, plus one line for rows
  * carrying no room at all so §12.6 is visible rather than swallowed.
  */
-function roomsToShow(event, building, occupancy) {
+export function roomsToShow(event, building, occupancy) {
   const rooms = [...roomsIn(building)];
   let roomless = false;
 
@@ -937,39 +930,109 @@ function roomsToShow(event, building, occupancy) {
   return rooms;
 }
 
+/**
+ * [v11] The question a taken room asks, as words rather than as markup.
+ *
+ * Both boards ask it and both have to ask it the same way, so the wording lives
+ * here and the two of them draw it — a modal on the desk, a sheet from the
+ * bottom of a phone. Three outcomes rather than two (§9): a room is often
+ * *meant* to hold more than one person, so joining is the ordinary answer and
+ * is offered as plainly as the other two. Swap is offered only when the guest
+ * is coming out of a room, because there is nothing to swap them into
+ * otherwise.
+ *
+ * @param {{event: object, guestId: string, source: object|null,
+ *   occupied: object[], label: string, night: string}} question
+ * @returns {{choices: {value: string, title: string, detail: string}[],
+ *   heading: string, lead: string}}
+ */
+export function occupiedQuestion({ event, guestId, source, occupied, label, night }) {
+  const guest = nameOf(event, guestId);
+  const holders = occupied.flatMap((row) => partyOfRow(row).map((id) => nameOf(event, id)));
+  const held = holders.length ? namesPhrase(holders) : 'somebody';
+  const many = holders.length > 1;
+  const from = source ? placeLabel(source.building, roomKeyOf(source)) : '';
+
+  const choices = [
+    {
+      value: 'add',
+      title: `Add ${guest} to the room`,
+      detail: `${namesPhrase([...holders, guest])} share ${label} that night.`
+    },
+    source && {
+      value: 'swap',
+      title: 'Swap them',
+      detail: `${guest} takes ${label}; ${held} ${many ? 'take' : 'takes'} ${from}.`
+    },
+    {
+      value: 'replace',
+      title: `Replace ${held}`,
+      detail: `${guest} takes ${label}; ${held} ${many ? 'come' : 'comes'} off the sheet for `
+        + `that night and ${many ? 'are' : 'is'} not deleted.`
+    }
+  ].filter(Boolean);
+
+  return {
+    choices,
+    heading: sentenceCase(`${label} is taken on ${formatDate(night)}`),
+    lead: `${held} ${many ? 'have' : 'has'} it. Rooms hold parties, so `
+      + `${choices.length === 3 ? 'all three' : 'both'} of these are ordinary answers.`
+  };
+}
+
 /** Whether a picked-up guest is still someone this night can place. */
-function stillInPlay(event, guestId, night) {
+export function stillInPlay(event, guestId, night) {
   if (!attendeeById(event, guestId)) return false;
   if (unassignedGuestsOn(event, night).some((guest) => guest.id === guestId)) return true;
   return Boolean(rowHolding(event, event.rooming || [], guestId, night));
 }
 
 /** A guest's name, never an id. Ids are opaque and are never displayed (§5 v4). */
-function nameOf(event, guestId) {
+export function nameOf(event, guestId) {
   const attendee = attendeeById(event, guestId);
   return attendeeName(attendee) || 'Unnamed guest';
 }
 
 /**
- * "the Timber Suite", "Brian's Suite", "Red Leaf Inn".
+ * "Remington 2", "the Bunk Room", "Brian's Suite", "Red Leaf Inn".
  *
  * The article is dropped in front of a room named after somebody, because half
- * the Lodge is: "out of the Brian's Suite" is the sort of sentence that makes a
- * reader stop and re-read the thing they were being told.
+ * the Lodge used to be: "out of the Brian's Suite" is the sort of sentence that
+ * makes a reader stop and re-read the thing they were being told.
+ *
+ * [v11] A numbered room takes its building's name in front of it instead of an
+ * article. Every building is room-numbered since [v9], and "out of the 8" is
+ * not a sentence — it is also ambiguous, because there is an 8 in four
+ * buildings. Named rooms are unique on the property and keep the article.
  */
-function placeLabel(building, room) {
+export function placeLabel(building, room) {
   if (assignmentModeFor(building) === 'pooled' || !room) return building || 'no building';
+  if (/^\d+$/.test(String(room))) return placeName(building, room);
   return /['’]s\b/.test(room) ? room : `the ${room}`;
 }
 
+/**
+ * [v11] The same place as a *label* rather than as prose: "Remington 2", "Bunk
+ * Room", "Timber". No article, because a column of values is not a sentence and
+ * "the Timber" in one reads as a typo.
+ *
+ * The numbering rule lives here and `placeLabel` calls it, so there is one
+ * answer to what a room is called and two ways of setting it.
+ */
+export function placeName(building, room) {
+  if (assignmentModeFor(building) === 'pooled' || !room) return building || 'no building';
+  if (/^\d+$/.test(String(room))) return `${building} ${room}`;
+  return String(room);
+}
+
 /** "Dana", "Dana and Tom", "Dana, Tom and Nora". */
-function namesPhrase(names) {
+export function namesPhrase(names) {
   if (names.length < 3) return names.join(' and ');
   return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
 }
 
 /** "Nov 14", "Nov 14 and Nov 15", "Nov 14 through Nov 16". */
-function nightsPhrase(dates) {
+export function nightsPhrase(dates) {
   const parts = dates.map(formatDateShort);
   if (parts.length === 1) return parts[0];
   if (parts.length === 2) return `${parts[0]} and ${parts[1]}`;
@@ -977,13 +1040,13 @@ function nightsPhrase(dates) {
 }
 
 /** What a placement is about to cover, said before it happens. */
-function nightPhrase(dates, scope) {
+export function nightPhrase(dates, scope) {
   if (scope !== 'stay') return `for ${nightsPhrase(dates)}`;
   return `for ${nightsPhrase(dates)} and the free nights after it`;
 }
 
 /** The sentence a move is remembered by — in the undo button, and out loud. */
-function describeMove({ event, guestId, label, how, covered, displaced, source }) {
+export function describeMove({ event, guestId, label, how, covered, displaced, source }) {
   const guest = nameOf(event, guestId);
   const when = nightsPhrase(covered);
   const others = namesPhrase(displaced.map((id) => nameOf(event, id)));
@@ -1002,7 +1065,7 @@ function describeMove({ event, guestId, label, how, covered, displaced, source }
 }
 
 /** First letter up, for a sentence that begins with a name or a verb alike. */
-function sentenceCase(text) {
+export function sentenceCase(text) {
   return text ? text[0].toUpperCase() + text.slice(1) : text;
 }
 

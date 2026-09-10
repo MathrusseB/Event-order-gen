@@ -39,6 +39,7 @@ import { createMetaEditor } from './editors/meta.js';
 import { createMenuEditor } from './editors/menu.js';
 import { createRoomingEditor } from './editors/rooming.js';
 import { createRoomingBoard } from './rooming.js';
+import { SIZE_CEILING, exportRoomingBoard } from './export.js';
 import { editorFor, hasEditor } from './editors/registry.js';
 import { formatDateRange } from './dates.js';
 import {
@@ -369,6 +370,10 @@ function blockButton(control, label, glyph, extraClass = '') {
  * The board reaches nothing: it is handed an event and hands back a mutated
  * one, and this line is the entire connection between it and the application
  * state. When rooming moves to shared state, this is what changes.
+ *
+ * [v11] And a third thing, which is not a way in: the export. Ownership does
+ * not open this app, so the board goes to them instead — one file, the event
+ * baked into it, sent as an attachment. See js/export.js.
  */
 function mountRooming() {
   const board = createRoomingBoard({ onEvent: (next) => update(() => next) });
@@ -405,7 +410,8 @@ function mountRooming() {
     el('p', {
       class: 'ways__note',
       text: 'Two ways into the same assignments. A change in one is in the other at once.'
-    })
+    }),
+    sendToOwnership()
   ]), ...panels.map((panel) => panel.node));
 
   return {
@@ -414,6 +420,57 @@ function mountRooming() {
       rows.update(event);
     }
   };
+}
+
+/**
+ * The export — BUILD-SPEC §5 [v11].
+ *
+ * The board goes to ownership rather than ownership coming to the board. What
+ * this hands over is one HTML file with the event inside it: they tap it in a
+ * text message and it opens, with no network, no app and no file to find.
+ *
+ * The size is said out loud rather than assumed. §5 [v11] treats 500KB as the
+ * ceiling for something that travels by text message, and a build that has
+ * quietly grown past it is worth knowing about here rather than on a phone with
+ * one bar of signal.
+ */
+function sendToOwnership() {
+  const said = el('p', { class: 'ways__sent', role: 'status', 'aria-live': 'polite' });
+
+  const button = el('button', {
+    type: 'button',
+    class: 'btn btn--primary ways__send',
+    text: 'Export for ownership'
+  });
+
+  button.addEventListener('click', async () => {
+    button.disabled = true;
+    setText(said, 'Building the board — inlining the event, the styles and the logo.');
+    toggleClass(said, 'is-over', false);
+    try {
+      const { name, bytes } = await exportRoomingBoard(getEvent());
+      setText(said, `${name} — ${Math.round(bytes / 1024)}KB. One file, nothing beside it: `
+        + 'text it to ownership and they tap it. Their changes stay on their screen.');
+      toggleClass(said, 'is-over', bytes > SIZE_CEILING);
+    } catch (err) {
+      setText(said, `The board could not be built: ${err.message}`);
+      toggleClass(said, 'is-over', true);
+    } finally {
+      button.disabled = false;
+    }
+  });
+
+  return el('div', { class: 'ways__export' }, [
+    el('div', { class: 'ways__exportline' }, [
+      button,
+      el('p', {
+        class: 'ways__note',
+        text: 'A read-and-rearrange copy of this sheet for ownership. It carries its own copy of '
+          + 'the event and sends nothing back — what they change, they change on their screen.'
+      })
+    ]),
+    said
+  ]);
 }
 
 /* ----------------------------------------------------------------- rendering */

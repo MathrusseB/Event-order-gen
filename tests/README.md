@@ -45,6 +45,35 @@ rather than about pixels, so it runs against `js/rooming.js` directly, in Node,
 with no browser involved — which is possible only because §9's portability
 decision means the module takes an event in and hands a new one back.
 
+**`checks/export.mjs` — the board ownership is sent, and the claim that it is
+not a second implementation.** BUILD-SPEC §5 [v11]: the rooming board exports as
+one self-contained HTML file, opened by tapping an attachment. Four things are
+checked, and none of them can be checked by reading the code.
+
+It is built through the same call the button makes, then written to a temporary
+file and opened over `file://` **with every request that is not the file itself
+aborted** — so "works with no network" is a measurement rather than an
+intention. The live document is then walked for anything pointing outside
+itself: an `src`, an `href`, an `@import`, a `@font-face`, a `url()` in any
+stylesheet rule. The size is checked against §5's 500KB ceiling, with the logo's
+share reported beside it.
+
+The fourth is the one that matters. The same six moves — a placement carried
+through the nights after it, a room joined, a swap, a guest taken out of a room
+and left with none, and a room in a building the exported board has folded away
+— are tapped out twice: once on the board in `index.html`, once on the exported
+board with the network cut. Then the two `rooming[]` arrays are compared row for
+row. Row ids the source event carried are compared as themselves; ids minted
+during the run (a split calls `newId`) are compared as `new`, which still checks
+that the same rows were split in the same places and rejoined the same way. A
+second check confirms the moves changed the array at all, so a pair of boards
+that both did nothing cannot pass.
+
+That check is why the export inlines `js/rooming.js` instead of reimplementing
+it, and it is the thing that keeps that true. Both boards' Rooming Assignments
+are printed and compared too, page count and ink: §5 [v11] asks for paper from
+the board to match paper from the app.
+
 **`checks/migration.mjs` — every shape this app has written still opens.**
 BUILD-SPEC §5: the JSON file is the source of truth, and files saved by earlier
 builds are on the machine right now. Each generation is checked on the shape as
