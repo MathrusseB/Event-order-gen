@@ -1,11 +1,11 @@
-# EVENT-ORDER-GEN — Build Spec v8
+# EVENT-ORDER-GEN — Build Spec v12
 
 Static document generator for Maple Ranch private-side event orders, menus, and rooming lists.
 
 **Repo:** `MathrusseB/EVENT-ORDER-GEN`
 **Deploy:** `event-order-gen-production.up.railway.app`
 
-Supersedes v9. Each change carries the version that introduced it, **[v2]** through **[v10]**;
+Supersedes v11. Each change carries the version that introduced it, **[v2]** through **[v12]**;
 §5 keeps a change block per version.
 
 ---
@@ -109,7 +109,8 @@ sections per event. Nothing is mandatory except the header block.
     "revisionDate": "2026-11-10",
     "revisedBy": "Brian Mathrusse",
     "brandId": "maple-ranch",
-    "includeInOrder": { "rooming": false, "menu": false }
+    "includeInOrder": { "rooming": false, "menu": false },
+    "touchedAt": "2026-11-10T16:41"
   },
 
   "sections": [ /* see section 4 */ ],
@@ -466,6 +467,76 @@ of the rooming rules: the export inlines `js/rooming.js` and the pure parts of `
 verbatim, so the same move produces the same `rooming[]` in both. §11 names the files. The harness
 checks that claim by making the same rearrangement on both sides and comparing the arrays.
 
+### Changes from v11
+
+Every rule in §12 has been written down since v2 and none of them has ever run. Reading them
+against the code as it stands rather than as they were written, three needed correcting and one
+needed a decision; the rest were right and are unchanged.
+
+**[v12] Rule 4 distinguishes a room built for sharing from a room that is not.** "Same named room
+claimed on the same night by two separate rooming rows" fires on the Bunk Room by design — it
+sleeps twelve and routinely holds several unrelated parties, which is what it is for. Two rows on
+a suite is worth a look; two rows on the Bunk Room is Tuesday. No capacity is modelled and none
+should be (§5, v5 changes), so this cannot be computed from the data: the registry declares it.
+`sharesFreely` (§6) is true for Lodge Bunk Rooms and nothing else, and rule 4 words its finding
+differently for those rooms — a note saying who else is in there, rather than a warning that
+something is wrong.
+
+**[v12] Rule 6's `pooled` half is dormant, and stays.** Every building has been `named` since v9,
+so "room specified on a `pooled` building" cannot currently fire — there is no pooled building for
+it to fire on. The rule keeps both halves for the same reason `pooled` itself stays in the code
+(§6): it costs nothing and the concept may return. The half that can fire — a room omitted on a
+`named` building — is the one that matters now.
+
+**[v12] `meta.touchedAt` — when the event was last edited.** Rule 11 asks whether `revisionDate`
+is older than the most recent edit, and until now nothing recorded when an edit happened, so the
+rule could not run. `update()` (§11, `app.js`) stamps `meta.touchedAt` on every write: it is the
+one write path, so there is no edit it can miss.
+
+The stamp is a **local** wall-clock string, `YYYY-MM-DDTHH:MM`, with no zone and no seconds —
+the same convention as every other date in this app (§7: ISO strings, compared as strings, never
+converted to `Date`). `toISOString()` was rejected outright: it is UTC, and an order revised at
+seven in the evening in Missouri would be stamped with tomorrow's date and reported stale the
+moment it was saved.
+
+Rule 11 compares the date half against `revisionDate` and warns only when the revision line is
+genuinely behind the work. Setting the revision date to today and then typing all afternoon fires
+nothing; picking the order up the next morning and printing it without touching the revision line
+does. A file arriving without `touchedAt` — anything saved before v12 — has never been edited by a
+build that records it, and the rule stays quiet rather than guessing.
+
+**[v12] Two rules were reported wrong against the current model, and are corrected.**
+Neither was a change of mind; both were rules that had drifted out from under their own words.
+
+*Rule 5* said "the `arrive`/`depart` of the guest it is booked under". That is v3 language, from
+when a rooming row named one person. Since v5 a row names a *party* (§5, v5 changes) and `derive.js`
+resolves "booked under" as the first name that happens to resolve, which is an ordering accident.
+Read literally the rule warns about correct bookings — the harness fixture's Wetland runs from the
+12th, is named by a guest arriving on the 13th and by one who is there from the 12th, and is right.
+The rule now reads the party's whole span: a booking is outside the stay only when it holds a night
+*nobody* it names is here for, and the sentence names whichever of them comes closest.
+
+*Rule 6* covered a room against a `named` or `pooled` building and nothing else — but `migrate()`
+leaves a row in a retired building or room exactly as it was authored on the stated grounds that
+"§12.6 goes on reporting it every time the file is opened", and `assignmentModeFor` says the same.
+Neither was true: migrate's one-shot summary was the only thing that ever mentioned it. `none` is a
+mode, and a room set against it is a room set against its building's mode, so the rule covers it now
+and those three comments are true.
+
+**[v12] Findings have severity, and each finding names its subject.** Two levels, and the
+difference between them is whether anybody needs to do anything:
+
+- **warning** — something is probably wrong. A room claimed twice, a guest booked into a room
+  after they leave, a name on a room that is not on the guest list.
+- **note** — something deliberate, worth seeing before it becomes paper. Rule 1's explicit count
+  overrides, rule 2's guests who are not on the rooming sheet, rule 4 on the Bunk Room. Each of
+  these is a normal way to run an event, and each is also how a mistake looks.
+
+A finding carries the rule number, the severity, one plain-language sentence, and enough identity
+for the interface to take you to the thing it is about: which editor, which row ids, and the date
+where the finding is about a night or a day. Ids are never shown — the sentence names the guest,
+the room, or the meal (§12).
+
 ## 6. Static reference data
 
 Seeded in `js/reference.js`. Not part of event JSON.
@@ -490,6 +561,13 @@ Every one of them is `named`: rooms are assigned room by room, and the grid in t
 the Rooming Assignment shows every room in inventory, occupied or vacant. The Bunk Room sleeps
 twelve. The Clubhouse King Suite is a master suite down the hall from the six Clubhouse rooms,
 rarely used but real, and is its own building here because it is assigned on its own.
+
+**[v12] `sharesFreely`.** One flag, true for **Lodge Bunk Rooms** and nothing else. It is not
+capacity — nothing here models capacity (§5, v5 changes) — and it does not change how a room is
+assigned or printed. It says only that two separate parties in that room on the same night is the
+normal use of it, so §12.4 reports the Bunk Room as a note naming who else is in there, and every
+other room as a warning. A second building that shares this way would set the flag; nothing
+computes it.
 
 **Non-lodging buildings**, which take no assignments and appear as locations: The Wheel, Bucket
 Shop, Wood Shop, MRSO, Dock / Boathouse, Hummer Bar, Food Plot, Lake, Cottage. "Lodge" and "Red
@@ -698,7 +776,7 @@ now keeps that port cheap.
 /js/ownership.js     [v11] the board ownership is sent, built on the same transforms
 /css/ownership.css   [v11] its own visual system — a screen, not a document
 /js/export.js        [v11] the self-contained export: inlining, the logo, the file
-/js/validate.js      pre-print checks
+/js/validate.js      [v12] the §12 rules — an event in, findings out
 /js/io.js            JSON download / upload, localStorage autosave
 /data/sample.json    fixture for development
 /logos/              brand logos, one per registry entry (§6)
@@ -715,21 +793,52 @@ application state anywhere near it.
 
 ## 12. Validation rules
 
-Run before any print. Warn, do not block.
+Run before any print. **Warn, do not block** — Brian knows things the app does not.
 
-1. Any F&B entry counted by explicit override — `countBasis: "custom"`, or **[v5]** `serves: "custom"` — surface it
-2. Attendee staying overnight named on no room assignment covering that night. **[v5]** A warning, not a fault: spouses and children rooming with family are deliberately off the sheet
-3. **[v4]** Rooming row naming a guest it cannot resolve — a `guestIds` entry matching no attendee, or **[v5]** a legacy `guest` name migration could not match. Usually a deleted guest. A row naming nobody at all is not an orphan: it is a room held under no name yet
-4. **[v3]** Same named room claimed on the same night by **[v5]** two separate rooming rows. Several names on one row is a party sharing a room, never a conflict
-5. **[v3]** Rooming row whose `from`/`to` range falls outside the `arrive`/`depart` of the guest it is booked under
-6. **[v3]** Room specified on a `pooled` building, or omitted on a `named` building
-7. Menu block referencing a nonexistent `fnbId`
-8. F&B entry with no menu block
-9. Schedule or F&B item dated outside `startDate`–`endDate`
-10. Attendee `depart` earlier than `arrive`
-11. `revisionDate` older than the most recent edit
-12. **[v7]** A `schedule[]` entry whose label matches an F&B meal on the same date at the same time
-    — a meal typed into both arrays, which will now print twice on the merged itinerary (§7)
+**[v12] Every finding carries a severity and names its subject.** *warning* is something probably
+wrong; *note* is something deliberate that is worth seeing before it becomes paper. Each finding
+holds the rule number, the severity, one plain-language sentence, and the identity the interface
+needs to take you to it — the editor it belongs to, the row ids concerned, and the date where the
+finding is about a night or a day.
+
+**The sentence names the thing, never the rule and never an id.** Not "Rule 5 violation: rooming
+row out of range" but "Dana Reyes has the Timber on Nov 16, but she leaves on the 15th." These are
+read at speed by somebody about to hand paper to ownership: what is wrong, where, and what would
+fix it, in one sentence.
+
+| # | Rule | Severity |
+|---|---|---|
+| 1 | Any F&B entry counted by explicit override — `countBasis: "custom"`, or **[v5]** `serves: "custom"` — surface it. **[v12]** An override with no usable number on it is not an explicit override, it is one that was started and left: `fnbCount` short-circuits to `Number(count)`, and `Number(null)` is 0, so the order and every menu block print 0 covers | note, or a warning where no usable number is set |
+| 2 | Attendee staying overnight named on no room assignment covering that night. **[v5]** Not a fault: spouses and children rooming with family are deliberately off the sheet | note |
+| 3 | **[v4]** Rooming row naming a guest it cannot resolve — a `guestIds` entry matching no attendee, or **[v5]** a legacy `guest` name migration could not match. Usually a deleted guest. A row naming nobody at all is not an orphan: it is a room held under no name yet | warning |
+| 4 | **[v3]** Same named room claimed on the same night by **[v5]** two separate rooming rows. Several names on one row is a party sharing a room, never a conflict. **[v12]** On a `sharesFreely` room (§6 — the Bunk Room, and nothing else) this is the normal use of the room: a note naming who else is in there | warning, or a note on a `sharesFreely` room |
+| 5 | **[v3]** Rooming row whose `from`/`to` range falls outside the `arrive`/`depart` of the guest it is booked under | warning |
+| 6 | **[v3]** Room specified on a `pooled` building, or omitted on a `named` building. **[v12]** The `pooled` half cannot currently fire: every building has been `named` since v9 and there is no pooled building for it to fire on. Both halves stay, for the reason `pooled` itself stays (§6). **[v12]** And a building or a room the registry no longer carries is this rule as well — `migrate()` leaves such a row exactly as it was authored on the stated grounds that "§12.6 goes on reporting it every time the file is opened", and until v12 nothing did | warning |
+| 7 | Menu block referencing a nonexistent `fnbId` | warning |
+| 8 | F&B entry with no menu block | warning |
+| 9 | Schedule or F&B item dated outside `startDate`–`endDate` | warning |
+| 10 | Attendee `depart` earlier than `arrive` | warning |
+| 11 | `revisionDate` older than the most recent edit. **[v12]** The most recent edit is `meta.touchedAt` (§5), stamped by `update()`. A file with no `touchedAt` has never been edited by a build that records one, and the rule stays quiet rather than guessing | warning |
+| 12 | **[v7]** A `schedule[]` entry whose label matches an F&B meal on the same date at the same time — a meal typed into both arrays, which will now print twice on the merged itinerary (§7) | warning |
+
+**[v12] A rule that cannot fire is still written.** `js/validate.js` holds one function per rule,
+whether or not the current model can trip it, each commented with what it is protecting against.
+A rule silently absent from the module is indistinguishable from a rule that passes, and the next
+reader has no way to tell which of the twelve were implemented.
+
+**[v12] Findings reach Brian in two places, and they are different jobs.**
+
+- **In the editor**, quietly and continuously. A section holding findings is marked in the
+  navigator; the row concerned is marked in place, beside the guest or the room or the meal it is
+  about. Nothing modal, nothing that interrupts typing.
+- **Before printing**, deliberately. Printing is the moment a mistake becomes paper somebody acts
+  on, so the print action shows what is outstanding first — grouped by severity, warnings before
+  notes, each item a way into the thing it is about — and then lets the print proceed. A print
+  raised from the keyboard cannot be intercepted and is not blocked either; the editor has been
+  saying the same thing all along.
+
+Nothing outstanding is said briefly and then got out of the way: no dialog, no summary of what was
+checked, and no congratulations. A clean event prints.
 
 ## 13. Open items
 
