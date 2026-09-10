@@ -129,11 +129,11 @@ sections per event. Nothing is mandatory except the header block.
   "rooming": [
     { "id": "r-1", "building": "Remington", "room": "1", "guestIds": ["a-7f3c"],
       "from": "2026-11-14", "to": "2026-11-16" },
-    { "id": "r-2", "building": "Lodge Lower Suites", "room": "Timber", "guestIds": ["a-9d22"],
+    { "id": "r-2", "building": "Timber", "room": "Timber", "guestIds": ["a-9d22"],
       "from": "2026-11-14", "to": "2026-11-15" },
-    { "id": "r-3", "building": "Lodge Lower Suites", "room": "Timber", "guestIds": ["a-5e08"],
+    { "id": "r-3", "building": "Timber", "room": "Timber", "guestIds": ["a-5e08"],
       "from": "2026-11-15", "to": "2026-11-16" },
-    { "id": "r-4", "building": "Lodge Bunk Rooms", "room": "Bunk Room",
+    { "id": "r-4", "building": "Bunk Room", "room": "Bunk Room",
       "guestIds": ["a-3fa1", "a-6b70"], "from": "2026-11-14", "to": "2026-11-16" },
     { "id": "r-5", "building": "RLI", "room": "8", "guestIds": ["a-2b91"],
       "from": "2026-11-15", "to": "2026-11-16" }
@@ -177,7 +177,7 @@ sections per event. Nothing is mandatory except the header block.
       "notes": ["One guest departing after dinner, not returning"] }
   ],
 
-  "buildingsInUse": ["Remington", "Lodge Bunk Rooms", "The Wheel"],
+  "buildingsInUse": ["Remington", "Bunk Room"],
   "overflowBuildings": ["RLI"],
 
   "seeded": { "meals": ["2026-11-14"], "itinerary": ["2026-11-14"] },
@@ -423,7 +423,10 @@ one, and never resurrects one somebody deleted — which means the event has to 
 it has already seeded, so that "not yet created" and "created and removed" are different states.
 Narrowing the date range deletes nothing: §12.9 already reports an item dated outside the event,
 and deleting a guest's dinner because a date moved is the kind of quiet loss this app exists to
-avoid.
+avoid. **[v13]** Still true, and still not the whole answer: a range that *moves* rather than
+narrows is one event on other days, and is offered its content (§5, v13 changes). The ledger moves
+with the content, so seeding for the new range then finds those days already offered and creates
+nothing.
 
 **[v10] Itinerary rows are seeded three per day, blank and ready**, under the same discipline.
 
@@ -537,30 +540,132 @@ for the interface to take you to the thing it is about: which editor, which row 
 where the finding is about a night or a day. Ids are never shown — the sentence names the guest,
 the room, or the meal (§12).
 
+### Changes from v12
+
+v12 shipped and was used against a real December order. Everything below is a correction that came
+back off that run rather than a new idea. Four of them are the app being wrong about the property —
+which buildings exist, what they are called, where a meal happens. Two are the app being loud about
+the wrong things. One is the app handing a coordinator somebody else's event to start from.
+
+**[v13] The location registry was wrong and is replaced.** The non-lodging list below was
+transcribed from the events department's Loch Lloyd order in segment 1 and never checked against
+the private side. Bucket Shop, Wood Shop, MRSO, Dock / Boathouse, Hummer Bar, Food Plot and Cottage
+are not private-side locations. MRSO is the staff offices. The Food Plot is a snack nook in an RLI
+hallway. The Wood Shop and the Hummer Bar are corporate-event spaces. The Bucket Shop is a gift
+shop, whose hours belong in a note rather than in a location list. And there is no building called
+Cottage — Mallard, Wigeon and Pintail *are* the cottages.
+
+That list came out of a reference document, and it was right to take the document's structure. It
+was wrong to take its contents: **a reference document is not a property inventory.** The structure
+was reusable because every event order names places; the places themselves had to be asked about,
+and were not. Anything else lifted from that order is suspect for the same reason.
+
+**[v13] Lodging is grouped, and the Lodge's rooms are named directly.**
+
+| Group | Buildings | Rooms |
+|---|---|---|
+| Cabins | Remington, Winchester | 1–4 each |
+| Cottages | Mallard, Wigeon, Pintail | 1–8 each |
+| Lodge | Bunk Room, Timber, Wetland | one room each, named as the building is |
+| RLI | RLI | 1–24 |
+| Clubhouse | Clubhouse, Clubhouse King Suite | 1–6, and King Suite |
+
+"Lodge Lower Suites" and "Lodge Bunk Rooms" are gone as building names. Those rooms are known by
+their own names — nobody says "the Lodge Lower Suites Timber", they say "the Timber" — and the
+general description was noise wrapped round a room that already had a name. Each is now a
+single-room building, exactly as the Clubhouse King Suite already was. The Bunk Room keeps
+`sharesFreely` (§6 [v12]); the flag follows the room, not the old name.
+
+Eleven buildings, then, where there were ten. The Clubhouse King Suite keeps its name: it is not
+one of the three being renamed, and the name is what the file already carries.
+
+**The groups are data, not layout.** They exist so that the building picker never splits a set
+across a two-column grid. Remington landing beside Winchester, and the three cottages together, is
+the whole point; a grid that put Pintail next to a Lodge room is what prompted this. Each group
+lays out on its own, so a group of two is a row of two and a group of three is a row of three, and
+no group is ever cut in half by a column boundary.
+
+**[v13] Meal and activity locations.** The Wheel, The Clubhouse, The Lodge, Lake / Dock, and
+**Other** for free text. The Clubhouse and the Lodge both host meals and both hold rooms; that is
+ordinary on the private side and is not a duplication to be resolved — a building can be a bed and
+a dining room in the same weekend. Lake / Dock is one place rather than two, and it is kept because
+fishing gets planned.
+
+**[v13] A retired name on a row is kept, and reported.** A meal or an itinerary row naming a
+location this registry no longer carries keeps the words it was authored with: somebody planned
+something there, and the words are the only record of it. A rooming row in a renamed building is
+migrated by its room, which is unambiguous — `Lodge Lower Suites` + `Timber` can only be the
+Timber. Everything the registry no longer recognises is reported by §12.13 every time the file is
+opened, rather than by a migration summary nobody reads twice.
+
+**[v13] Moving an event's whole date range carries its content.** Narrowing dates deletes nothing
+(§5, v10 changes), which is right. Shifting is a different act: an event moved from November to
+December is the same event on other days, and leaving every row behind strands the lot. An order
+moved to December came back with forty-five findings, every one of them for content that had simply
+not come with it.
+
+So: when both `startDate` and `endDate` move by the same number of days, offer to shift every dated
+row by that offset — schedule entries, meal services, rooming ranges, guest stays, and the seeding
+ledger with them, so the days that arrive carrying content are not seeded a second time.
+
+**Offer, never silently.** A coordinator correcting a mistyped year is not rescheduling anything,
+and the two are indistinguishable from the data. The offer names the offset in days and counts what
+would move before anything happens, and declining is one press and the default outcome: nothing at
+all happens unless the offer is accepted. Seeding then runs as normal for the new range. Any other
+change to the dates — one end alone, both ends by different amounts — behaves exactly as it does
+now.
+
+**[v13] Rule 8 splits by severity.** A meal service with no menu block at all is a **note**. Nobody
+writes a dish list for a nightcap, and since v10 every day of an event opens with three meal
+services, so a fresh three-day event arrived with nine warnings against it before a word had been
+typed — which is how a coordinator learns to stop reading the panel. A menu block that exists and
+holds no dishes is the **warning**: that one was started and left unfinished, and it is the one
+that prints a heading with nothing under it.
+
+**[v13] A new order is the way in, and the sample is plainly a sample.** Load sample opened a
+November event; a coordinator who started there and then typed real dates over it inherited
+somebody else's guests, meals and rooms. New is the obvious way to start a real order now — it is
+the primary action, it asks nothing when there is nothing to discard, and it lands on the date
+fields, which are the two that everything else reads from (§5, v2 changes). The sample stays, says
+in its own name that it is a sample, and asks before replacing work in progress.
+
 ## 6. Static reference data
 
 Seeded in `js/reference.js`. Not part of event JSON.
 
-**[v9] Lodging.** Ten buildings, in this display order, which is the order they get used in —
-least-assigned first:
+**[v13] Lodging.** Eleven buildings in five groups, in this display order, which is the order
+they get used in — least-assigned first, group by group:
 
-| Building | Rooms | Labels |
-|---|---|---|
-| Remington | 4 | 1–4 |
-| Winchester | 4 | 1–4 |
-| Mallard | 8 | 1–8 |
-| Wigeon | 8 | 1–8 |
-| Pintail | 8 | 1–8 |
-| Lodge Bunk Rooms | 1 | Bunk Room |
-| Lodge Lower Suites | 2 | Timber, Wetland |
-| RLI | 24 | 1–24 |
-| Clubhouse | 6 | 1–6 |
-| Clubhouse King Suite | 1 | King Suite |
+| Group | Building | Rooms | Labels |
+|---|---|---|---|
+| Cabins | Remington | 4 | 1–4 |
+| Cabins | Winchester | 4 | 1–4 |
+| Cottages | Mallard | 8 | 1–8 |
+| Cottages | Wigeon | 8 | 1–8 |
+| Cottages | Pintail | 8 | 1–8 |
+| Lodge | Bunk Room | 1 | Bunk Room |
+| Lodge | Timber | 1 | Timber |
+| Lodge | Wetland | 1 | Wetland |
+| RLI | RLI | 24 | 1–24 |
+| Clubhouse | Clubhouse | 6 | 1–6 |
+| Clubhouse | Clubhouse King Suite | 1 | King Suite |
+
+The group is property data and is carried as data: a building belongs to exactly one, and the
+building picker draws each group under its own heading and lays it out on its own, so a set is
+never split across a column boundary (§5, v13 changes).
 
 Every one of them is `named`: rooms are assigned room by room, and the grid in the editor and on
 the Rooming Assignment shows every room in inventory, occupied or vacant. The Bunk Room sleeps
-twelve. The Clubhouse King Suite is a master suite down the hall from the six Clubhouse rooms,
-rarely used but real, and is its own building here because it is assigned on its own.
+twelve. The three Lodge buildings and the Clubhouse King Suite hold one room each, named as the
+building is — a single-room building is how a room that is assigned on its own is modelled here,
+and there is nothing else to say about the Timber than that it is the Timber.
+
+**[v13] Renamed, and how a file carrying the old names is answered.** `Lodge Lower Suites` and
+`Lodge Bunk Rooms` were building names until v13. A rooming row is migrated by its room, which is
+unambiguous — `Lodge Lower Suites` + `Timber` can only be the Timber — and the same row in the
+buildings-in-use list is renamed where one name maps to one building and expanded from the rooming
+rows where it does not. Anything the registry cannot place is kept exactly as authored and reported
+by §12.13, never remapped and never dropped (§5, v9 changes).
 
 **[v12] `sharesFreely`.** One flag, true for **Lodge Bunk Rooms** and nothing else. It is not
 capacity — nothing here models capacity (§5, v5 changes) — and it does not change how a room is
@@ -569,9 +674,9 @@ normal use of it, so §12.4 reports the Bunk Room as a note naming who else is i
 other room as a warning. A second building that shares this way would set the flag; nothing
 computes it.
 
-**Non-lodging buildings**, which take no assignments and appear as locations: The Wheel, Bucket
-Shop, Wood Shop, MRSO, Dock / Boathouse, Hummer Bar, Food Plot, Lake, Cottage. "Lodge" and "Red
-Leaf Inn" are no longer building names of their own — the registry above names their parts.
+**[v13] There is no separate list of non-lodging buildings.** The one v9 carried was wrong (§5,
+v13 changes) and is replaced by the location list below, which is what that list was being used for.
+"Lodge" and "Red Leaf Inn" are not building names either — the registry above names their parts.
 
 **[v3] Building assignment modes.** Each building declares `mode: "named" | "pooled"`.
 - **`named`** — room-level assignment. Every lodging building is this since **[v9]**.
@@ -585,10 +690,16 @@ Leaf Inn" are no longer building names of their own — the registry above names
 knowledge everyone at the ranch already has, which belongs in neither the room titles nor the data.
 Nothing anywhere models room capacity: **[v9]** every room holds a party of any size, as before.
 
-**[v10] Meal locations.** A short list, because the meals happen in the same few places: The
-Wheel, The Clubhouse, The Lodge, and **Other**, which takes free text and is stored as that text.
-Nothing distinguishes a listed location from a typed one in the file — `location` is one string
-either way.
+**[v13] Meal and activity locations.** A short list, because it happens in the same few places:
+The Wheel, The Clubhouse, The Lodge, Lake / Dock, and **Other**, which takes free text and is
+stored as that text. Nothing distinguishes a listed location from a typed one in the file —
+`location` is one string either way, which is why §12.13 reports only names the registry has
+actually retired and never a location somebody typed.
+
+The Clubhouse and the Lodge are on this list and in the lodging registry above. That is ordinary
+and is not a duplication to resolve: a building can be a bed and a dining room in the same weekend.
+Lake / Dock is one place rather than the two v9 carried, and it is kept because fishing gets
+planned.
 
 **[v10] Activities.** The itinerary's own list: Early Arrivals, Guest Arrivals, Duck Hunting,
 Hunting, Late-Night Wheel Use, and **Other**, which takes free text and can be added to the list
@@ -736,6 +847,13 @@ Browser print-to-PDF. CSS `@page { size: letter; margin: 0.75in }`, running head
 first, and it names which of the three it is about to print. Saving the JSON is the secondary
 action and is worded as what it is: a working copy, for reopening an event to amend or duplicate.
 
+**[v13] The file actions rank the same way, and New leads them.** An order that begins as a copy of
+the sample prints somebody else's guests, so New is the primary action of the four, it asks nothing
+when there is nothing to discard, and it puts the caret in the start date. Load sample is the
+quietest of the four, names itself a sample, and confirms before it replaces work in progress. The
+app still opens on the autosave where there is one and on an empty order where there is not — never
+on the sample.
+
 **[v2] Correction to v1:** do *not* put `break-inside: avoid` on whole sections. Sections have no
 length limit and must be free to flow across pages. Apply `break-inside: avoid` to individual rows,
 table rows, and staff blocks only. Section headings get `break-after: avoid` so a heading never
@@ -767,6 +885,7 @@ now keeps that port cheap.
 /js/derive.js        counts and lodging, derived from the event
 /js/reference.js     buildings, rooms, static lists
 /js/seed.js          [v10] the meals and itinerary rows a day starts with
+/js/shift.js         [v13] a date range that moves, and the rows that move with it
 /js/activities.js    [v10] the itinerary's activity list, and where a custom one lives
 /js/render.js        document shell — page furniture, brand header, print
 /js/renders/         one module per document: order, menu, rooming
@@ -815,16 +934,17 @@ fix it, in one sentence.
 | 5 | **[v3]** Rooming row whose `from`/`to` range falls outside the `arrive`/`depart` of the guest it is booked under | warning |
 | 6 | **[v3]** Room specified on a `pooled` building, or omitted on a `named` building. **[v12]** The `pooled` half cannot currently fire: every building has been `named` since v9 and there is no pooled building for it to fire on. Both halves stay, for the reason `pooled` itself stays (§6). **[v12]** And a building or a room the registry no longer carries is this rule as well — `migrate()` leaves such a row exactly as it was authored on the stated grounds that "§12.6 goes on reporting it every time the file is opened", and until v12 nothing did | warning |
 | 7 | Menu block referencing a nonexistent `fnbId` | warning |
-| 8 | F&B entry with no menu block | warning |
+| 8 | F&B entry with no menu block, **[v13]** or with one that holds no dishes. The two are different things: nobody writes a dish list for a nightcap, and v10 seeds three services a day, so a fresh event would open with nine warnings on it before a word was typed. A block that exists and is empty was started and left, and prints a heading with nothing under it | **[v13]** note where there is no block, warning where the block is empty |
 | 9 | Schedule or F&B item dated outside `startDate`–`endDate` | warning |
 | 10 | Attendee `depart` earlier than `arrive` | warning |
 | 11 | `revisionDate` older than the most recent edit. **[v12]** The most recent edit is `meta.touchedAt` (§5), stamped by `update()`. A file with no `touchedAt` has never been edited by a build that records one, and the rule stays quiet rather than guessing | warning |
 | 12 | **[v7]** A `schedule[]` entry whose label matches an F&B meal on the same date at the same time — a meal typed into both arrays, which will now print twice on the merged itinerary (§7) | warning |
+| 13 | **[v13]** A name the property registry no longer carries: a meal or itinerary row whose `location` is one of the locations v13 retired (§6), or a building named in `buildingsInUse[]` or `overflowBuildings[]` that is not in the lodging registry. The row keeps the words it was authored with — somebody planned something there — and this is what goes on saying so. Only retired names are reported for a location, never a typed one: `location` is free text and the file cannot tell the two apart (§6) | note |
 
 **[v12] A rule that cannot fire is still written.** `js/validate.js` holds one function per rule,
 whether or not the current model can trip it, each commented with what it is protecting against.
 A rule silently absent from the module is indistinguishable from a rule that passes, and the next
-reader has no way to tell which of the twelve were implemented.
+reader has no way to tell which of the thirteen were implemented.
 
 **[v12] Findings reach Brian in two places, and they are different jobs.**
 
