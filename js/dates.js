@@ -82,6 +82,28 @@ export function datesBetween(start, end) {
 }
 
 /**
+ * The day after an ISO date.
+ *
+ * The rooming board works one night at a time and every range it writes is
+ * half-open — a room held for the night of the 14th runs `from` the 14th `to`
+ * the 15th (§7 [v3]) — so "the day after" is the arithmetic that turns a night
+ * into a range, and the one that walks a stay forward night by night.
+ *
+ * Built the same way as everything else here: split, rebuild as a *local*
+ * date, step, and format back. Adding 86,400,000ms to a timestamp would be
+ * wrong twice a year, and in the direction that loses somebody a bed.
+ *
+ * @param {string} iso
+ * @returns {string} empty when the input is not a date
+ */
+export function nextDate(iso) {
+  const date = toLocalDate(iso);
+  if (!date) return '';
+  date.setDate(date.getDate() + 1);
+  return toIso(date);
+}
+
+/**
  * "Sat, Nov 14". For dated rows and tallies.
  * @param {string} iso
  * @returns {string} the input unchanged when it is not a date

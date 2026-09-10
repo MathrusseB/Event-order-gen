@@ -37,6 +37,14 @@ on that print came from the document body, so a page with no marks is a page
 with an empty body. `lib/pdf.mjs` reads the marks; it decodes no text and needs
 no PDF library.
 
+**`checks/rooming.mjs` — the board writes one row per stretch, not one per
+night.** BUILD-SPEC §9: assigning a guest across consecutive nights makes one
+row with a spanning range, and taking them out of a room for one night in the
+middle of a stay splits the row around it. That is a claim about `rooming[]`
+rather than about pixels, so it runs against `js/rooming.js` directly, in Node,
+with no browser involved — which is possible only because §9's portability
+decision means the module takes an event in and hands a new one back.
+
 ## Fixtures
 
 `fixtures/` is test data and is not `data/sample.json`. The sample is the event

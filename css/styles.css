@@ -1720,6 +1720,459 @@ body.outline-open .outline {
   flex: 1 1 18rem;
 }
 
+/* ------------------------------------------------------------ rooming board */
+
+/* BUILD-SPEC §9. The other way into the same assignments, and the one built
+   for a tablet held standing up in a lodge: nothing here is smaller than a
+   thumb, nothing depends on hover to be discoverable, and the whole
+   interaction is two taps — a name, then a room.
+
+   Colour carries exactly three states and no decoration: what is in your hand
+   (forest), what is empty (a dashed outline, so a vacancy reads as an absence
+   rather than as a box), and what is wrong (brick — a room claimed twice on one
+   night, a name the guest list cannot resolve). */
+
+.ways {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2) var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.ways__tabs {
+  display: flex;
+  gap: 2px;
+}
+
+.ways__tab.is-on {
+  background: var(--forest-800);
+  border-color: var(--forest-800);
+  color: var(--paper);
+}
+
+.ways__note {
+  margin: 0;
+  color: var(--text-faint);
+  font-size: var(--text-xs);
+}
+
+.board {
+  container-type: inline-size;
+}
+
+/* The night, the scope of a move, the undo and the last thing that happened,
+   all of it stuck under the application header. On a four-night event the rooms
+   run past the bottom of a tablet, and scrolling back up to see which night you
+   are arranging is how somebody puts a guest in the wrong one. */
+.board__head {
+  padding-top: var(--space-2);
+  background: var(--paper);
+  border-bottom: 1px solid var(--rule);
+}
+
+.board__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3) var(--space-5);
+}
+
+.board__label {
+  display: block;
+  margin-bottom: var(--space-1);
+  color: var(--text-faint);
+  font-size: var(--text-xs);
+}
+
+/* One control per night (§9). They scroll rather than wrap: a five-night event
+   keeps its nights on one line, in order, which is how a week is read. */
+.board__nights {
+  display: flex;
+  gap: 2px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.board__night {
+  min-height: var(--touch-h);
+  white-space: nowrap;
+}
+
+.board__night.is-on {
+  background: var(--forest-800);
+  border-color: var(--forest-800);
+  color: var(--paper);
+}
+
+.board__scopes {
+  display: flex;
+  gap: 2px;
+}
+
+.board__scopebtn {
+  min-height: var(--touch-h);
+}
+
+.board__scopebtn.is-on {
+  background: var(--forest-100);
+  border-color: var(--forest-500);
+  color: var(--forest-900);
+}
+
+
+.board__undo {
+  max-width: 26rem;
+  min-height: var(--touch-h);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* What just happened, in a sentence. §9 asks undo to say what it is undoing;
+   the same sentence is worth saying when the move is made, because on a tablet
+   the room that changed may be off the bottom of the screen. */
+.board__say {
+  margin: 0;
+  padding: var(--space-2) 0 var(--space-3);
+  min-height: 1.4em;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
+.board__none {
+  margin: var(--space-2) 0 0;
+  color: var(--text-faint);
+  font-size: var(--text-sm);
+}
+
+.board__legend {
+  margin: var(--space-4) 0 0;
+  max-width: 46em;
+  color: var(--text-faint);
+  font-size: var(--text-xs);
+}
+
+.board__panes {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-4);
+  margin-top: var(--space-2);
+  align-items: start;
+}
+
+.boardpane__head {
+  margin: 0 0 var(--space-2);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--ink-700);
+}
+
+.boardpane--guests {
+  align-self: start;
+  padding: var(--space-3);
+  background: var(--ink-50);
+  border: 1px solid var(--rule);
+}
+
+.boardguests {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.boardchip {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--touch-h);
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius);
+  background: var(--paper);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--text-sm);
+  text-align: left;
+  cursor: grab;
+}
+
+.boardchip:disabled {
+  cursor: default;
+}
+
+.boardchip.is-child .boardchip__name::after {
+  content: " · child";
+  color: var(--text-faint);
+  font-size: var(--text-xs);
+}
+
+/* In hand. The one loud thing on the board, because between the two taps it is
+   the only thing that explains what the next tap will do. */
+.boardchip.is-picked {
+  background: var(--forest-800);
+  border-color: var(--forest-800);
+  color: var(--paper);
+}
+
+.boardchip.is-picked .boardchip__name::after {
+  color: var(--forest-300);
+}
+
+.boardchip.is-dragging {
+  opacity: 0.5;
+}
+
+.boardparty__item.is-unresolved .boardchip {
+  border-color: var(--brick-400);
+  background: var(--brick-100);
+  color: var(--brick-600);
+}
+
+.boardchip__off {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2rem;
+  min-height: var(--touch-h);
+  margin-left: -1px;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius);
+  background: var(--paper);
+  color: var(--text-muted);
+  font: inherit;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.boardchip__off:hover:not(:disabled) {
+  background: var(--brick-100);
+  border-color: var(--brick-400);
+  color: var(--brick-600);
+}
+
+.boardchip__off:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* ------------------------------------------------------------ the buildings */
+
+.board__buildings {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.boardbuilding__name {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: var(--text-md);
+  font-weight: 600;
+}
+
+.boardbuilding__note {
+  margin: 0 0 var(--space-2);
+  color: var(--text-faint);
+  font-size: var(--text-xs);
+}
+
+.boardrooms {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* A pooled building is one area and not a grid: "in RLI" is the whole detail
+   the document carries (§6 [v3]), so offering rooms here would be offering a
+   choice that goes nowhere. */
+.boardrooms--pooled {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.boardroom {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--rule-strong);
+  background: var(--paper);
+}
+
+.boardroom.is-vacant {
+  border-style: dashed;
+  background: none;
+}
+
+.boardroom.is-contested {
+  border-color: var(--brick-400);
+  background: var(--brick-100);
+}
+
+.boardroom--roomless {
+  border-color: var(--amber-400);
+  background: var(--amber-100);
+}
+
+.boardroom__target {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: var(--touch-h);
+  padding: var(--space-2) var(--space-3);
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.boardroom__target:disabled {
+  cursor: default;
+  font-weight: 400;
+  color: var(--amber-700);
+}
+
+.boardroom__state {
+  color: var(--text-faint);
+  font-size: var(--text-xs);
+  font-weight: 400;
+}
+
+/* Somebody is in hand: every room that can take them says so. */
+.boardroom.is-ready .boardroom__target {
+  background: var(--forest-100);
+}
+
+.boardroom.is-over {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+}
+
+.boardparty {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0 var(--space-2) var(--space-2);
+  list-style: none;
+}
+
+.boardparty__item {
+  display: flex;
+}
+
+/* ------------------------------------------------------------- the question */
+
+/* Three outcomes, not two (§9). Joining an occupied room is the ordinary case
+   — a couple in a suite, four in the Bunk Room — so it is offered first and
+   reads like an answer rather than an escape. */
+.boardask {
+  max-width: 30rem;
+  padding: var(--space-4);
+  border: 1px solid var(--ink-700);
+  background: var(--paper);
+  color: var(--text);
+}
+
+.boardask::backdrop {
+  background: rgb(20 24 26 / 0.4);
+}
+
+.boardask__head {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: var(--text-lg);
+  font-weight: 600;
+}
+
+.boardask__lead {
+  margin: var(--space-2) 0 var(--space-4);
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
+.boardask__form {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.boardask__choice {
+  display: grid;
+  gap: 2px;
+  padding: var(--space-3);
+  border: 1px solid var(--rule-strong);
+  background: var(--paper);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.boardask__choice:hover {
+  border-color: var(--forest-500);
+  background: var(--forest-100);
+}
+
+.boardask__title {
+  font-size: var(--text-base);
+  font-weight: 600;
+}
+
+.boardask__detail {
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
+.boardask__cancel {
+  justify-self: start;
+  min-height: var(--touch-h);
+  margin-top: var(--space-2);
+}
+
+/* Two panes side by side as soon as the block is wide enough for both. The
+   guests stay on the left at a fixed width: the list is short, and a column
+   that changes width as people are housed is a column that moves under a
+   thumb. */
+/* Wide enough for two panes, which is also wide enough for the controls to be
+   worth pinning. Narrower than this — a phone, or the board in a split window
+   — nothing sticks: the application header is already three rows tall down
+   there, and a second fixed band on top of it would leave a letterbox to
+   arrange rooms through. */
+@container (min-width: 44rem) {
+  .board__head {
+    position: sticky;
+    top: var(--bar-h);
+    z-index: 2;
+  }
+
+  .board__panes {
+    grid-template-columns: 15rem minmax(0, 1fr);
+    gap: var(--space-5);
+  }
+
+  /* The guests follow the rooms down the page: the whole interaction is a name
+     and then a room, and they have to be on screen together for that.
+     `--board-head-h` is measured by rooming.js, the same way the application
+     header measures itself — the head above wraps differently at every width,
+     and a guessed offset slides this pane underneath it. */
+  .boardpane--guests {
+    position: sticky;
+    top: calc(var(--bar-h) + var(--board-head-h, 8rem) + var(--space-3));
+    max-height: calc(100vh - var(--bar-h) - var(--board-head-h, 8rem) - var(--space-6));
+    overflow-y: auto;
+  }
+}
+
 /* -------------------------------------------------- documents of their own */
 
 /* [v7] Rooming and Menu are not sections: nothing about them is reordered,

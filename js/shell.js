@@ -38,6 +38,7 @@ import { mountViews } from './views.js';
 import { createMetaEditor } from './editors/meta.js';
 import { createMenuEditor } from './editors/menu.js';
 import { createRoomingEditor } from './editors/rooming.js';
+import { createRoomingBoard } from './rooming.js';
 import { editorFor, hasEditor } from './editors/registry.js';
 import { formatDateRange } from './dates.js';
 import {
@@ -345,10 +346,78 @@ function blockButton(control, label, glyph, extraClass = '') {
   ]);
 }
 
+/* -------------------------------------------------------------- two ways in */
+
+/**
+ * The rooming block holds both editors — BUILD-SPEC §9.
+ *
+ * The board is the direct-manipulation one: a night, the guests nobody has a
+ * room for, and the rooms to put them in. The rows are the typed one: every
+ * booking at once, with its dates and its warnings. §9's requirement is that
+ * ownership can rearrange rooms without help, and the row editor is not that;
+ * but neither is the board the place to fix a booking whose dates are wrong,
+ * so both are here and both are one press away.
+ *
+ * Neither owns `rooming[]`. Both are mounted for the life of the session and
+ * both are updated on every change, so a move made on the board is already in
+ * the rows behind it — there is no reload, no copy, and nothing to keep in
+ * step. The board is opened first because it is the one that reads at arm's
+ * length, standing up, which is where this gets used.
+ *
+ * The board reaches nothing: it is handed an event and hands back a mutated
+ * one, and this line is the entire connection between it and the application
+ * state. When rooming moves to shared state, this is what changes.
+ */
+function mountRooming() {
+  const board = createRoomingBoard({ onEvent: (next) => update(() => next) });
+  const rows = createRoomingEditor();
+
+  const panels = [
+    { id: 'board', label: 'Board', node: el('div', { class: 'ways__panel' }, [board.node]) },
+    { id: 'rows', label: 'Rows', node: el('div', { class: 'ways__panel', hidden: true }, [rows.node]) }
+  ];
+
+  const tabs = el('div', { class: 'ways__tabs', role: 'group', 'aria-label': 'How to edit rooming' });
+  const buttons = panels.map((panel) => {
+    const button = el('button', {
+      type: 'button',
+      class: 'btn ways__tab',
+      'aria-pressed': String(panel.id === 'board'),
+      text: panel.label
+    });
+    button.addEventListener('click', () => {
+      panels.forEach((other, index) => {
+        const on = other === panel;
+        setHidden(other.node, !on);
+        buttons[index].setAttribute('aria-pressed', String(on));
+        toggleClass(buttons[index], 'is-on', on);
+      });
+    });
+    toggleClass(button, 'is-on', panel.id === 'board');
+    tabs.append(button);
+    return button;
+  });
+
+  refs.roomingBody.append(el('div', { class: 'ways' }, [
+    tabs,
+    el('p', {
+      class: 'ways__note',
+      text: 'Two ways into the same assignments. A change in one is in the other at once.'
+    })
+  ]), ...panels.map((panel) => panel.node));
+
+  return {
+    update(event) {
+      board.update(event);
+      rows.update(event);
+    }
+  };
+}
+
 /* ----------------------------------------------------------------- rendering */
 
 let metaEditor = null;
-let roomingEditor = null;
+let roomingBlock = null;
 let menuEditor = null;
 
 function render(event) {
@@ -394,11 +463,8 @@ function render(event) {
   // [v7] The two documents that are always generated. Mounted once, outside the
   // reconciled section list, because nothing in the outline can add or remove
   // them.
-  if (!roomingEditor) {
-    roomingEditor = createRoomingEditor();
-    refs.roomingBody.append(roomingEditor.node);
-  }
-  roomingEditor.update(event);
+  if (!roomingBlock) roomingBlock = mountRooming();
+  roomingBlock.update(event);
 
   if (!menuEditor) {
     menuEditor = createMenuEditor();
