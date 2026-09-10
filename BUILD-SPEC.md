@@ -611,9 +611,24 @@ ledger with them, so the days that arrive carrying content are not seeded a seco
 **Offer, never silently.** A coordinator correcting a mistyped year is not rescheduling anything,
 and the two are indistinguishable from the data. The offer names the offset in days and counts what
 would move before anything happens, and declining is one press and the default outcome: nothing at
-all happens unless the offer is accepted. Seeding then runs as normal for the new range. Any other
-change to the dates — one end alone, both ends by different amounts — behaves exactly as it does
-now.
+all happens unless the offer is accepted. Any other change to the dates — one end alone, both ends
+by different amounts — behaves exactly as it does now.
+
+**The move is one interaction with the two date fields, and nothing longer.** The two ends are
+typed one after the other, so the range passes through a half-move that is not yet anything; the
+pair the offset is measured against is the pair as it stood before that. It is measured against
+that pair for exactly as long as the coordinator is working on the dates. Any other edit — an
+itinerary label, a guest, a file loaded — ends the move, and the next date edit takes its bearing
+from the dates as they stand. An anchor that outlives the interaction is worse than no anchor
+twice over: it goes stale, and it never re-takes, so an order whose dates were first typed in this
+session could never raise the offer at all.
+
+**Seeding is not held back for an answer.** The days the new range covers are seeded when the
+dates are typed, exactly as on any other date change; an accepted shift takes those rows off again
+before it moves anything, and it may, because they are blank, seconds old, and were put down by the
+app rather than by a person. Holding them back instead would make an offer nobody answers cost the
+event three unseeded days — the offer dies with the page, and a file arriving with a range and no
+rows is recorded as already seeded (§5, v10 changes) and can never be offered them again.
 
 **[v13] Rule 8 splits by severity.** A meal service with no menu block at all is a **note**. Nobody
 writes a dish list for a nightcap, and since v10 every day of an event opens with three meal
