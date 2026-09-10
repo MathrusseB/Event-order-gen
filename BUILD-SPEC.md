@@ -5,7 +5,7 @@ Static document generator for Maple Ranch private-side event orders, menus, and 
 **Repo:** `MathrusseB/EVENT-ORDER-GEN`
 **Deploy:** `event-order-gen-production.up.railway.app`
 
-Supersedes v7. Each change carries the version that introduced it, **[v2]** through **[v8]**;
+Supersedes v8. Each change carries the version that introduced it, **[v2]** through **[v9]**;
 §5 keeps a change block per version.
 
 ---
@@ -56,14 +56,13 @@ sections per event. Nothing is mandatory except the header block.
 
 ```json
 "sections": [
-  { "id": "s1", "type": "attendees",      "title": "Attendee List",     "enabled": true },
-  { "id": "s2", "type": "accommodations", "title": "Accommodations",    "enabled": true },
-  { "id": "s3", "type": "schedule",       "title": "Event Schedule",    "enabled": true },
-  { "id": "s4", "type": "foodAndBev",     "title": "Food & Beverage",   "enabled": true },
-  { "id": "s5", "type": "staff",          "title": "Staff Assignments", "enabled": false },
-  { "id": "s6", "type": "freeText",       "title": "Security Notes",    "enabled": true,
+  { "id": "s1", "type": "schedule",   "title": "Itinerary",           "enabled": true },
+  { "id": "s2", "type": "guests",     "title": "Guests",              "enabled": true },
+  { "id": "s3", "type": "foodAndBev", "title": "Food & Beverage",     "enabled": true },
+  { "id": "s4", "type": "staff",      "title": "Staff Assignments",   "enabled": false },
+  { "id": "s5", "type": "freeText",   "title": "Security Notes",      "enabled": true,
     "body": "Range in use Saturday PM. Guest arrivals staggered 1400-1800." },
-  { "id": "s7", "type": "freeText",       "title": "Notes",             "enabled": true,
+  { "id": "s6", "type": "freeText",   "title": "Notes",               "enabled": true,
     "body": "" }
 ]
 ```
@@ -78,19 +77,20 @@ sections per event. Nothing is mandatory except the header block.
 - **[v7] `sections` is the outline of the Event Order alone.** The Menu and the Rooming
   Assignment are their own documents (§8), always generated, and are not section types. Their
   data is entered once — in the rooming editor and the menu editor — and each document takes
-  what it needs. What the Event Order carries of the rooming data is the `accommodations`
-  summary, not the room grid.
-- **[v6]** A new event is **seeded** with **[v7]** five sections — `attendees`,
-  `accommodations`, `schedule`, `foodAndBev`, and a `freeText` titled "Notes" — enabled, in that
-  order. `staff` and `departments` are not seeded. Seeded sections are ordinary sections:
-  renamed, reordered, disabled, and removed like any other.
+  what it needs. **[v9]** Either may additionally be *included* in the Event Order through
+  `meta.includeInOrder` (§5), which appends that document's content to the order and changes
+  nothing about the standalone document. Inclusion is not a section: nothing about it is
+  reordered or renamed, and it always prints last.
+- **[v6]** A new event is **seeded** with **[v9]** three sections — `schedule` titled
+  "Itinerary", `guests`, and a `freeText` titled "Notes" — enabled, in that order. `foodAndBev`,
+  `staff` and `departments` are not seeded. Seeded sections are ordinary sections: renamed,
+  reordered, disabled, and removed like any other.
 
 **Section types**
 
 | Type | Content source | Repeatable |
 |---|---|---|
-| `attendees` | `attendees[]` | No |
-| **[v7]** `accommodations` | derived from `rooming[]` — guests and rooms per building per night (§7). Read-only: the room grid and the assignments themselves belong to the Rooming Assignment document | No |
+| **[v9]** `guests` | `buildingsInUse[]` and `overflowBuildings[]` as a one-line note, then `attendees[]` as a compact list. Replaces `attendees` and `accommodations`, which are gone | No |
 | `schedule` | **[v7]** `schedule[]` and `foodAndBev[]`, merged into one itinerary (§7) | No |
 | `foodAndBev` | `foodAndBev[]` — the F&B schedule table, which **[v7]** prints on the Menu as well | No |
 | `staff` | `staff[]` | No |
@@ -108,7 +108,8 @@ sections per event. Nothing is mandatory except the header block.
     "eventLead": "Brian Mathrusse",
     "revisionDate": "2026-11-10",
     "revisedBy": "Brian Mathrusse",
-    "brandId": "maple-ranch"
+    "brandId": "maple-ranch",
+    "includeInOrder": { "rooming": false, "menu": false }
   },
 
   "sections": [ /* see section 4 */ ],
@@ -125,15 +126,15 @@ sections per event. Nothing is mandatory except the header block.
   ],
 
   "rooming": [
-    { "id": "r-1", "building": "Lodge", "room": "Brian's Suite", "guestIds": ["a-7f3c"],
+    { "id": "r-1", "building": "Remington", "room": "1", "guestIds": ["a-7f3c"],
       "from": "2026-11-14", "to": "2026-11-16" },
-    { "id": "r-2", "building": "Lodge", "room": "Timber Suite",  "guestIds": ["a-9d22"],
+    { "id": "r-2", "building": "Lodge Lower Suites", "room": "Timber", "guestIds": ["a-9d22"],
       "from": "2026-11-14", "to": "2026-11-15" },
-    { "id": "r-3", "building": "Lodge", "room": "Timber Suite",  "guestIds": ["a-5e08"],
+    { "id": "r-3", "building": "Lodge Lower Suites", "room": "Timber", "guestIds": ["a-5e08"],
       "from": "2026-11-15", "to": "2026-11-16" },
-    { "id": "r-4", "building": "Lodge", "room": "Bunk Room",     "guestIds": ["a-3fa1", "a-6b70"],
-      "from": "2026-11-14", "to": "2026-11-16" },
-    { "id": "r-5", "building": "Red Leaf Inn", "room": null, "guestIds": ["a-2b91"],
+    { "id": "r-4", "building": "Lodge Bunk Rooms", "room": "Bunk Room",
+      "guestIds": ["a-3fa1", "a-6b70"], "from": "2026-11-14", "to": "2026-11-16" },
+    { "id": "r-5", "building": "RLI", "room": "8", "guestIds": ["a-2b91"],
       "from": "2026-11-15", "to": "2026-11-16" }
   ],
 
@@ -154,13 +155,9 @@ sections per event. Nothing is mandatory except the header block.
 
   "menu": [
     { "fnbId": "sat-kids-dinner",
-      "courses": [
-        { "heading": "Mains", "items": ["All-Beef Hot Dogs", "Buttered Noodles"] }
-      ] },
+      "dishes": ["All-Beef Hot Dogs", "Buttered Noodles"] },
     { "fnbId": "sat-dinner",
-      "courses": [
-        { "heading": "Entrees", "items": ["American Wagyu Beef Tenderloin - Carved to Order"] }
-      ] }
+      "dishes": ["American Wagyu Beef Tenderloin - Carved to Order", "Whipped Potato"] }
   ],
 
   "staff": [
@@ -179,7 +176,8 @@ sections per event. Nothing is mandatory except the header block.
       "notes": ["One guest departing after dinner, not returning"] }
   ],
 
-  "buildingsInUse": ["Red Leaf Inn", "The Wheel", "Lodge"]
+  "buildingsInUse": ["Remington", "Lodge Bunk Rooms", "The Wheel"],
+  "overflowBuildings": ["RLI"]
 }
 ```
 
@@ -272,10 +270,12 @@ night — and `all` is the default wherever the field is absent.
 **[v6] A new event is seeded with a default section set.**
 `emptyEvent()` produced `sections: []`, so a new event opened as a blank page with no outline and
 nothing to type into — the first act of authoring every order was rebuilding the same list by hand.
-Nearly every private-side order uses the same sections, and **[v7]** they are five: Attendee List,
-Accommodations, Event Schedule, Food & Beverage, and a free-text Notes section. Those are seeded,
-enabled, in that order. Staff and departments are not seeded — they are the exception, added when a
-particular event wants them. Rooming and Menu are no longer among them because they are no longer
+Nearly every private-side order uses the same sections, and **[v9]** they are three: Itinerary,
+Guests, and a free-text Notes section. Those are seeded, enabled, in that order. (**[v7]** it was
+five — Attendee List, Accommodations, Event Schedule, Food & Beverage, Notes — before v9 merged the
+first two into `guests` and dropped the F&B table from the seed: the itinerary already carries
+every meal, and the separate table is wanted on the order less often than not.) Staff and
+departments are not seeded — they are the exception, added when a particular event wants them. Rooming and Menu are no longer among them because they are no longer
 sections at all: each is its own document, always generated (§8). Sections remain fully removable
 and reorderable, so a seeded default costs nothing to discard, and an event that needs none of them
 is three taps from empty.
@@ -349,36 +349,93 @@ An unknown or absent `brandId` resolves to `maple-ranch` rather than rendering a
 a file authored before v8 — and a file hand-edited to a brand this build has never heard of — opens
 and prints exactly as it always did.
 
+### Changes from v8
+
+Every change here came from testing the app against how the private side actually runs. Where one
+contradicts an earlier decision, the new answer wins and the old reasoning is kept beside it, so
+the change reads as a correction rather than as a reversal nobody can account for.
+
+**[v9] The property's lodging is ten buildings, all room-numbered.** The Lodge's named suites and
+the pooled Red Leaf Inn were both wrong for the private side. §6's lodging registry is replaced
+outright: ten buildings, every one of them `named`, in the display order they are given there.
+Master, Brian's, Michael's and Upland are gone. The Bunk Room sleeps twelve and the Clubhouse King
+Suite is a master suite down the hall from the six Clubhouse rooms — rarely used, but real.
+
+**[v9] RLI is `named`, not `pooled`.** v3 made Red Leaf Inn pooled on the grounds that "anywhere in
+RLI" was detail enough. Testing showed otherwise: when RLI is in use, staff need the room number to
+know which room to service. The `pooled` mode stays in the code — it costs nothing and the concept
+may return — but no building uses it now.
+
+**[v9] `menu[].courses[]` becomes `menu[].dishes[]`.** A flat, ordered list of strings. Course
+headings were the events department's convention; the private side does not want them. A file
+carrying courses is flattened on the way in, in the order the dishes appeared, and the headings are
+discarded.
+
+**[v9] `accommodations` and `attendees` become one `guests` section.** Two sections about the same
+people, printed one after the other, were two headings where one belongs. The `guests` section is a
+one-line note naming the buildings in use and those held for overflow, then a compact attendee
+list. `overflowBuildings[]` joins `buildingsInUse[]` in the event; both are edited in that section.
+The per-night lodging summary is gone from the Event Order — where the whole picture is wanted,
+`meta.includeInOrder.rooming` puts the grid itself on the order.
+
+**[v9] `meta.includeInOrder` — `{ rooming: false, menu: false }`.** When either is true, that
+document's content is appended to the Event Order: the room grid, the menu blocks. Both documents
+still print on their own exactly as before, and nothing about them changes. This is an addition to
+the order and never a replacement for the standalone document — including the menu in the order
+does not mean the kitchen stops getting a menu.
+
+**[v9] The Rooming Assignment does not repeat the attendee list.** It is the room grid. The guest
+list belongs to the Event Order, and the same names printed on two documents drift the moment one
+of them is reissued. The unassigned-guest callout stays: that is a warning about the grid, not a
+guest list.
+
 ## 6. Static reference data
 
 Seeded in `js/reference.js`. Not part of event JSON.
 
-**Buildings:** Red Leaf Inn (RLI), The Wheel, Bucket Shop, Lodge, Wood Shop, MRSO,
-Dock / Boathouse, Hummer Bar, Food Plot, Lake, Cottage
+**[v9] Lodging.** Ten buildings, in this display order, which is the order they get used in —
+least-assigned first:
+
+| Building | Rooms | Labels |
+|---|---|---|
+| Remington | 4 | 1–4 |
+| Winchester | 4 | 1–4 |
+| Mallard | 8 | 1–8 |
+| Wigeon | 8 | 1–8 |
+| Pintail | 8 | 1–8 |
+| Lodge Bunk Rooms | 1 | Bunk Room |
+| Lodge Lower Suites | 2 | Timber, Wetland |
+| RLI | 24 | 1–24 |
+| Clubhouse | 6 | 1–6 |
+| Clubhouse King Suite | 1 | King Suite |
+
+Every one of them is `named`: rooms are assigned room by room, and the grid in the editor and on
+the Rooming Assignment shows every room in inventory, occupied or vacant. The Bunk Room sleeps
+twelve. The Clubhouse King Suite is a master suite down the hall from the six Clubhouse rooms,
+rarely used but real, and is its own building here because it is assigned on its own.
+
+**Non-lodging buildings**, which take no assignments and appear as locations: The Wheel, Bucket
+Shop, Wood Shop, MRSO, Dock / Boathouse, Hummer Bar, Food Plot, Lake, Cottage. "Lodge" and "Red
+Leaf Inn" are no longer building names of their own — the registry above names their parts.
 
 **[v3] Building assignment modes.** Each building declares `mode: "named" | "pooled"`.
-- **Lodge — `named`.** The working venue for private events. Room-level assignment, room grid in
-  the editor and the render.
-- **Red Leaf Inn — `pooled`.** Backup overflow only. Guests are assigned to the building, not to a
-  room; the render lists them under "Red Leaf Inn" with no room numbers. Full room inventory is
-  retained below so the mode can be flipped if a private event ever needs it.
-- All other buildings are non-lodging and take no assignments.
-
-**Lodge rooms (`named`):** Master Suite, Brian's Suite, Michael's Suite, Timber Suite,
-Wetland Suite, Basement Office Suite, Upland Suite, Bunk Room
-
-**Red Leaf Inn rooms (retained, unused while `pooled`):** 1 through 24, with Exec Suites at 8 and
-20 and Suites at 11 and 23.
+- **`named`** — room-level assignment. Every lodging building is this since **[v9]**.
+- **`pooled`** — assignment to the building, with no room. **[v9]** Nothing uses it. Red Leaf Inn
+  was pooled from v3 on the grounds that "anywhere in RLI" was detail enough; when RLI is in use,
+  staff need the room number to know which room to service. The mode stays in the code because it
+  costs nothing and the concept may return.
+- Buildings absent from the registry are non-lodging and take no assignments.
 
 **[v5]** Bedding is not stored. Even rooms are kings and odd rooms are double queens — property
 knowledge everyone at the ranch already has, which belongs in neither the room titles nor the data.
-Nothing anywhere models room capacity.
+Nothing anywhere models room capacity: **[v9]** every room holds a party of any size, as before.
 
 **[v2] Schedule label suggestions** (autocomplete only, free text always allowed):
 Duck Hunt, Upland Hunt, Deer Hunt, Downtime, Breakfast, Lunch, Dinner, Cocktails, Happy Hour,
 Guest Arrival, Guest Departure, Range, Skeet
 
-Room inventory is fixed property data — selected from, never typed.
+Room inventory is fixed property data — selected from, never typed. **[v9]** So is the building
+list the `guests` section draws its buildings-in-use and overflow buildings from.
 
 **[v8] Brand registry.** Each entry is an id, a display name, and a logo path under `logos/`.
 `meta.brandId` holds the id alone; nothing here is ever written into the event JSON.
@@ -406,12 +463,13 @@ Bloody Feather order lines up with a page of a Maple Ranch one.
 | Total guest count | `attendees.length` |
 | Guests present on a date | attendees where `arrive <= date <= depart` |
 | Overnight count for a night | attendees where `arrive <= date < depart` |
-| **[v4]** Lodging by building, per night | for each building with rows covering that night: `mode`, rooms occupied, guests named. The Accommodations table shows rooms for `named`, guests for `pooled`. **[v5]** A row naming nobody still occupies its room. |
+| **[v4]** Lodging by building, per night | for each building with rows covering that night: `mode`, rooms occupied, guests named. Rooms for a `named` building, guests for a `pooled` one. **[v5]** A row naming nobody still occupies its room. **[v9]** No document prints this any more — the `accommodations` section that did is gone — but `eventNights` reads it to decide whether the last day of an event carries a night |
 | **[v3]** Room occupancy on a night | `rooming[]` rows where `from <= night < to`, grouped by building and room |
 | **[v3]** Unassigned guests on a night | attendees overnight that night named on no covering `rooming[]` row. **[v5]** A guest not on the sheet is not necessarily unhoused — spouses and children rooming with family are never listed |
 | F&B attendee count | **[v5]** narrowed by `serves` — `all`, `adults`, `children` — then counted per `countBasis`: `present`, `overnight`, or `custom` |
 | **[v7]** Itinerary for a date | `schedule[]` entries and `foodAndBev[]` entries on that date, merged and ordered by `start`, entries without a `start` last in their existing order. An F&B entry contributes its meal name and location; a schedule entry contributes its label. Each merged entry carries the array it came from and its row id, so the render can draw it and the editor can link back to it |
 | **[v5]** Dietary notes | attendees with a non-empty `dietary`, for the Menu allergies block and buffet labels |
+| **[v9]** Buildings line | `buildingsInUse[]` and `overflowBuildings[]` as one sentence, for the `guests` section. Buildings named on a rooming row but in neither list are still in use, and the sentence says so |
 | Menu header count | same computed value as the F&B row it references |
 | Footer revision line | `meta.revisionDate` + `meta.revisedBy` |
 
@@ -425,6 +483,12 @@ their own.
 `maple-ranch` (§5, v8 changes). The Menu is the ranch's culinary product, not the visiting group's.
 Do not make the three agree.
 
+**[v9] Each document is still printed on its own.** `meta.includeInOrder` (§5) appends the room
+grid or the menu blocks to the **Event Order's own body** — that is the Event Order printing more
+of its own content, not two documents in one print. The included content is the same render as the
+standalone document minus its page furniture: one document's running header inside another is
+wrong. **B** and **C** print exactly as they did whatever the flags say.
+
 **[v8] Each document is printed on its own.** There is no combined print, and **no document may
 appear in another's print output** — not collapsed, not hidden behind a page break, not present in
 the DOM and unstyled. Printing the Menu produces the Menu: not the Menu preceded by four blank
@@ -432,19 +496,21 @@ pages where the Event Order was, and not a rooming grid the print stylesheet for
 and the application shell are equally absent. This is a property of the print stylesheet and it is
 the one thing about printing worth testing by printing.
 
-**A. Event Order** — header block, then enabled sections in array order, then footer with page
-number and revision line. **[v7]** Three section types render something other than their own array:
-`accommodations` prints the per-night lodging summary derived from `rooming[]` (§7) rather than the
-room grid; `schedule` prints the merged itinerary (§7), not `schedule[]` alone; `foodAndBev` prints
-the F&B schedule table, which the Menu prints too.
+**A. Event Order** — header block, then enabled sections in array order, **[v9]** then whatever
+`meta.includeInOrder` asks for, then footer with page number and revision line. **[v7]** Two
+section types render something other than their own array: `schedule` prints the merged itinerary
+(§7), not `schedule[]` alone; `foodAndBev` prints the F&B schedule table, which the Menu prints
+too. **[v9]** `guests` prints the buildings line and the attendee list, and is the only place
+either appears.
 
 **B. Menu** — header, F&B schedule table, allergies, per-meal sections grouped by course heading.
 **[v7]** Always generated; never a section of the Event Order.
 
-**C. Rooming Assignment** — room grid by building showing occupied and vacant rooms, per-building
-totals, attendee list with arrival/departure and notes. **[v7]** Always generated; never a section
-of the Event Order. The Event Order's Accommodations summary is the only rooming figure that
-crosses over.
+**C. Rooming Assignment** — the room grid by building, showing occupied and vacant rooms, and the
+callout naming guests staying with no room that night. **[v7]** Always generated; never a section
+of the Event Order. **[v9]** It does **not** repeat the attendee list: that is the `guests`
+section's, on the Event Order, and the same names on two documents drift the moment one is
+reissued. The unassigned callout is not a guest list — it is a warning about the grid.
 
 **[v8] Absence is printed, not omitted.** A disabled section does not print at all — that is what
 disabling is for. But an *enabled* section holding nothing prints its heading and a quiet note
