@@ -425,8 +425,10 @@ export function createMetaEditor() {
         () => createOfferRow());
       entries.forEach((entry, index) => entry.update(moving.parts[index]));
       setHidden(offerCleared, moving.cleared === 0);
-      setText(offerCleared, `${moving.cleared} blank ${moving.cleared === 1 ? 'row' : 'rows'} `
-        + 'put down while the dates were half-typed are cleared first.');
+      setText(offerCleared, `The ${moving.cleared} blank `
+        + `${moving.cleared === 1 ? 'row' : 'rows'} set up for the new days when the dates were `
+        + `typed ${moving.cleared === 1 ? 'is' : 'are'} cleared first, so the content arrives on `
+        + 'empty days.');
       setText(offerFoot, 'Nothing has moved. If you were correcting a date rather than '
         + 'rescheduling, leave this — the rows stay on the days they were written for, and '
         + 'anything now outside the event is listed below.');
