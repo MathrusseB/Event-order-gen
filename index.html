@@ -28,12 +28,29 @@
 
       <button type="button" class="btn btn--onbar bar__disclosure" id="btn-outline"
               aria-expanded="false" aria-controls="outline">Sections</button>
+
+      <!-- [v10] Printing is what this tool is for (§10), so it is here rather
+           than only inside a document view: the coordinator can print from the
+           form without opening a preview first, and the select says which of
+           the three is about to come out of the printer. Filled by views.js
+           from the same registry as the view tabs. -->
+      <div class="bar__print">
+        <label class="sr-only" for="print-target">Document to print</label>
+        <select class="input input--onbar" id="print-target"></select>
+        <button type="button" class="btn btn--onbar btn--onbar-strong" id="btn-print">Print</button>
+      </div>
+
       <nav class="bar__file" aria-label="Event file">
         <button type="button" class="btn btn--onbar" id="btn-new">New</button>
         <button type="button" class="btn btn--onbar" id="btn-load">Load</button>
-        <button type="button" class="btn btn--onbar btn--onbar-strong" id="btn-save">Save</button>
+        <button type="button" class="btn btn--onbar" id="btn-save">Save</button>
         <button type="button" class="btn btn--onbar" id="btn-sample">Load sample</button>
         <input type="file" id="file-input" accept="application/json,.json" hidden>
+        <!-- [v10] §10: the JSON is the working copy, not the thing that leaves
+             the building. Saying so once here is cheaper than the phone call
+             asking why the guest list arrived as a .json file. -->
+        <p class="bar__savenote">Save keeps a working copy — reopen it to amend or duplicate this
+          event. What goes out is printed.</p>
       </nav>
     </div>
   </header>

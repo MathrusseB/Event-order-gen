@@ -25,7 +25,12 @@
 //     unresolved *name*, not as an id (§12.3).
 
 import { getEvent, update } from '../app.js';
-import { attendeeById, attendeeName, roomingWindow } from '../derive.js';
+import {
+  attendeeById,
+  attendeeName,
+  overlappingAssignments,
+  roomingWindow
+} from '../derive.js';
 import { datesBetween, formatDateShort } from '../dates.js';
 import { newId } from '../ids.js';
 import { LODGING_BUILDINGS, assignmentModeFor, roomsIn } from '../reference.js';
@@ -292,11 +297,20 @@ function createRoomingRow(list, id) {
  * Chips are keyed by guest id, so adding a name never rebuilds the ones already
  * there, and the select offers only guests the row does not already name.
  *
+ * [v10] It also omits anyone who already holds a room over a night this row
+ * covers — the same guest in two rooms on one night is never right (§5, v10
+ * changes) — and says who it omitted and where they are. A name that is simply
+ * missing from a list reads as a bug, and the person looking for it has no way
+ * to find out otherwise; the line below is the difference between a rule and a
+ * glitch. Overlap, not "assigned anywhere": turnover between two rooms on
+ * consecutive nights is ordinary and stays offerable.
+ *
  * @param {string} id the rooming row
  */
 function createParty(id) {
   const chips = el('ul', { class: 'party' });
   const none = el('p', { class: 'party__none', text: 'No name on this room yet.' });
+  const taken = el('p', { class: 'party__taken', hidden: true });
 
   const add = el('select', { class: 'input input--select party__add', 'data-field': 'addGuest' });
   let signature = '';
@@ -320,7 +334,8 @@ function createParty(id) {
     el('label', { class: 'field field--add' }, [
       el('span', { class: 'field__label sr-only', text: 'Add a guest to this room' }),
       add
-    ])
+    ]),
+    taken
   ]);
 
   return {
@@ -334,8 +349,21 @@ function createParty(id) {
       entries.forEach((entry, index) => entry.update(event, ids[index]));
 
       const named = new Set(ids);
+      const window = roomingWindow(event, row);
+      const elsewhere = [];
+
       const attendees = (Array.isArray(event.attendees) ? event.attendees : [])
-        .filter((attendee) => attendee && attendee.id && !named.has(attendee.id));
+        .filter((attendee) => attendee && attendee.id && !named.has(attendee.id))
+        .filter((attendee) => {
+          const clash = overlappingAssignments(event, attendee.id, window, id);
+          if (!clash.length) return true;
+          elsewhere.push({ attendee, row: clash[0] });
+          return false;
+        });
+
+      setHidden(taken, elsewhere.length === 0);
+      setText(taken, describeTaken(event, elsewhere));
+
       const options = [
         { value: '', label: ids.length ? 'Add another guest' : 'Add a guest' },
         ...attendees.map((attendee) => ({
@@ -354,6 +382,39 @@ function createParty(id) {
       add.disabled = attendees.length === 0;
     }
   };
+}
+
+/**
+ * [v10] The line under the guest picker naming who it left out.
+ *
+ * Named in full while there are few of them, because "Dana Reyes (Timber, Nov
+ * 14 to Nov 15)" is the whole explanation in one clause. Past three it
+ * summarises: a fresh row covers the whole event until its dates are narrowed,
+ * so on a full house this would otherwise list every guest at the event, and a
+ * paragraph of names is read as noise rather than as a reason.
+ *
+ * @param {object} event
+ * @param {{attendee: object, row: object}[]} elsewhere
+ * @returns {string}
+ */
+function describeTaken(event, elsewhere) {
+  if (!elsewhere.length) return '';
+
+  const NAMED = 3;
+  const named = elsewhere.slice(0, NAMED).map(({ attendee, row }) => {
+    const where = [row.building, row.room].filter(Boolean).join(' ') || 'a room';
+    const window = roomingWindow(event, row);
+    const when = elsewhere.length <= NAMED
+      ? `, ${formatDateShort(window.from)} to ${formatDateShort(window.to)}`
+      : '';
+    return `${attendeeName(attendee) || 'Unnamed guest'} (${where}${when})`;
+  });
+  const rest = elsewhere.length - named.length;
+  const list = rest ? `${named.join(', ')} and ${rest} other${rest === 1 ? '' : 's'}`
+    : named.join(', ');
+
+  return `Not offered — already in a room on a night this row covers: ${list}. Nobody holds two `
+    + "rooms on one night. Set this row's dates to nights they are free and they come back.";
 }
 
 /** One name on a room. */

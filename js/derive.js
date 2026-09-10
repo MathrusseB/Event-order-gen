@@ -10,7 +10,7 @@
 // ISO dates sort lexicographically, which sidesteps `Date` parsing and
 // timezone drift entirely. Never convert these to `Date` for comparison.
 
-import { assignmentModeFor } from './reference.js';
+import { assignmentModeFor, roomsIn } from './reference.js';
 import { datesBetween } from './dates.js';
 
 /**
@@ -310,6 +310,37 @@ export function roomOccupancyOn(event, night) {
 }
 
 /**
+ * [v10] The rooms a guest already holds over a range. BUILD-SPEC §5 (v10).
+ *
+ * A guest cannot hold two rooms on the same night, and this is how the rooming
+ * editor knows not to offer one. **Overlap, not "assigned anywhere":** the same
+ * guest in Mallard 3 on Saturday and Wigeon 5 on Sunday is ordinary turnover
+ * and has to stay expressible, so the test is whether the two half-open ranges
+ * share a night — `a.from < b.to && b.from < a.to` — and not whether the guest
+ * appears somewhere else in the array.
+ *
+ * The row being filled is excluded by id: a row does not clash with itself, and
+ * without that every guest already on a row would be barred from the row they
+ * are already on.
+ *
+ * @param {object} event
+ * @param {string} guestId
+ * @param {{from: string, to: string}} window the range being filled
+ * @param {string} [exceptRowId] the row being filled
+ * @returns {object[]} the rows that overlap, in array order
+ */
+export function overlappingAssignments(event, guestId, window, exceptRowId) {
+  if (!guestId || !window || !window.from || !window.to) return [];
+  return ((event && event.rooming) || []).filter((row) => {
+    if (!row || (exceptRowId && row.id === exceptRowId)) return false;
+    if (!guestIdsOf(row).includes(guestId)) return false;
+    const held = roomingWindow(event, row);
+    if (!held.from || !held.to) return false;
+    return held.from < window.to && window.from < held.to;
+  });
+}
+
+/**
  * §7 [v3] — Unassigned guests on a night: attendees overnight that night with
  * no covering `rooming[]` row.
  *
@@ -338,6 +369,98 @@ export function unassignedGuestsOn(event, night) {
   // [v4] By ID: two guests who share a name are two people here, and one of
   // them having a room no longer covers for the other.
   return overnight.filter((attendee) => !attendee.id || !named.has(attendee.id));
+}
+
+/**
+ * [v10] A building's rooms on one night, split into the occupied and the
+ * vacant. BUILD-SPEC §8 C [v10].
+ *
+ * The printed sheet needs both halves and treats them differently: occupied
+ * rooms are rows, vacancies are one line. Computed here rather than in the
+ * render because it is a fact about the event — which rooms are held that
+ * night — and because the same split is worth having wherever else it is
+ * wanted.
+ *
+ * Rooms outside the registry are included among the occupied ones when
+ * somebody is in them, in the order they appear on the rows: a hand-edited
+ * file naming a room that no longer exists still has to print that booking
+ * (§5, v9 changes). They are never counted as vacant — a room the property
+ * does not have cannot be offered to anybody.
+ *
+ * @param {object} event
+ * @param {string} building name as stored on the rows
+ * @param {string} night ISO `YYYY-MM-DD` — the date the night begins
+ * @returns {{occupied: {room: string, rows: object[]}[], vacant: string[],
+ *   vacantRanges: string}} `occupied` in registry order, with any off-registry
+ *   rooms after it; `vacant` is room labels in registry order, and
+ *   `vacantRanges` is the same list collapsed for printing. A caller looking at
+ *   more than one night unions the occupied rooms itself and collapses once at
+ *   the end — collapsing per night and joining would print the same range twice
+ */
+export function roomsOn(event, building, night) {
+  const held = roomOccupancyOn(event, night)[building] || {};
+  const inventory = roomsIn(building);
+
+  const occupied = [];
+  for (const room of inventory) {
+    if (held[room] && held[room].length) occupied.push({ room, rows: held[room] });
+  }
+  for (const room of Object.keys(held)) {
+    if (inventory.includes(room)) continue;
+    // The empty key is a row carrying no room at all (§12.6), which is a fault
+    // to report and not a room to print a line for.
+    if (!room) continue;
+    occupied.push({ room, rows: held[room] });
+  }
+
+  const taken = new Set(occupied.map((entry) => entry.room));
+  const vacant = inventory.filter((room) => !taken.has(room));
+  return { occupied, vacant, vacantRanges: collapseRooms(vacant) };
+}
+
+/**
+ * [v10] Room labels as a reader would say them: `1–7, 9–10, 12–24`.
+ *
+ * Runs of consecutive numbers collapse; a named room — Bunk Room, Timber,
+ * Wetland, King Suite — is a name and never joins a range, however it happens
+ * to sort. The input order is kept, so the line reads in the order the rooms
+ * hang on the board.
+ *
+ * A pair collapses to `8–9` rather than staying `8, 9`: it is the same length
+ * and the eye reads one shape down the page instead of two.
+ *
+ * @param {string[]} rooms
+ * @returns {string} empty for an empty list
+ */
+export function collapseRooms(rooms) {
+  const parts = [];
+  let run = null;
+
+  const flush = () => {
+    if (!run) return;
+    parts.push(run.from === run.to ? run.from : `${run.from}\u2013${run.to}`);
+    run = null;
+  };
+
+  for (const label of rooms) {
+    const room = String(label);
+    const number = /^\d+$/.test(room) ? Number(room) : null;
+    if (number === null) {
+      flush();
+      parts.push(room);
+      continue;
+    }
+    if (run && run.next === number) {
+      run.to = room;
+      run.next = number + 1;
+      continue;
+    }
+    flush();
+    run = { from: room, to: room, next: number + 1 };
+  }
+  flush();
+
+  return parts.join(', ');
 }
 
 /**
@@ -542,6 +665,12 @@ export function itineraryFor(event, date) {
 
   for (const entry of schedule) {
     if (!entry || entry.date !== date) continue;
+    // [v10] A row with no activity and no time is a seeded blank nobody has
+    // filled in (§5, v10 changes) — three of them start every day. It is a
+    // waiting row in the editor and nothing at all on the itinerary: an empty
+    // line on a printed order reads as a mistake, and an empty line in the
+    // preview would teach the coordinator to ignore the preview.
+    if (!String(entry.label || '').trim() && !entry.start && !entry.end) continue;
     merged.push({
       source: 'schedule',
       id: entry.id || '',

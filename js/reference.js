@@ -128,22 +128,19 @@ export function roomsIn(building) {
   return ROOMS_BY_BUILDING[building] || [];
 }
 
-/** Schedule label autocomplete. Free text is always allowed. BUILD-SPEC §6. */
-export const SCHEDULE_LABEL_SUGGESTIONS = [
-  'Duck Hunt',
-  'Upland Hunt',
-  'Deer Hunt',
-  'Downtime',
-  'Breakfast',
-  'Lunch',
-  'Dinner',
-  'Cocktails',
-  'Happy Hour',
-  'Guest Arrival',
-  'Guest Departure',
-  'Range',
-  'Skeet'
-];
+/**
+ * [v10] Where a meal happens. BUILD-SPEC §6 [v10].
+ *
+ * Three places and Other, because the meals happen in the same few rooms.
+ * `location` stays one string in the file whichever way it was chosen: nothing
+ * downstream needs to know that "The Wheel" came from a list and "Food Plot"
+ * was typed, and storing the difference would be a second field to keep in step
+ * with the first.
+ */
+export const MEAL_LOCATIONS = ['The Wheel', 'The Clubhouse', 'The Lodge'];
+
+/** The value the location and activity selects use for their free-text option. */
+export const OTHER_OPTION = '__other__';
 
 /** F&B count bases — which dates qualify. BUILD-SPEC §5 (v2 changes). */
 export const COUNT_BASES = ['present', 'overnight', 'custom'];

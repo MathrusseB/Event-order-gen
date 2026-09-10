@@ -19,7 +19,7 @@ import { getEvent, update } from '../app.js';
 import { attendeeName, fnbCount } from '../derive.js';
 import { formatDate, formatTime } from '../dates.js';
 import { newId } from '../ids.js';
-import { COUNT_BASES, SERVES_OPTIONS } from '../reference.js';
+import { COUNT_BASES, MEAL_LOCATIONS, OTHER_OPTION, SERVES_OPTIONS } from '../reference.js';
 import {
   el,
   focusRowControl,
@@ -196,6 +196,79 @@ export function createFoodAndBevEditor() {
   };
 }
 
+/**
+ * [v10] Where the meal is: a select of the three places the ranch serves in,
+ * and Other, which takes free text. BUILD-SPEC §6 [v10].
+ *
+ * `location` stays one string in the file. The select shows the listed value
+ * when the stored one matches, and Other with the text beside it when it does
+ * not — so a file that says "Food Plot" opens with Food Plot in the box rather
+ * than with a blank select and a lost location.
+ *
+ * The typed text is remembered for the life of the row: picking The Wheel and
+ * then Other again brings back what was there, because the alternative is
+ * retyping a location because you looked at the list.
+ */
+function createLocationCell(id) {
+  let typed = '';
+
+  const select = el('select', { class: 'input input--select', 'data-field': 'location' });
+  const other = el('input', {
+    type: 'text',
+    class: 'input',
+    'data-field': 'locationOther',
+    placeholder: 'Where',
+    autocomplete: 'off',
+    autocapitalize: 'words'
+  });
+
+  select.addEventListener('change', () => {
+    if (select.value === OTHER_OPTION) {
+      write(id, 'location', typed);
+      other.focus();
+      return;
+    }
+    write(id, 'location', select.value);
+  });
+
+  other.addEventListener('input', () => {
+    typed = other.value;
+    write(id, 'location', other.value);
+  });
+
+  const root = el('div', { class: 'cell cell--location' }, [
+    el('label', { class: 'field' }, [
+      el('span', { class: 'field__label', text: 'Location' }),
+      select
+    ]),
+    other
+  ]);
+
+  select.replaceChildren(
+    el('option', { value: '', text: 'Not set' }),
+    ...MEAL_LOCATIONS.map((place) => el('option', { value: place, text: place })),
+    el('option', { value: OTHER_OPTION, text: 'Other' })
+  );
+
+  return {
+    root,
+    update(entry) {
+      const stored = String((entry && entry.location) || '');
+      const listed = MEAL_LOCATIONS.includes(stored);
+      const isOther = Boolean(stored) && !listed;
+      if (isOther) typed = stored;
+
+      setValue(select, listed ? stored : (isOther ? OTHER_OPTION : ''));
+      // The select is the authority for whether the box is showing; the box is
+      // the authority for what is in it while somebody is typing (`setValue`
+      // skips the focused element).
+      const showing = select.value === OTHER_OPTION;
+      setHidden(other, !showing);
+      setValue(other, showing ? (stored || typed) : '');
+    }
+  };
+}
+
 /** One meal service. Built once per id, patched from then on. */
 function createFnbRow(list, id) {
   const date = dateField({ field: 'date', label: 'Date', onChange: (v) => write(id, 'date', v) });
@@ -207,12 +280,7 @@ function createFnbRow(list, id) {
     placeholder: 'Dinner',
     onInput: (v) => write(id, 'meal', v)
   });
-  const location = textField({
-    field: 'location',
-    label: 'Location',
-    placeholder: 'The Wheel',
-    onInput: (v) => write(id, 'location', v)
-  });
+  const location = createLocationCell(id);
 
   const basis = selectField({
     field: 'countBasis',
@@ -288,7 +356,7 @@ function createFnbRow(list, id) {
       setValue(start.input, entry.start || '');
       setValue(end.input, entry.end || '');
       setValue(meal.input, entry.meal || '');
-      setValue(location.input, entry.location || '');
+      location.update(entry);
       setValue(basis.select, entry.countBasis || 'present');
       setValue(serves.select, entry.serves || 'all');
       setValue(countInput, entry.count === null || entry.count === undefined ? '' : entry.count);

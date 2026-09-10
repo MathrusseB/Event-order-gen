@@ -6,14 +6,35 @@
 // **rooms down and nights across**, one grid per lodging building, with the
 // party named for that room on that night in the cell.
 //
-// A vacant cell stays visibly empty. An empty room is information — it is the
-// answer to "can we put somebody else in the Lodge on Sunday?" — so `named`
-// buildings show every room in inventory whether or not anybody is in it, and
-// the blanks are the point rather than a gap in the data.
+// [v10] ONLY OCCUPIED ROOMS GET A ROW, AND THIS IS NOT WHAT THE BOARD DOES.
+// Read this before making the two agree.
 //
-// `pooled` buildings (§6 [v3]) have no rooms to lay down the side. Red Leaf Inn
-// is a single row listing who is in the building each night; "in RLI" is all
-// the detail the document needs.
+// Until v10 every room in inventory printed, occupied or vacant, on the
+// reasoning that an empty room is information — the answer to "can we put
+// somebody else in Wigeon on Sunday?". That was written when the largest
+// building had eight rooms. RLI has twenty-four, and the sample event puts nine
+// guests in six rooms: thirty-one rows to read six, one page of which was
+// fifteen blank RLI lines with a single guest among them.
+//
+// So the two surfaces diverge on purpose (§5, v10 changes; §8 C):
+//
+//   * Here, on paper, the rows are the rooms somebody is in. The vacancies
+//     follow on one line per building, collapsed — `Vacant: 1-7, 9-10, 12-24`
+//     — which is the same information in one line instead of eighteen. A
+//     building holding nobody prints its name and that line and no grid.
+//   * On the board — js/rooming.js — every room in inventory stays, because
+//     there a vacant room is not information, it is the thing you tap.
+//
+// Neither is a defect in the other. Making this print the full grid again would
+// undo v10; making the board hide vacant rooms would leave nowhere to put
+// anybody. Both call sites carry this note.
+//
+// A room occupied on one night and empty on the next keeps its row, with the
+// empty night blank: that blank is the turnover, and it is the one kind of
+// vacancy worth a row of its own.
+//
+// `pooled` buildings (§6 [v3]) have no rooms to lay down the side. [v9] Nothing
+// is pooled any more, and the branch is kept only because the mode is.
 //
 // Nothing here counts heads. §5 (v5 changes): a rooming row names the party a
 // room is *known by* — spouses are never listed, children only when they have a
@@ -29,13 +50,15 @@
 
 import {
   attendeeName,
+  collapseRooms,
   eventNights,
   partyOf,
   roomOccupancyOn,
+  roomsOn,
   unassignedGuestsOn
 } from '../derive.js';
 import { formatDate } from '../dates.js';
-import { assignmentModeFor, roomsIn } from '../reference.js';
+import { LODGING_BUILDINGS, assignmentModeFor, roomsIn } from '../reference.js';
 import { el } from '../dom.js';
 import { emptyNote, partyLine, section, table } from './parts.js';
 
@@ -63,7 +86,7 @@ export const roomingDocument = {
  */
 export function renderRoomingBody(event) {
   const nights = eventNights(event);
-  const buildings = buildingsWithRows(event);
+  const buildings = buildingsOnSheet(event);
 
   const grids = !nights.length
     ? [emptyNote('Set the event dates to lay the grid out by night.')]
@@ -78,24 +101,40 @@ export function renderRoomingBody(event) {
 }
 
 /**
- * The buildings that hold any rooming row, in the order they first appear.
+ * The buildings this sheet is about, in registry order (§6 [v9] — the order
+ * they get used in).
  *
- * Buildings with no rows at all are left out: printing the Lodge's eight empty
- * rooms for an event nobody is staying at is noise, not information. A building
- * that empties *mid-event* keeps its grid, because its blank nights are exactly
- * the kind of empty worth seeing.
+ * Three ways onto the sheet: holding a rooming row, being named in
+ * `buildingsInUse`, or being held for overflow. [v10] The last two are why a
+ * building with nobody in it appears at all, and it is the useful case — the
+ * overflow building printing "Vacant: 1-4" is how somebody knows there is still
+ * room to grow into. A building nobody has mentioned and nobody is in stays
+ * off: the property has ten, and an event uses two.
+ *
+ * A building named on a row but absent from the registry is appended rather
+ * than dropped (§5, v9 changes).
  *
  * @param {object} event
  * @returns {string[]}
  */
-function buildingsWithRows(event) {
-  const seen = [];
+function buildingsOnSheet(event) {
+  const named = new Set();
   for (const row of event.rooming || []) {
-    if (!row) continue;
-    const building = row.building || '';
-    if (!seen.includes(building)) seen.push(building);
+    if (row) named.add(row.building || '');
   }
-  return seen;
+  for (const key of ['buildingsInUse', 'overflowBuildings']) {
+    for (const building of (Array.isArray(event[key]) ? event[key] : [])) {
+      const name = String(building || '').trim();
+      // Only lodging: The Wheel is on `buildingsInUse` and has no rooms.
+      if (name && LODGING_BUILDINGS.includes(name)) named.add(name);
+    }
+  }
+
+  const ordered = LODGING_BUILDINGS.filter((building) => named.has(building));
+  for (const building of named) {
+    if (!ordered.includes(building)) ordered.push(building);
+  }
+  return ordered;
 }
 
 /**
@@ -110,6 +149,8 @@ function renderBuilding(event, building, nights) {
   const mode = assignmentModeFor(building);
   const occupancy = nights.map((night) => (roomOccupancyOn(event, night)[building] || {}));
   const label = building || 'No building set';
+  const rooms = occupiedRooms(event, building, nights);
+  const vacant = collapseRooms(vacantRooms(event, building, nights));
 
   // A pooled building has no rooms to lay down the side, so it has no row-label
   // column either — the section bar above already names the building, and a
@@ -121,8 +162,11 @@ function renderBuilding(event, building, nights) {
 
   const rows = mode === 'pooled'
     ? [pooledRow(event, occupancy)]
-    : roomsOf(building, occupancy).map((room) => namedRow(event, room, occupancy));
+    : rooms.map((room) => namedRow(event, room, occupancy));
 
+  // [v10] A building holding nobody prints its name and its vacancies. No
+  // header row over no rows, which is a table that says nothing twice.
+  const grid = rows.length ? table(columns, rows, 'grid') : false;
 
   return el('section', { class: 'sec sec--grid' }, [
     el('h2', { class: 'sec__title' }, [
@@ -130,46 +174,78 @@ function renderBuilding(event, building, nights) {
       el('span', { class: 'sec__note', text: mode === 'pooled' ? 'Assigned to the building' : '' })
     ]),
     el('div', { class: 'sec__body' }, [
-      table(columns, rows, 'grid'),
+      grid,
+      vacancyLine(vacant, nights.length, rows.length > 0),
       mode === 'pooled'
-        ? el('p', { class: 'sec__foot', text: 'Red Leaf Inn is overflow on the private side. '
-            + 'Guests are assigned to the building, not to a room.' })
+        ? el('p', { class: 'sec__foot', text: 'Assigned to the building, not to a room.' })
         : false
     ])
   ]);
 }
 
 /**
- * The rooms to lay down the side of a `named` building.
+ * [v10] The vacancies, in one line.
  *
- * Every room in inventory, occupied or not (§8 C). Any room named on a row but
- * absent from inventory is appended rather than dropped — a hand-edited file
- * naming "Loft" should print "Loft", not lose the booking — and a row carrying
- * no room at all lands under one final line, where §12.6 can be seen rather
- * than silently swallowed.
+ * Over more than one night the line is about rooms nobody holds on *any* of
+ * them — a room free on Sunday alone is in the grid above with an empty Sunday
+ * cell, which says more than a line could. The wording changes with the number
+ * of nights rather than staying vague across both, because "Vacant: 1-4" under
+ * a three-night grid would be read as tonight.
  *
+ * @param {string} ranges from `collapseRooms`
+ * @param {number} nights how many the grid covers
+ * @param {boolean} hasGrid whether anything is above this line
+ * @returns {HTMLElement|false}
+ */
+function vacancyLine(ranges, nights, hasGrid) {
+  if (!ranges) {
+    return hasGrid
+      ? el('p', { class: 'vacancy vacancy--none', text: 'No vacancies.' })
+      : false;
+  }
+  const lead = nights > 1 ? 'Vacant all nights' : 'Vacant';
+  return el('p', { class: 'vacancy' }, [
+    el('span', { class: 'vacancy__label', text: `${lead}:` }),
+    el('span', { class: 'vacancy__rooms', text: ranges })
+  ]);
+}
+
+/**
+ * The rooms to lay down the side: the ones somebody is in on at least one
+ * night, in registry order, with off-registry rooms after them (§5, v9).
+ *
+ * A row carrying no room at all lands under one final line, where §12.6 can be
+ * seen rather than silently swallowed.
+ *
+ * @param {object} event
  * @param {string} building
- * @param {Object<string, object[]>[]} occupancy one per night
+ * @param {string[]} nights
  * @returns {{key: string, label: string}[]}
  */
-function roomsOf(building, occupancy) {
-  const rooms = roomsIn(building).map((room) => ({ key: room, label: room }));
-  const known = new Set(rooms.map((room) => room.key));
-
-  let hasRoomless = false;
-  for (const night of occupancy) {
-    for (const key of Object.keys(night)) {
-      if (key === '') {
-        hasRoomless = true;
-        continue;
-      }
-      if (known.has(key)) continue;
-      known.add(key);
-      rooms.push({ key, label: key });
-    }
+function occupiedRooms(event, building, nights) {
+  const seen = new Set();
+  for (const night of nights) {
+    for (const entry of roomsOn(event, building, night).occupied) seen.add(entry.room);
   }
-  if (hasRoomless) rooms.push({ key: '', label: 'No room set' });
+
+  const inventory = roomsIn(building);
+  const rooms = inventory.filter((room) => seen.has(room)).map((room) => ({ key: room, label: room }));
+  for (const room of seen) {
+    if (!inventory.includes(room)) rooms.push({ key: room, label: room });
+  }
+
+  const roomless = nights.some((night) =>
+    ((roomOccupancyOn(event, night)[building] || {})[''] || []).length > 0);
+  if (roomless) rooms.push({ key: '', label: 'No room set' });
   return rooms;
+}
+
+/** The rooms nobody holds on any night of the event, in registry order. */
+function vacantRooms(event, building, nights) {
+  if (!nights.length) return roomsIn(building);
+  return nights
+    .map((night) => roomsOn(event, building, night).vacant)
+    .reduce((free, tonight) => free.filter((room) => tonight.includes(room)));
 }
 
 /** One room's line: its name, then one cell per night. */

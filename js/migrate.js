@@ -23,6 +23,7 @@
 import { attendeeName } from './derive.js';
 import { newId } from './ids.js';
 import { assignmentModeFor, roomsIn } from './reference.js';
+import { markSeeded } from './seed.js';
 
 /**
  * Bring an event up to the current shape. Pure: the argument is not touched.
@@ -64,6 +65,11 @@ import { assignmentModeFor, roomsIn } from './reference.js';
  *      section, in the position of whichever came first. The second is dropped
  *      rather than duplicated, and a file that already has a `guests` section
  *      keeps it.
+ *  12. [v10] A file with no seeding ledger is marked as already seeded for its
+ *      whole date range. It has the meals somebody typed, and seeding over them
+ *      would be the duplication the ledger exists to prevent (§5, v10 changes).
+ *      Like the v5 attendee defaults, this is a shape being filled in rather
+ *      than a migration, so it does not set `changed`.
  *  11. [v9] Rooming rows in a building or room the registry no longer carries
  *      are **reported and left exactly as they are**. Not remapped and not
  *      dropped: an assignment to a room that is gone is information — somebody
@@ -89,7 +95,8 @@ export function migrate(event) {
     sectionsRetyped: 0,
     sectionsDropped: 0,
     menusFlattened: 0,
-    retiredRooms: []
+    retiredRooms: [],
+    datesMarkedSeeded: 0
   };
 
   if (!event || typeof event !== 'object' || Array.isArray(event)) {
@@ -270,14 +277,21 @@ export function migrate(event) {
     }
   }
 
-  // [v9] Fields the shape has always implied, filled in without counting as a
-  // change — the same rule as the v5 attendee defaults above. The editors write
-  // through these, and Save round-trips them.
+  // [v9], [v10] Fields the shape has always implied, filled in without counting
+  // as a change — the same rule as the v5 attendee defaults above. The editors
+  // write through these, and Save round-trips them.
   if (next.meta && typeof next.meta === 'object'
       && (!next.meta.includeInOrder || typeof next.meta.includeInOrder !== 'object')) {
     next.meta.includeInOrder = { rooming: false, menu: false };
   }
   if (!Array.isArray(next.overflowBuildings)) next.overflowBuildings = [];
+  if (!Array.isArray(next.customActivities)) next.customActivities = [];
+
+  // 12. [v10] A file that has never met a seeder is treated as fully seeded for
+  //     its own range, so opening it adds nothing to any document.
+  const hadLedger = next.seeded && typeof next.seeded === 'object';
+  markSeeded(next);
+  if (!hadLedger) summary.datesMarkedSeeded = next.seeded.meals.length;
 
   return { event: next, summary };
 }
@@ -335,6 +349,8 @@ function nameKey(name) {
  *   `attendees` / `accommodations` pair, once the first has become `guests`
  * @property {number} menusFlattened [v9] menu blocks whose `courses[]` became a
  *   flat `dishes[]`
+ * @property {number} datesMarkedSeeded [v10] dates a pre-v10 file was marked as
+ *   already seeded, so that opening it creates nothing
  * @property {{building: string, room: string, reason: 'building'|'room'}[]}
  *   retiredRooms [v9] rooming rows naming a building or a room the registry no
  *   longer carries. Reported and left alone: the row still holds its room, and

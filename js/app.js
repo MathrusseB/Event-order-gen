@@ -191,7 +191,14 @@ export function emptyEvent() {
     buildingsInUse: [],
     // [v9] The buildings held back in case the party grows, named on the order
     // beside the ones in use (§5, §8 A).
-    overflowBuildings: []
+    overflowBuildings: [],
+    // [v10] The dates already offered meals and itinerary rows (§5, v10
+    // changes). Empty on a new event, which has no dates yet; seeding fills it
+    // the moment they are set.
+    seeded: { meals: [], itinerary: [] },
+    // [v10] The event's copy of the activity list, so a custom activity travels
+    // with the file to another machine (§6 [v10]).
+    customActivities: []
   };
 }
 

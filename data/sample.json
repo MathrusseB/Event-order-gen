@@ -7,101 +7,392 @@
     "revisionDate": "2026-11-10",
     "revisedBy": "Brian Mathrusse",
     "brandId": "maple-ranch",
-    "includeInOrder": { "rooming": false, "menu": false }
+    "includeInOrder": {
+      "rooming": false,
+      "menu": false
+    }
   },
-
   "sections": [
-    { "id": "s1", "type": "schedule",    "title": "Itinerary",              "enabled": true },
-    { "id": "s2", "type": "guests",      "title": "Guests",                 "enabled": true },
-    { "id": "s3", "type": "foodAndBev",  "title": "Food & Beverage",        "enabled": true },
-    { "id": "s4", "type": "staff",       "title": "Staff Assignments",      "enabled": true },
-    { "id": "s5", "type": "freeText",    "title": "Security Notes",         "enabled": true,
-      "body": "Range in use Saturday PM. Guest arrivals staggered 1400-1800. PSO on property from 1200 Saturday through Monday departure." },
-    { "id": "s6", "type": "departments", "title": "Department Breakdown",   "enabled": false },
-    { "id": "s7", "type": "freeText",    "title": "Notes",                  "enabled": true,
-      "body": "" }
+    {
+      "id": "s1",
+      "type": "schedule",
+      "title": "Itinerary",
+      "enabled": true
+    },
+    {
+      "id": "s2",
+      "type": "guests",
+      "title": "Guests",
+      "enabled": true
+    },
+    {
+      "id": "s3",
+      "type": "foodAndBev",
+      "title": "Food & Beverage",
+      "enabled": true
+    },
+    {
+      "id": "s4",
+      "type": "staff",
+      "title": "Staff Assignments",
+      "enabled": true
+    },
+    {
+      "id": "s5",
+      "type": "freeText",
+      "title": "Security Notes",
+      "enabled": true,
+      "body": "Range in use Saturday PM. Guest arrivals staggered 1400-1800. PSO on property from 1200 Saturday through Monday departure."
+    },
+    {
+      "id": "s6",
+      "type": "departments",
+      "title": "Department Breakdown",
+      "enabled": false
+    },
+    {
+      "id": "s7",
+      "type": "freeText",
+      "title": "Notes",
+      "enabled": true,
+      "body": ""
+    }
   ],
-
   "attendees": [
-    { "id": "a-7f3c", "last": "Illig",     "first": "Brian",   "arrive": "2026-11-14", "depart": "2026-11-16",
-      "isChild": false, "dietary": "",                              "note": "" },
-    { "id": "a-1d55", "last": "Illig",     "first": "Michael", "arrive": "2026-11-14", "depart": "2026-11-16",
-      "isChild": false, "dietary": "",                              "note": "" },
-    { "id": "a-3fa1", "last": "Illig",     "first": "Nora",    "arrive": "2026-11-14", "depart": "2026-11-16",
-      "isChild": true,  "dietary": "Severe tree nut allergy",       "note": "" },
-    { "id": "a-6b70", "last": "Illig",     "first": "Charlie", "arrive": "2026-11-14", "depart": "2026-11-16",
-      "isChild": true,  "dietary": "",                              "note": "" },
-    { "id": "a-2b91", "last": "Palmer",    "first": "Kim",     "arrive": "2026-11-15", "depart": "2026-11-16",
-      "isChild": false, "dietary": "Shellfish allergy",             "note": "Arriving late" },
-    { "id": "a-c40e", "last": "Baldwin",   "first": "Chase",   "arrive": "2026-11-14", "depart": "2026-11-14",
-      "isChild": false, "dietary": "",                              "note": "Day guest, departing after dinner" },
-    { "id": "a-9d22", "last": "Reyes",     "first": "Dana",    "arrive": "2026-11-14", "depart": "2026-11-15",
-      "isChild": false, "dietary": "Vegetarian",                    "note": "Departs after breakfast Sunday" },
-    { "id": "a-5e08", "last": "Whitfield", "first": "Tom",     "arrive": "2026-11-15", "depart": "2026-11-16",
-      "isChild": false, "dietary": "",                              "note": "" },
-    { "id": "a-8a17", "last": "Navarro",   "first": "Elise",   "arrive": "2026-11-14", "depart": "2026-11-16",
-      "isChild": false, "dietary": "",                              "note": "Overflow - Red Leaf Inn" }
+    {
+      "id": "a-7f3c",
+      "last": "Illig",
+      "first": "Brian",
+      "arrive": "2026-11-14",
+      "depart": "2026-11-16",
+      "isChild": false,
+      "dietary": "",
+      "note": ""
+    },
+    {
+      "id": "a-1d55",
+      "last": "Illig",
+      "first": "Michael",
+      "arrive": "2026-11-14",
+      "depart": "2026-11-16",
+      "isChild": false,
+      "dietary": "",
+      "note": ""
+    },
+    {
+      "id": "a-3fa1",
+      "last": "Illig",
+      "first": "Nora",
+      "arrive": "2026-11-14",
+      "depart": "2026-11-16",
+      "isChild": true,
+      "dietary": "Severe tree nut allergy",
+      "note": ""
+    },
+    {
+      "id": "a-6b70",
+      "last": "Illig",
+      "first": "Charlie",
+      "arrive": "2026-11-14",
+      "depart": "2026-11-16",
+      "isChild": true,
+      "dietary": "",
+      "note": ""
+    },
+    {
+      "id": "a-2b91",
+      "last": "Palmer",
+      "first": "Kim",
+      "arrive": "2026-11-15",
+      "depart": "2026-11-16",
+      "isChild": false,
+      "dietary": "Shellfish allergy",
+      "note": "Arriving late"
+    },
+    {
+      "id": "a-c40e",
+      "last": "Baldwin",
+      "first": "Chase",
+      "arrive": "2026-11-14",
+      "depart": "2026-11-14",
+      "isChild": false,
+      "dietary": "",
+      "note": "Day guest, departing after dinner"
+    },
+    {
+      "id": "a-9d22",
+      "last": "Reyes",
+      "first": "Dana",
+      "arrive": "2026-11-14",
+      "depart": "2026-11-15",
+      "isChild": false,
+      "dietary": "Vegetarian",
+      "note": "Departs after breakfast Sunday"
+    },
+    {
+      "id": "a-5e08",
+      "last": "Whitfield",
+      "first": "Tom",
+      "arrive": "2026-11-15",
+      "depart": "2026-11-16",
+      "isChild": false,
+      "dietary": "",
+      "note": ""
+    },
+    {
+      "id": "a-8a17",
+      "last": "Navarro",
+      "first": "Elise",
+      "arrive": "2026-11-14",
+      "depart": "2026-11-16",
+      "isChild": false,
+      "dietary": "",
+      "note": "Overflow - Red Leaf Inn"
+    }
   ],
-
   "rooming": [
-    { "id": "r-2f18", "building": "Remington",          "room": "1",         "guestIds": ["a-7f3c"],
-      "from": "2026-11-14", "to": "2026-11-16" },
-    { "id": "r-b03c", "building": "Remington",          "room": "2",         "guestIds": ["a-1d55"],
-      "from": "2026-11-14", "to": "2026-11-16" },
-    { "id": "r-7d41", "building": "Lodge Bunk Rooms",   "room": "Bunk Room", "guestIds": ["a-3fa1", "a-6b70"],
-      "from": "2026-11-14", "to": "2026-11-16" },
-    { "id": "r-4a90", "building": "Lodge Lower Suites", "room": "Timber",    "guestIds": ["a-9d22"],
-      "from": "2026-11-14", "to": "2026-11-15" },
-    { "id": "r-c655", "building": "Lodge Lower Suites", "room": "Timber",    "guestIds": ["a-5e08"],
-      "from": "2026-11-15", "to": "2026-11-16" },
-    { "id": "r-e2b7", "building": "RLI",                "room": "8",         "guestIds": ["a-8a17"],
-      "from": "2026-11-14", "to": "2026-11-16" },
-    { "id": "r-91da", "building": "RLI",                "room": "11",        "guestIds": ["a-2b91"],
-      "from": "2026-11-15", "to": "2026-11-16" }
+    {
+      "id": "r-2f18",
+      "building": "Remington",
+      "room": "1",
+      "guestIds": [
+        "a-7f3c"
+      ],
+      "from": "2026-11-14",
+      "to": "2026-11-16"
+    },
+    {
+      "id": "r-b03c",
+      "building": "Remington",
+      "room": "2",
+      "guestIds": [
+        "a-1d55"
+      ],
+      "from": "2026-11-14",
+      "to": "2026-11-16"
+    },
+    {
+      "id": "r-7d41",
+      "building": "Lodge Bunk Rooms",
+      "room": "Bunk Room",
+      "guestIds": [
+        "a-3fa1",
+        "a-6b70"
+      ],
+      "from": "2026-11-14",
+      "to": "2026-11-16"
+    },
+    {
+      "id": "r-4a90",
+      "building": "Lodge Lower Suites",
+      "room": "Timber",
+      "guestIds": [
+        "a-9d22"
+      ],
+      "from": "2026-11-14",
+      "to": "2026-11-15"
+    },
+    {
+      "id": "r-c655",
+      "building": "Lodge Lower Suites",
+      "room": "Timber",
+      "guestIds": [
+        "a-5e08"
+      ],
+      "from": "2026-11-15",
+      "to": "2026-11-16"
+    },
+    {
+      "id": "r-e2b7",
+      "building": "RLI",
+      "room": "8",
+      "guestIds": [
+        "a-8a17"
+      ],
+      "from": "2026-11-14",
+      "to": "2026-11-16"
+    },
+    {
+      "id": "r-91da",
+      "building": "RLI",
+      "room": "11",
+      "guestIds": [
+        "a-2b91"
+      ],
+      "from": "2026-11-15",
+      "to": "2026-11-16"
+    }
   ],
-
   "schedule": [
-    { "id": "s-0a31", "date": "2026-11-14", "start": "05:00", "end": "10:00", "label": "Duck Hunt" },
-    { "id": "s-1c84", "date": "2026-11-14", "start": "11:00", "end": "16:00", "label": "Downtime" },
-    { "id": "s-2e07", "date": "2026-11-14", "start": "16:00", "end": "17:30", "label": "Range" },
-    { "id": "s-3b52", "date": "2026-11-15", "start": "06:00", "end": "10:00", "label": "Upland Hunt - Food Plot" },
-    { "id": "s-4f6d", "date": "2026-11-15", "start": "11:00", "end": "15:00", "label": "Downtime" },
-    { "id": "s-5a98", "date": "2026-11-15", "start": "15:00", "end": "16:00", "label": "Guest Arrival" },
-    { "id": "s-6d20", "date": "2026-11-16", "start": "09:00", "end": "11:00", "label": "Skeet" },
-    { "id": "s-7c73", "date": "2026-11-16", "start": "13:00", "end": null,    "label": "Guest Departure" }
+    {
+      "id": "s-0a31",
+      "date": "2026-11-14",
+      "start": "05:00",
+      "end": "10:00",
+      "label": "Duck Hunting"
+    },
+    {
+      "id": "s-1c84",
+      "date": "2026-11-14",
+      "start": "14:00",
+      "end": "16:00",
+      "label": "Guest Arrivals"
+    },
+    {
+      "id": "s-2e07",
+      "date": "2026-11-14",
+      "start": "16:00",
+      "end": "17:30",
+      "label": "Range"
+    },
+    {
+      "id": "s-3b52",
+      "date": "2026-11-15",
+      "start": "06:00",
+      "end": "10:00",
+      "label": "Hunting"
+    },
+    {
+      "id": "s-4f6d",
+      "date": "2026-11-15",
+      "start": "11:00",
+      "end": "13:00",
+      "label": "Sporting Clays"
+    },
+    {
+      "id": "s-5a98",
+      "date": "2026-11-15",
+      "start": "21:00",
+      "end": "23:00",
+      "label": "Late-Night Wheel Use"
+    },
+    {
+      "id": "s-6d20",
+      "date": "2026-11-16",
+      "start": "09:00",
+      "end": "11:00",
+      "label": "Skeet"
+    },
+    {
+      "id": "s-7c73",
+      "date": "2026-11-16",
+      "start": "13:00",
+      "end": null,
+      "label": "Guest Departure"
+    },
+    {
+      "id": "s-8e41",
+      "date": "2026-11-16",
+      "start": "",
+      "end": "",
+      "label": ""
+    }
   ],
-
   "foodAndBev": [
-    { "id": "sat-breakfast",   "date": "2026-11-14", "start": "10:30", "end": null,
-      "meal": "Breakfast",         "location": "The Wheel",    "countBasis": "present",   "serves": "all" },
-    { "id": "sat-kids-dinner", "date": "2026-11-14", "start": "17:30", "end": null,
-      "meal": "Children's Dinner", "location": "The Wheel",    "countBasis": "present",   "serves": "children" },
-    { "id": "sat-dinner",      "date": "2026-11-14", "start": "18:30", "end": null,
-      "meal": "Dinner",            "location": "The Wheel",    "countBasis": "present",   "serves": "adults" },
-    { "id": "sun-breakfast",   "date": "2026-11-15", "start": "10:30", "end": null,
-      "meal": "Breakfast",         "location": "The Wheel",    "countBasis": "present",   "serves": "all" },
-    { "id": "sun-cocktails",   "date": "2026-11-15", "start": "17:00", "end": "18:00",
-      "meal": "Cocktails",         "location": "Hummer Bar",   "countBasis": "present",   "serves": "adults" },
-    { "id": "sun-dinner",      "date": "2026-11-15", "start": "18:30", "end": null,
-      "meal": "Dinner",            "location": "The Wheel",    "countBasis": "present",   "serves": "all" },
-    { "id": "sun-nightcap",    "date": "2026-11-15", "start": "21:00", "end": "23:00",
-      "meal": "Nightcap",          "location": "Hummer Bar",   "countBasis": "overnight", "serves": "adults" },
-    { "id": "mon-breakfast",   "date": "2026-11-16", "start": "07:00", "end": null,
-      "meal": "Breakfast",         "location": "The Wheel",    "countBasis": "present",   "serves": "all" },
-    { "id": "mon-lunch",       "date": "2026-11-16", "start": "11:30", "end": null,
-      "meal": "Lunch",             "location": "The Wheel",    "countBasis": "custom",    "serves": "all", "count": 6 }
+    {
+      "id": "sat-breakfast",
+      "date": "2026-11-14",
+      "start": "09:00",
+      "end": "11:00",
+      "meal": "Breakfast",
+      "location": "The Wheel",
+      "countBasis": "present",
+      "serves": "all"
+    },
+    {
+      "id": "sat-kids-dinner",
+      "date": "2026-11-14",
+      "start": "17:30",
+      "end": "18:15",
+      "meal": "Children's Dinner",
+      "location": "The Wheel",
+      "countBasis": "present",
+      "serves": "children"
+    },
+    {
+      "id": "sat-dinner",
+      "date": "2026-11-14",
+      "start": "18:30",
+      "end": "20:30",
+      "meal": "Dinner",
+      "location": "The Wheel",
+      "countBasis": "present",
+      "serves": "adults"
+    },
+    {
+      "id": "sun-breakfast",
+      "date": "2026-11-15",
+      "start": "09:00",
+      "end": "11:00",
+      "meal": "Breakfast",
+      "location": "The Wheel",
+      "countBasis": "present",
+      "serves": "all"
+    },
+    {
+      "id": "sun-lunch",
+      "date": "2026-11-15",
+      "start": "12:00",
+      "end": "14:00",
+      "meal": "Lunch",
+      "location": "The Clubhouse",
+      "countBasis": "present",
+      "serves": "all"
+    },
+    {
+      "id": "sun-cocktails",
+      "date": "2026-11-15",
+      "start": "17:00",
+      "end": "18:00",
+      "meal": "Cocktails",
+      "location": "Hummer Bar",
+      "countBasis": "present",
+      "serves": "adults"
+    },
+    {
+      "id": "sun-dinner",
+      "date": "2026-11-15",
+      "start": "18:30",
+      "end": "20:30",
+      "meal": "Dinner",
+      "location": "The Wheel",
+      "countBasis": "present",
+      "serves": "all"
+    },
+    {
+      "id": "sun-nightcap",
+      "date": "2026-11-15",
+      "start": "21:00",
+      "end": "23:00",
+      "meal": "Nightcap",
+      "location": "Hummer Bar",
+      "countBasis": "overnight",
+      "serves": "adults"
+    },
+    {
+      "id": "mon-breakfast",
+      "date": "2026-11-16",
+      "start": "09:00",
+      "end": "11:00",
+      "meal": "Breakfast",
+      "location": "The Wheel",
+      "countBasis": "present",
+      "serves": "all"
+    }
   ],
-
   "menu": [
-    { "fnbId": "sat-kids-dinner",
+    {
+      "fnbId": "sat-kids-dinner",
       "dishes": [
         "All-Beef Hot Dogs",
         "Buttered Noodles",
         "Apple Slices",
         "Carrot Sticks and Ranch",
         "Vanilla Soft Serve - nut-free station"
-      ] },
-    { "fnbId": "sat-dinner",
+      ]
+    },
+    {
+      "fnbId": "sat-dinner",
       "dishes": [
         "Bacon-Wrapped Dove Poppers",
         "Smoked Trout Rillette on Rye",
@@ -111,29 +402,96 @@
         "Charred Broccolini",
         "Buttermilk Rolls",
         "Skillet Apple Crisp, Vanilla Bean Ice Cream"
-      ] },
-    { "fnbId": "sun-dinner",
+      ]
+    },
+    {
+      "fnbId": "sun-dinner",
       "dishes": [
         "Cast-Iron Pheasant Breast, Sage Butter",
         "Butternut Squash Risotto - vegetarian",
         "Roasted Root Vegetables",
         "Skillet Cornbread",
         "Bourbon Pecan Tart"
-      ] }
+      ]
+    }
   ],
-
   "staff": [
-    { "id": "t-11a0", "name": "Sara",    "date": "2026-11-14", "daypart": "AM", "assignment": "Duck blind - North" },
-    { "id": "t-12b4", "name": "Sara",    "date": "2026-11-14", "daypart": "PM", "assignment": "Bartend - Wheel" },
-    { "id": "t-13c9", "name": "Tanisha", "date": "2026-11-14", "daypart": "AM", "assignment": "AM duties" },
-    { "id": "t-14d2", "name": "Evie",    "date": "2026-11-14", "daypart": "PM", "assignment": "PM stew" },
-    { "id": "t-15e6", "name": "Sara",    "date": "2026-11-15", "daypart": "AM", "assignment": "Upland guide - Food Plot" },
-    { "id": "t-16f8", "name": "Tanisha", "date": "2026-11-15", "daypart": "PM", "assignment": "Turndown - RLI" },
-    { "id": "t-1703", "name": "Evie",    "date": "2026-11-16", "daypart": "AM", "assignment": "Breakfast service - Wheel" }
+    {
+      "id": "t-11a0",
+      "name": "Sara",
+      "date": "2026-11-14",
+      "daypart": "AM",
+      "assignment": "Duck blind - North"
+    },
+    {
+      "id": "t-12b4",
+      "name": "Sara",
+      "date": "2026-11-14",
+      "daypart": "PM",
+      "assignment": "Bartend - Wheel"
+    },
+    {
+      "id": "t-13c9",
+      "name": "Tanisha",
+      "date": "2026-11-14",
+      "daypart": "AM",
+      "assignment": "AM duties"
+    },
+    {
+      "id": "t-14d2",
+      "name": "Evie",
+      "date": "2026-11-14",
+      "daypart": "PM",
+      "assignment": "PM stew"
+    },
+    {
+      "id": "t-15e6",
+      "name": "Sara",
+      "date": "2026-11-15",
+      "daypart": "AM",
+      "assignment": "Upland guide - Food Plot"
+    },
+    {
+      "id": "t-16f8",
+      "name": "Tanisha",
+      "date": "2026-11-15",
+      "daypart": "PM",
+      "assignment": "Turndown - RLI"
+    },
+    {
+      "id": "t-1703",
+      "name": "Evie",
+      "date": "2026-11-16",
+      "daypart": "AM",
+      "assignment": "Breakfast service - Wheel"
+    }
   ],
-
   "departments": [],
-
-  "buildingsInUse": ["Remington", "Lodge Bunk Rooms", "Lodge Lower Suites", "RLI", "The Wheel", "Hummer Bar", "Food Plot"],
-  "overflowBuildings": ["Winchester"]
+  "buildingsInUse": [
+    "Remington",
+    "Lodge Bunk Rooms",
+    "Lodge Lower Suites",
+    "RLI",
+    "The Wheel",
+    "Hummer Bar",
+    "Food Plot"
+  ],
+  "overflowBuildings": [
+    "Winchester"
+  ],
+  "seeded": {
+    "meals": [
+      "2026-11-14",
+      "2026-11-15",
+      "2026-11-16"
+    ],
+    "itinerary": [
+      "2026-11-14",
+      "2026-11-15",
+      "2026-11-16"
+    ]
+  },
+  "customActivities": [
+    "Sporting Clays"
+  ]
 }

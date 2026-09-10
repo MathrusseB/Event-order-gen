@@ -742,6 +742,15 @@ export function createRoomingBoard({ onEvent }) {
   /**
    * One room in a `named` building, or the single drop area of a `pooled` one.
    *
+   * [v10] EVERY ROOM IN INVENTORY IS HERE, VACANT ONES INCLUDED, AND THIS IS
+   * NOT WHAT THE PRINTED SHEET DOES. The Rooming Assignment prints the occupied
+   * rooms and collapses the rest into one line per building, because on paper
+   * eighteen empty RLI rows are eighteen rows to skip (§8 C [v10], and the note
+   * at the top of js/renders/rooming.js). Here a vacant room is not information
+   * to be compressed — it is the target you tap to put somebody in it, and a
+   * board that hid the empties would leave nowhere to drop anybody. The two
+   * surfaces have different jobs and are meant to differ.
+   *
    * The `''` key is two different things and both are drawn here: a pooled
    * building, which has no rooms to be assigned to (§6 [v3]), and — under a
    * named building — the line that gathers rows carrying no room at all, so
