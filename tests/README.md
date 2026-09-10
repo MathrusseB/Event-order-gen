@@ -113,13 +113,24 @@ written for and seeds the new range exactly as any other date change does.
 
 The transform underneath runs in plain Node: whole days across a daylight-saving
 boundary, the ledger travelling with the content, and the blank rows seeding
-puts down while the dates are half-typed — which an accepted shift clears, and
-only where they are still exactly as seeding made them.
+puts down during the move — which an accepted shift clears, and only where they
+are still exactly as seeding made them.
+
+Three more cases are about where a move *ends*, and each of them was a live bug
+that the three answers above did not see. The offer must fire on an order whose
+dates were typed in this same session, or it is dead in the flow §10 [v13] made
+the way in. A date edit that follows other work must anchor afresh, or a stale
+pair reads as a move and offers to walk every row off the day it was written
+for. And an offer nobody answers must still leave the new range seeded, because
+the offer dies with the page and a range with no rows is recorded as already
+seeded on the way back in.
 
 The same file checks §10 [v13]: a first run opens on an empty order rather than
 the sample and lands on the start date, New over an untouched order asks
 nothing, New over an order with work in it does ask, and the sample says in its
-own name that it is a sample.
+own name that it is a sample. "Work" includes a note typed into a free-text
+section and nothing else — a section body is the only place that content lives,
+and New used to discard it without a word, taking the autosave with it.
 
 **`checks/entry.mjs` — seeding, vacancies, and one guest in one room.** The
 three v10 rules that are easy to state and easy to break later. Seeding fills

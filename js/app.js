@@ -155,8 +155,19 @@ export function lastLoad() {
  * that teaches people to confirm without reading — and an empty order is the
  * one thing in this app it costs nothing to throw away.
  *
- * The outline counts: a coordinator who has arranged their sections and typed
- * nothing else has still done work. Everything else is content.
+ * **`meta.touchedAt` answers this outright, and is asked first.** It is stamped
+ * by `update()` (§5 [v12]) — the one write path, so there is no edit it can
+ * miss — and it is empty on an event this session created and never touched. A
+ * field-by-field inventory would be a second list of what counts as content,
+ * kept in step with the model by hand, and the first draft of this function
+ * proved the point by leaving out a `freeText` section's `body`: a note typed
+ * into the seeded Notes section was thrown away by New without a prompt, and
+ * `clearAutosave()` took the last copy of it with it.
+ *
+ * The inventory below still runs, for the event this cannot speak for: a file
+ * saved before v12, which carries no `touchedAt` and is somebody's work all the
+ * same. The outline counts there too — a coordinator who arranged their
+ * sections and typed nothing else has still done something.
  *
  * @param {object} event
  * @returns {boolean} false for a new event nobody has touched
@@ -165,13 +176,17 @@ export function hasWork(event) {
   if (!event || typeof event !== 'object') return false;
 
   const meta = event.meta || {};
+  if (String(meta.touchedAt || '').trim()) return true;
+
   for (const key of ['eventName', 'startDate', 'endDate', 'eventLead', 'revisionDate', 'revisedBy']) {
     if (String(meta[key] || '').trim()) return true;
   }
   for (const key of CONTENT_ARRAYS) {
     if (Array.isArray(event[key]) && event[key].length) return true;
   }
-  return outlineSignature(event.sections) !== FRESH_OUTLINE;
+  const sections = Array.isArray(event.sections) ? event.sections : [];
+  if (sections.some((section) => section && String(section.body || '').trim())) return true;
+  return outlineSignature(sections) !== FRESH_OUTLINE;
 }
 
 /** [v13] The arrays that hold what somebody typed. `sections` is asked separately. */

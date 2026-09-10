@@ -263,14 +263,15 @@ export async function run({ browser, origin, check }) {
 
     check(
       'nothing has moved while the offer is up',
-      datesOf(await readEvent(page)) === datesOf(before),
+      nothingMoved(before, await readEvent(page)),
       'the offer must be an offer'
     );
 
     check(
-      'and no day has been seeded under it either',
-      (await readEvent(page)).foodAndBev.length === before.foodAndBev.length,
-      'blank rows on the days about to receive an itinerary is the duplication this avoids'
+      'and the days the range now covers are seeded, as on any other date change',
+      (await readEvent(page)).seeded.meals.includes('2026-12-02'),
+      'seeding is not held back for an answer — an accepted shift clears those rows instead, '
+        + 'because an offer nobody answers must not cost the event three unseeded days'
     );
 
     await page.click('.notice--offer .btn--primary');
@@ -367,6 +368,147 @@ export async function run({ browser, origin, check }) {
     await narrowed.close();
   }
 
+  /* ------------------------------- the move belongs to ONE interaction [v13] */
+
+  // The first draft of this feature let the anchor stand until somebody
+  // answered an offer, which meant it never stood down on an order that never
+  // raised one. Both halves of that are checked here, because both were live
+  // bugs and neither is visible from the three answers above.
+
+  const authored = await browser.newContext();
+  try {
+    const page = await authored.newPage();
+    page.on('dialog', (dialog) => dialog.accept());
+    await page.goto(`${origin}/index.html`, { waitUntil: 'networkidle' });
+
+    // A real order, started with New — the way in (section 10 [v13]) — rather
+    // than the sample. The dates are typed first, as they are on a new order.
+    await setDate(page, 'startDate', '2026-11-14');
+    await setDate(page, 'endDate', '2026-11-16');
+    await page.fill('#meta-eventName', 'Opening weekend');
+    await page.waitForFunction(() => document.getElementById('meta-eventName').value !== '');
+    const before = await readEvent(page);
+
+    check(
+      'an order started with New seeds its days when the dates are typed',
+      before.foodAndBev.length === 9 && before.schedule.length === 9,
+      `${before.foodAndBev.length} meals, ${before.schedule.length} rows`
+    );
+
+    // Now the event moves — the second date interaction of the session, on an
+    // order whose dates were typed in this same session.
+    await setDate(page, 'startDate', TO.start);
+    await setDate(page, 'endDate', TO.end);
+
+    check(
+      'THE OFFER FIRES ON AN ORDER WHOSE DATES WERE TYPED IN THIS SESSION [v13]',
+      await page.evaluate(() => !document.querySelector('.notice--offer').hidden),
+      'the anchor has to re-take from the dates as they stand, or the offer is dead after '
+        + 'the first date interaction of a session'
+    );
+
+    await page.click('.notice--offer .btn--primary');
+    await page.waitForSelector('.notice--offer[hidden]', { state: 'attached' });
+    const after = await readEvent(page);
+
+    check(
+      'and accepting moves the order without leaving the seeded December days behind it',
+      after.foodAndBev.length === before.foodAndBev.length
+        && after.schedule.length === before.schedule.length
+        && datesOf(after) === datesOf(before).split(',')
+          .map((date) => (date ? shiftDate(date, OFFSET) : date)).join(','),
+      `${after.foodAndBev.length} meals, ${after.schedule.length} rows`
+    );
+  } finally {
+    await authored.close();
+  }
+
+  const stale = await browser.newContext();
+  try {
+    const page = await stale.newPage();
+    page.on('dialog', (dialog) => dialog.accept());
+    const before = await openSample(page, origin);
+
+    // Correct one end. No offer, correctly — but this is the edit that used to
+    // leave an anchor lying about for the rest of the session.
+    await setDate(page, 'startDate', '2026-11-15');
+    check(
+      'correcting one end raises no offer',
+      await page.evaluate(() => document.querySelector('.notice--offer').hidden),
+      'one end alone is not a move'
+    );
+
+    // Author against the corrected range, which is what makes the old anchor a
+    // lie: these rows belong to the days they are on now.
+    await page.fill('#meta-eventLead', 'Brian Mathrusse');
+    await page.waitForFunction(() => document.getElementById('meta-eventLead').value !== '');
+
+    // A pure one-day extension. Against the anchor as it stands (Nov 15-16)
+    // this is one end alone; against the stale one (Nov 14-16) it read as a
+    // same-offset move and offered to walk every row a day forward.
+    await setDate(page, 'endDate', '2026-11-17');
+    const after = await readEvent(page);
+
+    check(
+      'A DATE EDIT AFTER OTHER WORK ANCHORS AFRESH — no offer off a stale pair [v13]',
+      await page.evaluate(() => document.querySelector('.notice--offer').hidden),
+      'Nov 15-16 to Nov 15-17 is one end alone, whatever the dates were an hour ago'
+    );
+
+    check(
+      'and nothing moved',
+      nothingMoved(before, after),
+      'a one-day extension must not walk the order forward a day'
+    );
+  } finally {
+    await stale.close();
+  }
+
+  const unanswered = await browser.newContext();
+  try {
+    const page = await unanswered.newPage();
+    page.on('dialog', (dialog) => dialog.accept());
+    const before = await openSample(page, origin);
+
+    await setDate(page, 'startDate', TO.start);
+    await setDate(page, 'endDate', TO.end);
+    await page.waitForSelector('.notice--offer:not([hidden])');
+    const withOfferUp = await readEvent(page);
+
+    check(
+      'AN OFFER NOBODY ANSWERS STILL LEAVES THE NEW RANGE SEEDED [v13]',
+      withOfferUp.seeded.meals.includes('2026-12-02')
+        && withOfferUp.seeded.meals.includes('2026-12-04')
+        && withOfferUp.foodAndBev.filter((row) => row.date === '2026-12-02').length === 3,
+      'holding seeding back for an answer loses it when the tab closes, and markSeeded '
+        + 'then records the range on the way back in — three days that can never be seeded'
+    );
+
+    check(
+      'and the offer still counts only what would move, not the rows it would clear',
+      (await page.evaluate(() =>
+        document.querySelector('.notice--offer .btn--primary').textContent))
+        .includes(String(plan(before, OFFSET).total)),
+      await page.evaluate(() =>
+        document.querySelector('.notice--offer .btn--primary').textContent)
+    );
+
+    await page.click('.notice--offer .btn--primary');
+    await page.waitForSelector('.notice--offer[hidden]', { state: 'attached' });
+    const after = await readEvent(page);
+
+    check(
+      'and accepting clears those seeded days rather than piling the order on top of them',
+      after.foodAndBev.length === before.foodAndBev.length
+        && after.schedule.length === before.schedule.length
+        && after.seeded.meals.join(',') === '2026-12-02,2026-12-03,2026-12-04',
+      `${after.foodAndBev.length} meals, ${after.schedule.length} rows, `
+        + `seeded ${after.seeded.meals.join(',')}`
+    );
+  } finally {
+    await unanswered.close();
+  }
+
   /* ------------------------------------------------------ the way in [v13] */
 
   const opening = await browser.newContext();
@@ -403,6 +545,28 @@ export async function run({ browser, origin, check }) {
       `${asked} confirmations for an event nobody has typed into`
     );
 
+    // A note typed into the seeded Notes section and nothing else. Its body is
+    // the only place that content lives, and New used to throw it away without
+    // a word — and clearAutosave() took the last copy with it.
+    await page.fill('.editor--text textarea', 'Gate code changes Friday.');
+    await page.waitForFunction(() =>
+      document.querySelector('.editor--text textarea').value !== '');
+    check(
+      'A NOTE TYPED INTO A FREE-TEXT SECTION COUNTS AS WORK [v13]',
+      await page.evaluate(async () => {
+        const app = await import('/js/app.js');
+        return app.hasWork(app.getEvent());
+      }),
+      'a section body is content, and meta.touchedAt says so whatever the field was'
+    );
+
+    await page.click('#btn-new');
+    check(
+      'and New asks before discarding it',
+      asked === 1,
+      `${asked} confirmations after a note was typed`
+    );
+
     await page.click('#btn-sample');
     await page.waitForFunction(() => document.getElementById('meta-startDate').value === '2026-11-14');
     check(
@@ -415,7 +579,7 @@ export async function run({ browser, origin, check }) {
     await page.click('#btn-new');
     check(
       'New over an event with work in it does ask',
-      asked === 1,
+      asked === 2,
       `${asked} confirmations`
     );
 
