@@ -5,7 +5,7 @@ Static document generator for Maple Ranch private-side event orders, menus, and 
 **Repo:** `MathrusseB/EVENT-ORDER-GEN`
 **Deploy:** `event-order-gen-production.up.railway.app`
 
-Supersedes v8. Each change carries the version that introduced it, **[v2]** through **[v9]**;
+Supersedes v9. Each change carries the version that introduced it, **[v2]** through **[v10]**;
 §5 keeps a change block per version.
 
 ---
@@ -177,7 +177,10 @@ sections per event. Nothing is mandatory except the header block.
   ],
 
   "buildingsInUse": ["Remington", "Lodge Bunk Rooms", "The Wheel"],
-  "overflowBuildings": ["RLI"]
+  "overflowBuildings": ["RLI"],
+
+  "seeded": { "meals": ["2026-11-14"], "itinerary": ["2026-11-14"] },
+  "customActivities": ["Sporting Clays"]
 }
 ```
 
@@ -389,6 +392,61 @@ list belongs to the Event Order, and the same names printed on two documents dri
 of them is reissued. The unassigned-guest callout stays: that is a warning about the grid, not a
 guest list.
 
+### Changes from v9
+
+**[v10] The printed rooming sheet lists occupied rooms; the interactive board shows every room.**
+§8 C said every room in inventory prints, occupied or vacant, and that was written when the largest
+building had eight rooms. With RLI at twenty-four, the sample event — nine guests in six rooms —
+prints thirty-one rows, and one of its pages is fifteen empty RLI rows with a single guest among
+them.
+
+The two surfaces have different jobs, and this is the first place they diverge on purpose:
+
+- **On paper**, staff read which rooms are occupied. Empty rows are noise. Occupied rooms print as
+  rows; the vacancies follow as one compact line per building, collapsed into ranges —
+  `Vacant: 1–7, 9–10, 12–24`. A building holding nobody that night is named with its vacancies and
+  no grid at all.
+- **On the board** (§9), vacant rooms are what you tap. The full grid stays exactly as it is.
+
+Neither is a defect in the other, and a future reader who makes one match the other will be undoing
+this. Both call sites say so.
+
+**[v10] Meal services are seeded for every day of the event.** Three per day — Breakfast
+09:00–11:00, Lunch 12:00–14:00, Dinner 18:30–20:30 — created when the event dates are set or
+changed, with no location. They are ordinary rows from the moment they exist: edited, retimed,
+reordered and deleted like any other. Partial arrival and departure days are trimmed by hand,
+because the app cannot know which end of the day a group is travelling on.
+
+Seeding fills gaps and does nothing else. It never duplicates a row, never overwrites an edited
+one, and never resurrects one somebody deleted — which means the event has to remember which dates
+it has already seeded, so that "not yet created" and "created and removed" are different states.
+Narrowing the date range deletes nothing: §12.9 already reports an item dated outside the event,
+and deleting a guest's dinner because a date moved is the kind of quiet loss this app exists to
+avoid.
+
+**[v10] Itinerary rows are seeded three per day, blank and ready**, under the same discipline.
+
+`seeded` is that memory: the dates each kind has already been offered for. It is bookkeeping rather
+than document content, so it sits beside the arrays instead of in `meta`, and a file arriving
+without it is treated as already seeded for its whole range — an event authored before v10 has the
+meals somebody typed, and seeding over them would be the duplication this rule exists to prevent.
+
+`customActivities` is the event's copy of the activity list (§6), written on save so the list
+travels with the file.
+
+**[v10] A guest cannot hold two rooms on the same night.** In the rooming editor the guest picker
+omits anyone already assigned over a night that overlaps the row being filled, and says who it
+omitted and why — a name missing from a list with no explanation reads as a bug. **Overlap, not
+"assigned anywhere":** a guest in Mallard 3 on Saturday and Wigeon 5 on Sunday is ordinary turnover
+and stays expressible. This is the correct behaviour rather than a guard; §12.4 is about a room
+claimed twice, and this is the same fault from the guest's side.
+
+**[v10] Printing is the primary output; saving a working copy is secondary.** Documents leave the
+building as PDFs printed from the browser, and that is what the tool is for. The JSON stays — it is
+still the source of truth (§3) and still the only thing that can reopen an event to amend or
+duplicate it, which a PDF cannot — but it is the quieter of the two actions in the interface, and
+it says what it is for.
+
 ## 6. Static reference data
 
 Seeded in `js/reference.js`. Not part of event JSON.
@@ -430,9 +488,27 @@ Leaf Inn" are no longer building names of their own — the registry above names
 knowledge everyone at the ranch already has, which belongs in neither the room titles nor the data.
 Nothing anywhere models room capacity: **[v9]** every room holds a party of any size, as before.
 
-**[v2] Schedule label suggestions** (autocomplete only, free text always allowed):
-Duck Hunt, Upland Hunt, Deer Hunt, Downtime, Breakfast, Lunch, Dinner, Cocktails, Happy Hour,
-Guest Arrival, Guest Departure, Range, Skeet
+**[v10] Meal locations.** A short list, because the meals happen in the same few places: The
+Wheel, The Clubhouse, The Lodge, and **Other**, which takes free text and is stored as that text.
+Nothing distinguishes a listed location from a typed one in the file — `location` is one string
+either way.
+
+**[v10] Activities.** The itinerary's own list: Early Arrivals, Guest Arrivals, Duck Hunting,
+Hunting, Late-Night Wheel Use, and **Other**, which takes free text and can be added to the list
+for good.
+
+A custom activity outlives the event it was typed into, so it cannot live only in the event JSON.
+It is kept in `localStorage` under its own key — separate from the autosave, which is one event and
+is overwritten — *and* written into the saved event, so it travels to another machine with the
+file. Both are merged on load, deduplicating case-insensitively. Removing a custom activity takes
+it off the list and touches no event that used it: the activity is a suggestion, and the events
+that used it hold their own copy of the words.
+
+~~**[v2] Schedule label suggestions** (autocomplete only, free text always allowed)~~ — **[v10]**
+superseded by the activity list above. The v2 list was thirteen autocomplete hints over a free-text
+field, half of them meals that now come from `foodAndBev[]` and appear on the itinerary by
+themselves (§7 [v7]). What is left is what an itinerary row actually says, and it is a list rather
+than a hint.
 
 Room inventory is fixed property data — selected from, never typed. **[v9]** So is the building
 list the `guests` section draws its buildings-in-use and overflow buildings from.
@@ -506,8 +582,11 @@ either appears.
 **B. Menu** — header, F&B schedule table, allergies, per-meal sections grouped by course heading.
 **[v7]** Always generated; never a section of the Event Order.
 
-**C. Rooming Assignment** — the room grid by building, showing occupied and vacant rooms, and the
-callout naming guests staying with no room that night. **[v7]** Always generated; never a section
+**C. Rooming Assignment** — **[v10]** the **occupied** rooms by building, rooms down and nights
+across, with each building's vacancies on one line beneath it as collapsed ranges, and the callout
+naming guests staying with no room that night. A building holding nobody that night is named with
+its vacancies and prints no grid. The full inventory grid belongs to the board (§9), where a vacant
+room is a thing you tap; on paper it is thirty-one rows to read six. **[v7]** Always generated; never a section
 of the Event Order. **[v9]** It does **not** repeat the attendee list: that is the `guests`
 section's, on the Event Order, and the same names on two documents drift the moment one is
 reissued. The unassigned callout is not a guest list — it is a warning about the grid.
@@ -531,9 +610,14 @@ assigning both to the same night is obvious rather than silent.
 
 - Night selector — one tab per night, current night highlighted
 - Two panes — guests present that night and unassigned, against the lodging buildings
-- **Lodge** renders as a room grid; drag a guest onto a room, or tap guest then tap room on touch
-- **Red Leaf Inn** renders as a single drop area with no rooms — a guest is either in RLI or not
-- Rooms show occupied / vacant for the selected night only
+- Each building renders as a room grid; drag a guest onto a room, or tap guest then tap room on
+  touch. **[v9]** Every lodging building is room-numbered, so every one of them is a grid; the
+  single drop area a `pooled` building used to get is unused
+- Rooms show occupied / vacant for the selected night only. **[v10] Every room in inventory stays
+  on the board**, vacant ones included — they are the targets. This is deliberately *not* what the
+  printed sheet does (§8 C), and the divergence is the point rather than a drift to be tidied
+- **[v10]** The guest picker in the row editor omits anyone already assigned over an overlapping
+  night, and says so
 - Dropping onto an occupied room offers swap or replace, scoped to that night
 - Assigning a guest across consecutive nights creates one `rooming[]` row with a spanning range,
   not one row per night
@@ -550,6 +634,10 @@ later swap to a hosted backend a change of caller, not a rewrite.
 ## 10. Print approach
 
 Browser print-to-PDF. CSS `@page { size: letter; margin: 0.75in }`, running header and footer.
+
+**[v10] This is the primary output.** Print is reachable from the shell without opening a document
+first, and it names which of the three it is about to print. Saving the JSON is the secondary
+action and is worded as what it is: a working copy, for reopening an event to amend or duplicate.
 
 **[v2] Correction to v1:** do *not* put `break-inside: avoid` on whole sections. Sections have no
 length limit and must be free to flow across pages. Apply `break-inside: avoid` to individual rows,
@@ -582,6 +670,8 @@ now keeps that port cheap.
 /js/migrate.js       forward migration of inbound JSON
 /js/derive.js        counts and lodging, derived from the event
 /js/reference.js     buildings, rooms, static lists
+/js/seed.js          [v10] the meals and itinerary rows a day starts with
+/js/activities.js    [v10] the itinerary's activity list, and where a custom one lives
 /js/render.js        document shell — page furniture, brand header, print
 /js/renders/         one module per document: order, menu, rooming
 /js/include.js       [v9] what meta.includeInOrder appends to the Event Order
