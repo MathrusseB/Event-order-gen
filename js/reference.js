@@ -157,3 +157,56 @@ export const SECTION_TYPES = [
   'departments',
   'freeText'
 ];
+
+/**
+ * [v8] Brand registry. BUILD-SPEC §6.
+ *
+ * The ranch hosts groups that are not the ranch, and the paperwork handed to a
+ * group should identify the group. `meta.brandId` holds one of these ids; the
+ * event JSON never carries the name or the logo path, which are property data
+ * and live here.
+ *
+ * `ratio` is the logo's own width/height, recorded so the print stylesheet can
+ * be reasoned about rather than guessed at: these five span a factor of four,
+ * from a 3.48:1 wordmark to a 0.83:1 portrait crest. Nothing reads it at
+ * runtime — each logo is fitted into one fixed box (§6, §10) so the running
+ * header keeps the same height whichever brand an event carries.
+ */
+export const BRANDS = [
+  { id: 'maple-ranch',    name: 'Maple Ranch',    logo: 'logos/maple-ranch.png',    ratio: 3.48 },
+  { id: 'bloody-feather', name: 'Bloody Feather', logo: 'logos/bloody-feather.png', ratio: 2.29 },
+  { id: 'rnt',            name: 'RNT',            logo: 'logos/rnt.png',            ratio: 2.72 },
+  { id: 'kuiu',           name: 'KUIU',           logo: 'logos/kuiu.png',           ratio: 1.18 },
+  { id: 'navy-seals',     name: 'Navy SEALs',     logo: 'logos/navy-seals.png',     ratio: 0.83 }
+];
+
+/**
+ * [v8] The default brand, and the fallback for an id matching no entry.
+ *
+ * Also the Menu's brand, always. BUILD-SPEC §5 (v8 changes): the Event Order
+ * and the Rooming Assignment carry the event's brand, but the menu is the
+ * ranch's culinary product and not the visiting group's, so it carries this one
+ * whatever the event says. That asymmetry is deliberate — the spec asks that it
+ * not be "fixed" into consistency — which is why the Menu render reaches for a
+ * named constant rather than for whatever `meta.brandId` happens to hold.
+ */
+export const DEFAULT_BRAND_ID = 'maple-ranch';
+
+/** [v8] The Menu's brand. Named separately from the default so the two can be read apart. */
+export const MENU_BRAND_ID = DEFAULT_BRAND_ID;
+
+/**
+ * [v8] The brand an id names. BUILD-SPEC §6.
+ *
+ * Never null: an absent, empty, or unrecognised id resolves to Maple Ranch,
+ * because a document with no identity on it is a worse outcome than a document
+ * carrying the wrong one — and the wrong one here is the ranch's own, which is
+ * where every event was branded before v8 anyway.
+ *
+ * @param {string} id `meta.brandId`
+ * @returns {{id: string, name: string, logo: string, ratio: number}}
+ */
+export function brandFor(id) {
+  return BRANDS.find((brand) => brand.id === id)
+    || BRANDS.find((brand) => brand.id === DEFAULT_BRAND_ID);
+}

@@ -1,6 +1,13 @@
 // Event header editor — BUILD-SPEC §5 `meta`.
 //
-// Six fields, and one thing that is not a field: the event's start and end
+// [v8] Seven fields now: the fifth is the event's brand. The ranch hosts groups
+// that are not the ranch, and the paperwork handed to a group should identify
+// the group (§5, v8 changes). Two of the three documents follow this field; the
+// Menu never does, which is the one thing about it worth a line of interface
+// text, and it gets one below the control rather than being left to surprise
+// somebody at the printer.
+//
+// The other fields, and one thing that is not a field: the event's start and end
 // dates are load-bearing. Guests' `arrive` / `depart` default to them (§5, v2
 // changes), so narrowing the range changes who is counted present on a night
 // without anyone touching the attendee list. Schedule entries, meal services,
@@ -17,6 +24,7 @@
 import { update } from '../app.js';
 import { attendeeName, roomingWindow } from '../derive.js';
 import { formatDateShort } from '../dates.js';
+import { BRANDS, DEFAULT_BRAND_ID, brandFor } from '../reference.js';
 import { el, reconcile, setHidden, setText, setValue } from '../dom.js';
 
 /** How many outside-the-range items are named before the list summarises. */
@@ -27,6 +35,8 @@ const FIELDS = [
   { key: 'startDate', label: 'Start date', type: 'date' },
   { key: 'endDate', label: 'End date', type: 'date' },
   { key: 'eventLead', label: 'Event lead', type: 'text', autocapitalize: 'words' },
+  // [v8] The brand the Event Order and the Rooming Assignment carry. §5, §6.
+  { key: 'brandId', label: 'Brand', type: 'select', options: BRANDS },
   { key: 'revisionDate', label: 'Revision date', type: 'date' },
   { key: 'revisedBy', label: 'Revised by', type: 'text', autocapitalize: 'words' }
 ];
@@ -47,17 +57,26 @@ function writeMeta(key, value) {
 export function createMetaEditor() {
   const inputs = new Map();
 
+  // §5 (v8 changes), said once where the choice is made. The asymmetry is
+  // deliberate, so it is explained rather than merely observed.
+  const brandNote = el('p', { class: 'field__note' });
+
   const grid = el('div', { class: 'metagrid' }, FIELDS.map((field) => {
-    const input = el('input', {
-      type: field.type,
-      class: field.type === 'date' ? 'input input--date' : 'input',
-      id: `meta-${field.key}`,
-      autocomplete: 'off',
-      autocapitalize: field.autocapitalize || 'none'
-    });
+    const input = field.type === 'select'
+      ? el('select', { class: 'input', id: `meta-${field.key}` },
+          field.options.map((option) =>
+            el('option', { value: option.id, text: option.name })))
+      : el('input', {
+          type: field.type,
+          class: field.type === 'date' ? 'input input--date' : 'input',
+          id: `meta-${field.key}`,
+          autocomplete: 'off',
+          autocapitalize: field.autocapitalize || 'none'
+        });
     // Text commits per keystroke so the header bar tracks the name as it is
-    // typed; dates commit on change, because a half-typed date reads as empty.
-    input.addEventListener(field.type === 'date' ? 'change' : 'input', () => {
+    // typed; dates and selects commit on change, because a half-typed date
+    // reads as empty and a select has no intermediate state to lose.
+    input.addEventListener(field.type === 'text' ? 'input' : 'change', () => {
       writeMeta(field.key, input.value);
     });
     inputs.set(field.key, input);
@@ -66,7 +85,8 @@ export function createMetaEditor() {
       el('label', { class: 'field', for: `meta-${field.key}` }, [
         el('span', { class: 'field__label', text: field.label }),
         input
-      ])
+      ]),
+      field.key === 'brandId' ? brandNote : false
     ]);
   }));
 
@@ -94,7 +114,22 @@ export function createMetaEditor() {
     node,
     update(event) {
       const meta = event.meta || {};
-      for (const [key, input] of inputs) setValue(input, meta[key] || '');
+      for (const [key, input] of inputs) {
+        // The brand is resolved rather than copied — see below.
+        if (key === 'brandId') continue;
+        setValue(input, meta[key] || '');
+      }
+
+      // [v8] The select shows the brand that will actually print, which for an
+      // absent or unrecognised id is Maple Ranch (§6) — not a blank control
+      // implying no brand at all. Writing `meta.brandId` through raw would set
+      // the select to a value no option carries, which blanks it.
+      const brand = brandFor(meta.brandId);
+      setValue(inputs.get('brandId'), brand.id);
+      setText(brandNote, brand.id === DEFAULT_BRAND_ID
+        ? 'On the Event Order and the Rooming Assignment. The Menu is always Maple Ranch.'
+        : `${brand.name} on the Event Order and the Rooming Assignment. The Menu stays Maple `
+          + 'Ranch — the menu is the ranch\'s, not the group\'s.');
 
       // The end date cannot sensibly precede the start; the picker says so,
       // and a range typed backwards is still accepted and warned about below.

@@ -1855,3 +1855,611 @@ body.outline-open .outline {
     grid-column: 1 / -1;
   }
 }
+
+/* ==========================================================================
+   THE DOCUMENTS — BUILD-SPEC §8 [v8]
+   ==========================================================================
+
+   Three renders, one visual system. These rules are loaded for screen and for
+   print alike, so the preview is the document: what is on the paper on screen
+   is what leaves the printer. css/print.css adds the page box, the break rules
+   and the hiding, and changes nothing about how any of this looks.
+
+   THE DIRECTION
+   The reference documents ownership already reads are Word files, and the
+   things worth keeping from them are structural, not textural: grey section
+   bars to find your way down a page, bordered tables, a centred logo, a running
+   footer. The texture is worth losing entirely — Calibri, a border on every
+   cell of every table, and bold used until it stops meaning anything.
+
+   So: the same two voices the workbench uses. The document speaks in the serif
+   — every heading, every figure, every dish. The sans appears only on machinery
+   that is not part of the prose: column headings, the "child" tag, the small
+   label before the event lead. Weight is spent on section bars and nowhere
+   else. Rules are hairlines. Nothing is centred except the logo.
+
+   Sized in points, not pixels, because this is paper. 10.5pt body on a
+   letter page is the density the reference documents run at, and it is what
+   lets a weekend fit on a sheet a coordinator can carry.
+
+   PRINTING WITHOUT BACKGROUNDS
+   Chrome prints background colours only when "Background graphics" is ticked,
+   and it is off by default. Every grey bar here therefore carries a rule as
+   well as a fill: with backgrounds on it reads as a bar, with them off it reads
+   as a ruled heading, and neither one is a broken-looking page.
+   `print-color-adjust: exact` asks for the fill wherever the browser is willing
+   to give it. */
+
+.previews {
+  padding: var(--space-5) var(--space-4) var(--space-7);
+  background: var(--ground);
+  min-height: 100vh;
+}
+
+.docview {
+  max-width: 8.5in;
+  margin: 0 auto;
+}
+
+.docview__bar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-4);
+}
+
+.docview__title {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  line-height: var(--leading-tight);
+  color: var(--ink-900);
+}
+
+.docview__note {
+  margin: var(--space-1) 0 0;
+  max-width: 46ch;
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  line-height: var(--leading-normal);
+  color: var(--text-muted);
+}
+
+/* The sheet itself. 8.5in wide with the page's own margin as padding, so the
+   line length on screen is the line length on paper. */
+.paper {
+  width: 8.5in;
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 0.75in;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  box-shadow: 0 1px 3px rgb(20 24 26 / 0.14);
+}
+
+/* -------------------------------------------------------------- the document */
+
+.doc {
+  font-family: var(--font-serif);
+  font-size: 10.5pt;
+  line-height: 1.4;
+  color: var(--ink-900);
+}
+
+/* The wrapper table is pagination scaffolding — see the note in render.js. It
+   must not inherit any of the data-table styling below. */
+.doc__sheet {
+  width: 100%;
+  border-collapse: collapse;
+  border: 0;
+}
+
+.doc__sheet > thead > tr > td,
+.doc__sheet > tbody > tr > td {
+  padding: 0;
+  border: 0;
+  vertical-align: top;
+}
+
+/* ------------------------------------------------------------ running header */
+
+.runhead {
+  border-bottom: 1.5pt solid var(--ink-800);
+  padding-bottom: 7pt;
+  margin-bottom: 14pt;
+}
+
+/* The fixed box every logo is fitted into. §6 [v8] — the five brands run from a
+   3.48:1 wordmark to a 0.83:1 portrait crest, so the box is constrained by
+   HEIGHT and capped in width, and the header occupies the same height whichever
+   brand an event carries. Change this and a Bloody Feather order stops lining
+   up against a Maple Ranch one. */
+.runhead__brandbox {
+  height: 0.52in;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8pt;
+}
+
+.runhead__logo {
+  height: 100%;
+  width: auto;
+  max-width: 2.6in;
+  object-fit: contain;
+}
+
+.runhead__ident {
+  text-align: center;
+}
+
+.runhead__kind {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 7.5pt;
+  font-weight: 600;
+  color: var(--ink-500);
+}
+
+.runhead__event {
+  margin: 1pt 0 0;
+  font-family: var(--font-serif);
+  font-size: 15pt;
+  font-weight: 600;
+  line-height: 1.15;
+  color: var(--ink-900);
+}
+
+.runhead__meta {
+  margin: 3pt 0 0;
+  font-size: 9pt;
+  color: var(--ink-700);
+}
+
+.runhead__lead::before {
+  content: " · ";
+  color: var(--ink-400);
+}
+
+.runhead__leadlabel {
+  font-family: var(--font-sans);
+  font-size: 7.5pt;
+  color: var(--ink-500);
+}
+
+.runhead__leadlabel::after {
+  content: ": ";
+}
+
+/* --------------------------------------------------------------- a section */
+
+.sec {
+  margin: 0 0 15pt;
+}
+
+/* The grey bar. Rule plus fill — see the note about backgrounds at the top. */
+.sec__title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10pt;
+  margin: 0 0 7pt;
+  padding: 3.5pt 6pt;
+  background: var(--ink-100);
+  border-bottom: 0.75pt solid var(--ink-400);
+  font-family: var(--font-serif);
+  font-size: 11.5pt;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--ink-900);
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+.sec__note {
+  font-family: var(--font-sans);
+  font-size: 7.5pt;
+  font-weight: 400;
+  color: var(--ink-500);
+}
+
+.sec__lead {
+  margin: 0 0 6pt;
+  max-width: 78ch;
+  font-size: 9pt;
+  color: var(--ink-700);
+}
+
+/* What an enabled-but-empty section prints. §8 [v8]: quiet, but present —
+   italic and grey, so it reads as a statement about the data rather than as a
+   defect in the document. */
+.sec__empty {
+  margin: 0;
+  padding: 4pt 0;
+  font-size: 9.5pt;
+  font-style: italic;
+  color: var(--ink-500);
+}
+
+.sec__foot,
+.sec__count {
+  margin: 4pt 0 0;
+  font-family: var(--font-sans);
+  font-size: 7.5pt;
+  color: var(--ink-500);
+}
+
+/* ------------------------------------------------------------- data tables */
+
+/* Hairlines between rows and one rule under the head — not a border on every
+   cell. Verticals appear on the rooming grid alone, where the grid is the
+   point. */
+.tbl {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0;
+}
+
+.tbl th,
+.tbl td {
+  padding: 3pt 6pt 3pt 0;
+  text-align: left;
+  vertical-align: top;
+}
+
+.tbl thead th {
+  font-family: var(--font-sans);
+  font-size: 7.5pt;
+  font-weight: 600;
+  color: var(--ink-600);
+  border-bottom: 0.75pt solid var(--ink-500);
+  padding-bottom: 2.5pt;
+}
+
+.tbl tbody td {
+  border-bottom: 0.5pt solid var(--ink-200);
+  font-size: 10pt;
+}
+
+.tbl tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+/* Column widths. Named rather than positional, so a column added to one table
+   does not shift the widths of another. */
+.tbl .col-time { width: 1.5in; white-space: nowrap; }
+.tbl .col-date { width: 1.05in; white-space: nowrap; }
+.tbl .col-part { width: 0.7in; }
+.tbl .col-count { width: 0.6in; text-align: right; padding-right: 12pt; }
+.tbl .col-figure { width: 1in; }
+.tbl .col-where { width: 1.5in; }
+.tbl .col-name { width: 2.1in; }
+.tbl .col-room { width: 1.5in; }
+
+/* ------------------------------------------------------------------- a day */
+
+.day {
+  margin: 0 0 11pt;
+}
+
+.day__head {
+  margin: 0 0 3pt;
+  font-family: var(--font-serif);
+  font-size: 10pt;
+  font-weight: 600;
+  color: var(--ink-800);
+  border-bottom: 0.5pt solid var(--ink-300);
+  padding-bottom: 1.5pt;
+}
+
+/* ------------------------------------------------------------------- names */
+
+.name__tag {
+  margin-left: 5pt;
+  font-family: var(--font-sans);
+  font-size: 7pt;
+  color: var(--ink-500);
+}
+
+/* -------------------------------------------------------- allergies block */
+
+.diet {
+  margin-top: 10pt;
+}
+
+.diet__head {
+  margin: 0 0 4pt;
+  font-family: var(--font-sans);
+  font-size: 8pt;
+  font-weight: 600;
+  color: var(--ink-600);
+}
+
+.diet__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.diet__item {
+  padding: 2pt 0;
+  border-bottom: 0.5pt solid var(--ink-200);
+  font-size: 10pt;
+}
+
+.diet__item:last-child {
+  border-bottom: 0;
+}
+
+.diet__who {
+  font-weight: 600;
+}
+
+.diet__who::after {
+  content: " — ";
+  font-weight: 400;
+  color: var(--ink-400);
+}
+
+/* §8 [v8]: printed, never omitted. Its absence would read as an oversight. */
+.diet__none {
+  margin: 0;
+  font-size: 10pt;
+  font-style: italic;
+  color: var(--ink-500);
+}
+
+/* ------------------------------------------------------- person / department */
+
+.block-person,
+.block-dept {
+  margin: 0 0 10pt;
+}
+
+.block-person__name {
+  margin: 0 0 3pt;
+  font-family: var(--font-serif);
+  font-size: 10.5pt;
+  font-weight: 600;
+  color: var(--ink-900);
+}
+
+.block-dept__name {
+  margin: 0 0 4pt;
+  font-family: var(--font-serif);
+  font-size: 11pt;
+  font-weight: 600;
+  color: var(--ink-900);
+  border-bottom: 0.5pt solid var(--ink-300);
+  padding-bottom: 1.5pt;
+}
+
+.block-dept__part {
+  margin: 0 0 6pt;
+}
+
+.block-dept__head {
+  margin: 0 0 2pt;
+  font-family: var(--font-sans);
+  font-size: 7.5pt;
+  font-weight: 600;
+  color: var(--ink-600);
+}
+
+.plainlist {
+  margin: 0;
+  padding-left: 14pt;
+  font-size: 10pt;
+}
+
+.plainlist li {
+  margin: 0 0 1pt;
+}
+
+/* --------------------------------------------------------------- free text */
+
+.para {
+  margin: 0 0 6pt;
+  max-width: 82ch;
+  font-size: 10.5pt;
+  line-height: 1.45;
+}
+
+.para:last-child {
+  margin-bottom: 0;
+}
+
+/* ------------------------------------------------------------------- menu */
+
+.meal {
+  margin: 0 0 14pt;
+}
+
+.meal__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10pt;
+  flex-wrap: wrap;
+  margin: 0 0 6pt;
+  padding: 3.5pt 6pt;
+  background: var(--ink-100);
+  border-bottom: 0.75pt solid var(--ink-400);
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+.meal__name {
+  font-family: var(--font-serif);
+  font-size: 11.5pt;
+  font-weight: 600;
+  color: var(--ink-900);
+}
+
+.meal__detail {
+  font-family: var(--font-sans);
+  font-size: 7.5pt;
+  color: var(--ink-600);
+}
+
+/* §12.8 — a meal with no menu block. Named on the page rather than skipped. */
+.meal__none {
+  margin: 0;
+  padding: 2pt 6pt;
+  font-size: 10pt;
+  font-style: italic;
+  color: var(--ink-500);
+}
+
+.meal__courses {
+  padding-left: 6pt;
+}
+
+.mealcourse {
+  margin: 0 0 7pt;
+}
+
+.mealcourse:last-child {
+  margin-bottom: 0;
+}
+
+.mealcourse__head {
+  margin: 0 0 2pt;
+  font-family: var(--font-sans);
+  font-size: 7.5pt;
+  font-weight: 600;
+  color: var(--ink-600);
+}
+
+.mealcourse__items {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mealcourse__item {
+  padding: 1pt 0;
+  font-size: 10.5pt;
+}
+
+.mealcourse__none {
+  margin: 0;
+  font-size: 9.5pt;
+  font-style: italic;
+  color: var(--ink-500);
+}
+
+/* ---------------------------------------------------------- rooming grid */
+
+/* The one place vertical borders earn their keep: rooms down, nights across,
+   and a vacant cell has to read as a vacancy rather than as a gap in the
+   printing. Every cell is boxed so the empties are shaped. */
+.tbl--grid {
+  border: 0.75pt solid var(--ink-400);
+}
+
+.tbl--grid th,
+.tbl--grid td {
+  border: 0.5pt solid var(--ink-300);
+  padding: 3pt 5pt;
+}
+
+.tbl--grid thead th {
+  border-bottom: 0.75pt solid var(--ink-500);
+  background: var(--ink-50);
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+.tbl--grid .col-night {
+  width: auto;
+}
+
+.grid__room {
+  font-weight: 600;
+  font-size: 9.5pt;
+}
+
+.grid__parties {
+  display: block;
+  font-size: 9.5pt;
+}
+
+.grid__party {
+  display: block;
+}
+
+/* §12.4 — two rows claiming one named room on one night. Both are printed:
+   hiding one is how somebody arrives to a bed already made up for a stranger. */
+.grid__parties.is-contested .grid__party + .grid__party {
+  border-top: 0.5pt dashed var(--brick-400);
+  margin-top: 1.5pt;
+  padding-top: 1.5pt;
+}
+
+/* A room held under no name yet — §5 (v5 changes): still a booked room. */
+.grid__unnamed {
+  font-style: italic;
+  color: var(--ink-500);
+}
+
+/* An empty room is information. Left genuinely blank: a dash reads as a value,
+   a blank reads as a vacancy. The cell keeps its height so the grid stays
+   square. */
+.grid__vacant {
+  display: block;
+  min-height: 11pt;
+}
+
+/* §12.3 — usually a deleted guest. The room stays booked and the name stays on
+   the page; it is marked, not dropped. */
+.party__name.is-unresolved {
+  font-style: italic;
+  color: var(--brick-600);
+}
+
+/* --------------------------------------------------------- unassigned list */
+
+.unroomed__night {
+  margin: 0 0 5pt;
+}
+
+.unroomed__head {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 7.5pt;
+  font-weight: 600;
+  color: var(--ink-600);
+}
+
+.unroomed__names {
+  margin: 0;
+  font-size: 10pt;
+}
+
+/* ------------------------------------------------------------- view tabs */
+
+.bar__views {
+  display: flex;
+  gap: 2px;
+  margin-right: var(--space-3);
+}
+
+.viewtab.is-on {
+  background: var(--focus-on-dark);
+  border-color: var(--focus-on-dark);
+  color: var(--forest-900);
+}
+
+@media (max-width: 60rem) {
+  .paper {
+    padding: var(--space-4);
+  }
+
+  .docview__bar {
+    align-items: flex-start;
+  }
+}

@@ -20,32 +20,13 @@
 
 import {
   attendeeName,
+  eventNights,
   lodgingByBuilding,
   overnightCountFor,
   unassignedGuestsOn
 } from '../derive.js';
-import { datesBetween, formatDate } from '../dates.js';
+import { formatDate } from '../dates.js';
 import { el, reconcile, setHidden, setText, toggleClass } from '../dom.js';
-
-/**
- * The nights of an event.
- *
- * The last day of an event has no night — everyone has gone home — so it is
- * dropped, unless somebody is in fact staying past the end date, in which case
- * the column is real and showing it is the only way the coordinator finds out.
- *
- * @param {object} event
- * @returns {string[]} ISO dates, each naming the night that begins on it
- */
-function nightsOf(event) {
-  const meta = (event && event.meta) || {};
-  const days = datesBetween(meta.startDate, meta.endDate);
-  if (!days.length) return [];
-  const last = days[days.length - 1];
-  const occupied = Object.keys(lodgingByBuilding(event, last)).length > 0
-    || overnightCountFor(event, last) > 0;
-  return occupied ? days : days.slice(0, -1);
-}
 
 /**
  * Buildings holding anyone on any night of the event, in the order they first
@@ -156,7 +137,7 @@ export function createAccommodationsEditor() {
   return {
     node,
     update(event) {
-      const nights = nightsOf(event);
+      const nights = eventNights(event);
       const buildings = buildingsAcross(event, nights);
 
       setHidden(table, nights.length === 0);

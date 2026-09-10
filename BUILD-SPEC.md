@@ -518,6 +518,7 @@ now keeps that port cheap.
 /js/reference.js     buildings, rooms, static lists
 /js/render.js        document shell — page furniture, brand header, print
 /js/renders/         one module per document: order, menu, rooming
+/js/views.js         edit / document destinations, and the per-document print
 /js/rooming.js       drag-and-drop assignment editor
 /js/validate.js      pre-print checks
 /js/io.js            JSON download / upload, localStorage autosave

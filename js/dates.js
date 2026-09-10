@@ -19,6 +19,7 @@ const MAX_RANGE_DAYS = 400;
 const SHORT = new Intl.DateTimeFormat('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 const MEDIUM = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
 const LONG = new Intl.DateTimeFormat('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+const FULL = new Intl.DateTimeFormat('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 
 /**
  * Whether a value is a real ISO calendar date. Rejects the shape and the
@@ -101,11 +102,26 @@ export function formatDateShort(iso) {
 }
 
 /**
- * "November 14, 2026".
+ * [v8] "Saturday, November 14". The heading over a day of the itinerary.
+ *
+ * The weekday is spelled out because that is how a weekend is talked about at
+ * the ranch — "Saturday's hunt", not "the 14th's hunt" — and the year is left
+ * off because the header above it already carries the date range.
+ *
  * @param {string} iso
  * @returns {string} the input unchanged when it is not a date
  */
-function formatDateLong(iso) {
+export function formatDateFull(iso) {
+  const date = toLocalDate(iso);
+  return date ? FULL.format(date) : String(iso || '');
+}
+
+/**
+ * "November 14, 2026". The revision line's date, among others.
+ * @param {string} iso
+ * @returns {string} the input unchanged when it is not a date
+ */
+export function formatDateLong(iso) {
   const date = toLocalDate(iso);
   return date ? LONG.format(date) : String(iso || '');
 }

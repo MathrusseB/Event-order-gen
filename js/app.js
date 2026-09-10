@@ -16,6 +16,7 @@
 // as `rooming.js` (BUILD-SPEC §9) plugs in: event in, mutated event out.
 
 import { defaultSections } from './sections.js';
+import { DEFAULT_BRAND_ID } from './reference.js';
 import {
   loadFromFile,
   saveToFile,
@@ -170,7 +171,11 @@ export function emptyEvent() {
       endDate: '',
       eventLead: '',
       revisionDate: '',
-      revisedBy: ''
+      revisedBy: '',
+      // [v8] Written explicitly rather than left absent, so the field the meta
+      // editor writes to already exists and Save round-trips it. `brandFor`
+      // would resolve an absent id to the same brand either way (§6).
+      brandId: DEFAULT_BRAND_ID
     },
     sections: defaultSections(),
     attendees: [],
