@@ -26,6 +26,12 @@
    from sliding under it on page two. A `position: fixed` header reserves
    nothing and, in Chrome, is dropped from the last page altogether.
 
+   Nor is the rule that keeps a document from printing a blank final page. That
+   is a fact about the document's own box — no margin, padding or border may
+   hang below its last line — so it lives with the document in styles.css,
+   beside `.doc__sheet`, and holds on screen and on paper alike. tests/ prints
+   all three documents and fails if any page comes out with an empty body.
+
    ------------------------------------------------------------------------
    2. ONLY THE ACTIVE DOCUMENT PRINTS
 

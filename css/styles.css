@@ -1950,18 +1950,57 @@ body.outline-open .outline {
 }
 
 /* The wrapper table is pagination scaffolding — see the note in render.js. It
-   must not inherit any of the data-table styling below. */
+   must not inherit any of the data-table styling below.
+
+   `border-spacing: 0` is belt to `border-collapse`'s braces. Collapsed tables
+   ignore border-spacing, but the two are one edit apart, and 2px of spacing
+   under the body cell is 2px of paper below the last line of the document —
+   see the trailing-space rule below for why that is never harmless. */
 .doc__sheet {
   width: 100%;
   border-collapse: collapse;
+  border-spacing: 0;
   border: 0;
 }
 
+/* The body cell contributes its content height and nothing more. Padding here
+   is padding under the last line of the document, on every printed copy. */
 .doc__sheet > thead > tr > td,
 .doc__sheet > tbody > tr > td {
   padding: 0;
   border: 0;
   vertical-align: top;
+}
+
+/* NOTHING HANGS BELOW THE LAST BOX OF A DOCUMENT. Read this before adding a
+   margin anywhere under .doc__body.
+
+   A document that runs one line past the bottom of a page paginates, and that
+   is correct. A page carrying the running header, the footer and no body is
+   never correct, and the way it happens is not overflowing content — it is
+   empty space *below* the content being fragmented onto a page of its own.
+
+   That is what the Rooming Assignment was doing. `.sec` carries
+   `margin: 0 0 15pt`, which is 20px. On the last section that margin has no
+   sibling to separate it from, so it collapses out through `.doc__body` — a
+   plain block with no bottom padding or border — and lands on the table cell,
+   which is a block formatting context and contains it. The measurements said
+   so exactly: `.doc__body` 759px, the cell around it 779px. 912px of Letter
+   was printable and the sheet came to 929px, so 17px of nothing became page
+   two.
+
+   `.doc__body`'s own height is therefore the wrong thing to trust. The rule is
+   the other way round: no margin may escape the bottom of the document at all.
+   The last child cannot carry one, and neither can the last child of anything
+   inside it — margins collapse up a chain of last children, and it is the
+   whole collapsed run that escapes, not just the outermost margin.
+
+   This costs nothing anywhere else. A last child has no following sibling, so
+   its bottom margin was never separating it from anything — it only ever
+   pushed the bottom edge of its parent down. */
+.doc__body > :last-child,
+.doc__body > :last-child :last-child {
+  margin-bottom: 0;
 }
 
 /* ------------------------------------------------------------ running header */
