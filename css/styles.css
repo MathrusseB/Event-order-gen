@@ -3198,3 +3198,48 @@ body.outline-open .outline {
     align-items: flex-start;
   }
 }
+
+/* --------------------------------------------------- export for ownership [v11] */
+
+/* BUILD-SPEC §5 [v11]. Not a third way into the rooming array — a way out of
+   it. It sits under the two tabs, separated by a rule, so it reads as an action
+   about this data rather than another view of it. */
+.ways__export {
+  margin: var(--space-4) 0 0;
+  padding: var(--space-4) 0 0;
+  border-top: 1px solid var(--rule);
+}
+
+.ways__exportline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-3);
+}
+
+.ways__send {
+  flex: 0 0 auto;
+}
+
+.ways__exportline .ways__note {
+  flex: 1 1 18rem;
+  margin: 0;
+}
+
+/* What was written, and how big it came out. Quiet until it is not: a file over
+   the ceiling, or a build that failed, is the one thing here worth a colour. */
+.ways__sent {
+  margin: var(--space-2) 0 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+.ways__sent:empty {
+  display: none;
+}
+
+.ways__sent.is-over {
+  color: var(--brick-600);
+  font-weight: 600;
+}

@@ -1,0 +1,1106 @@
+/* The board ownership is sent — BUILD-SPEC §9, §5 [v11].
+
+   Loaded nowhere but the exported file. js/export.js inlines it into a
+   <style> block beside the event; the generator never links it.
+
+   THE DIRECTION, AND WHY IT IS NOT THE GENERATOR'S
+   css/styles.css is a workbench that makes paper, and it is set in the paper's
+   own voices: a serif, hairlines, square corners, dense rows. This is not that
+   and must not look like it. It is a screen — a phone, held in one hand,
+   standing up, by somebody who has never opened the generator and never will.
+   The thing it has to feel like is an app that shipped.
+
+   So: the system typeface, which on their devices is SF Pro and is already on
+   the machine; inset rounded groups on a tinted ground; separators that begin
+   where the text begins rather than running edge to edge; row heights sized for
+   a thumb rather than for density. Depth comes from two planes — the ground and
+   the group — and from hairlines, not from a shadow under every card.
+
+   ONE ACCENT, AND IT MEANS SELECTION
+   The green is the guest in hand, the night being arranged, and the rooms that
+   guest can go into. It appears nowhere else. Everything that has to be loud
+   for another reason — a guest added, a guest removed, a guest with no bed —
+   is loud through fill and weight instead: a filled near-black pill reads
+   across a room, and it does not spend the one colour that means "this is
+   selected" on something that is not.
+
+   THE COLOURS ARE DECLARED ONCE, LIGHT FIRST
+   Every token has its value on bare :root and is redefined under
+   prefers-color-scheme: dark. Nothing is defined only inside a media query. */
+
+.ob {
+  /* Type. System first: SF Pro on their devices, Segoe or Roboto elsewhere.
+     No embedded font — a rooming sheet is not worth 40KB of woff2, and a
+     system stack is the one that never arrives late. */
+  --ob-font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+  /* Two planes: the ground the groups sit on, and the groups. */
+  --ob-bg: #f2f2f6;
+  --ob-group: #ffffff;
+  --ob-sep: #e2e2e7;
+  --ob-rule: #d3d3d9;
+
+  --ob-text: #16171a;
+  --ob-dim: #6b6c73;
+  --ob-faint: #9b9ca3;
+
+  /* Selection, and nothing else. */
+  --ob-accent: #14684a;
+  --ob-accent-ink: #ffffff;
+  --ob-accent-wash: #e4efea;
+
+  /* Loud without colour: a filled pill, and the ground it sits on. */
+  --ob-loud: #16171a;
+  --ob-loud-ink: #ffffff;
+  --ob-quiet-fill: #ebebf0;
+
+  --ob-radius: 12px;
+  --ob-inset: 16px;
+  --ob-touch: 44px;
+
+  /* Honour the notch and the home indicator. The gutter is never less than
+     16px, and never less than the inset the device asks for. */
+  --ob-gutter-l: max(16px, env(safe-area-inset-left));
+  --ob-gutter-r: max(16px, env(safe-area-inset-right));
+
+  font-family: var(--ob-font);
+  font-size: 17px;
+  line-height: 1.35;
+  color: var(--ob-text);
+  background: var(--ob-bg);
+  min-height: 100vh;
+  /* The notch, once, at the top of everything. The bar below is sticky and
+     spends part of its life away from the top, where its own inset would be
+     a gap in the middle of the page. */
+  padding-top: env(safe-area-inset-top);
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (prefers-color-scheme: dark) {
+  .ob {
+    --ob-bg: #000000;
+    --ob-group: #1c1c1e;
+    --ob-sep: #2e2e31;
+    --ob-rule: #3a3a3d;
+
+    --ob-text: #f4f4f7;
+    --ob-dim: #9a9aa1;
+    --ob-faint: #7c7c83;
+
+    --ob-accent: #3fbe83;
+    --ob-accent-ink: #05130d;
+    --ob-accent-wash: #16281f;
+
+    --ob-loud: #f4f4f7;
+    --ob-loud-ink: #16171a;
+    --ob-quiet-fill: #2c2c2f;
+  }
+}
+
+/* The page itself, so a transparent body cannot borrow the host's ground. */
+body {
+  margin: 0;
+  background: #f2f2f6;
+  color: #16171a;
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    background: #000000;
+    color: #f4f4f7;
+  }
+}
+
+.ob *,
+.ob *::before,
+.ob *::after {
+  box-sizing: border-box;
+}
+
+:where(.ob) :where(button) {
+  font: inherit;
+  color: inherit;
+  margin: 0;
+}
+
+.ob-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------------------- the bar */
+
+/* Sticky, and carrying the two things you must not have to scroll back for:
+   which night is being arranged, and the way to the changes. The compact title
+   arrives only once the large one has gone. */
+.ob-bar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: color-mix(in srgb, var(--ob-bg) 82%, transparent);
+  backdrop-filter: saturate(180%) blur(18px);
+  -webkit-backdrop-filter: saturate(180%) blur(18px);
+  padding-top: 4px;
+  border-bottom: 1px solid transparent;
+  transition: border-color 180ms ease;
+}
+
+.ob-bar.is-compact {
+  border-bottom-color: var(--ob-rule);
+}
+
+.ob-bar__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--ob-touch);
+  padding: 4px var(--ob-gutter-r) 4px var(--ob-gutter-l);
+}
+
+.ob-bar__hint {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--ob-dim);
+}
+
+.ob-bar.is-compact .ob-bar__hint {
+  display: none;
+}
+
+.ob-bar__title {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: none;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.ob-bar.is-compact .ob-bar__title {
+  display: block;
+}
+
+.ob-bar.is-compact .ob-bar__title {
+  opacity: 1;
+  transform: none;
+}
+
+.ob-bar__actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+
+/* A plain text action, sized for a thumb. No arrow appended to the label —
+   the label is the action. */
+.ob-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--ob-touch);
+  min-width: var(--ob-touch);
+  padding: 0 10px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--ob-text);
+  cursor: pointer;
+}
+
+.ob-action:active {
+  background: var(--ob-quiet-fill);
+}
+
+.ob-action--count::after {
+  content: attr(data-count);
+  margin-left: 6px;
+  min-width: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: var(--ob-loud);
+  color: var(--ob-loud-ink);
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 20px;
+}
+
+/* -------------------------------------------------------------- the spine */
+
+/* One tab per night (§9). They scroll rather than wrap: five nights on a phone
+   is wider than the screen, and a wrapped second row moves the whole page
+   down every time the event gains a day. */
+.ob-nights {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 0 var(--ob-gutter-r) 8px var(--ob-gutter-l);
+  scroll-snap-type: x proximity;
+}
+
+.ob-nights::-webkit-scrollbar {
+  display: none;
+}
+
+.ob-night {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  min-height: var(--ob-touch);
+  min-width: 62px;
+  padding: 5px 12px;
+  border: 0;
+  border-radius: 11px;
+  background: var(--ob-group);
+  color: var(--ob-dim);
+  cursor: pointer;
+  scroll-snap-align: center;
+}
+
+.ob-night__day {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.ob-night__date {
+  font-size: 16px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--ob-text);
+}
+
+.ob-night.is-on {
+  background: var(--ob-accent);
+  color: var(--ob-accent-ink);
+}
+
+.ob-night.is-on .ob-night__date {
+  color: var(--ob-accent-ink);
+}
+
+/* A night somebody has no bed on, seen from another night's tab. */
+.ob-night__flag {
+  width: 6px;
+  height: 6px;
+  margin-top: 2px;
+  border-radius: 50%;
+  background: var(--ob-loud);
+}
+
+.ob-night.is-on .ob-night__flag {
+  background: var(--ob-accent-ink);
+}
+
+/* --------------------------------------------------------- the large title */
+
+.ob-large {
+  padding: 14px var(--ob-gutter-r) 10px var(--ob-gutter-l);
+}
+
+.ob-large__title {
+  margin: 0;
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+}
+
+.ob-large__event {
+  margin: 4px 0 0;
+  font-size: 17px;
+  font-weight: 500;
+  color: var(--ob-text);
+}
+
+.ob-large__dates {
+  margin: 1px 0 0;
+  font-size: 15px;
+  color: var(--ob-dim);
+}
+
+/* The IntersectionObserver's target. Zero height, no paint. */
+.ob-sentinel {
+  height: 1px;
+  margin-top: -1px;
+}
+
+/* ----------------------------------------------------------------- groups */
+
+.ob-main {
+  padding: 0 var(--ob-gutter-r) 40px var(--ob-gutter-l);
+  padding-bottom: calc(40px + env(safe-area-inset-bottom));
+}
+
+.ob.is-holding .ob-main {
+  padding-bottom: calc(140px + env(safe-area-inset-bottom));
+}
+
+.ob-group {
+  margin: 0 0 22px;
+}
+
+/* Sentence case, ordinary tracking. A tracked-out capital eyebrow is the tell
+   of a web page dressed as an app. */
+.ob-group__head {
+  margin: 0 0 7px;
+  padding: 0 4px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ob-dim);
+}
+
+.ob-group__foot {
+  margin: 7px 0 0;
+  padding: 0 4px;
+  font-size: 13px;
+  color: var(--ob-faint);
+}
+
+.ob-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  background: var(--ob-group);
+  border-radius: var(--ob-radius);
+  overflow: hidden;
+}
+
+/* The separator begins where the text begins. */
+.ob-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: var(--ob-touch);
+  padding: 9px var(--ob-inset);
+  border: 0;
+  background: none;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+}
+
+.ob-row + .ob-row::before,
+.ob-sub .ob-row:first-child::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: var(--ob-inset);
+  right: 0;
+  height: 1px;
+  background: var(--ob-sep);
+}
+
+button.ob-row {
+  cursor: pointer;
+}
+
+button.ob-row:active {
+  background: var(--ob-quiet-fill);
+}
+
+.ob-row:focus-visible {
+  outline: 2px solid var(--ob-accent);
+  outline-offset: -3px;
+}
+
+.ob-row__main {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.ob-row__name {
+  display: block;
+  font-size: 17px;
+}
+
+.ob-row__note {
+  display: block;
+  margin-top: 1px;
+  font-size: 13px;
+  color: var(--ob-dim);
+}
+
+/* Always against the right edge, so a vacancy lands in the same column as the
+   names beside it and the eye reads one column rather than two. */
+.ob-row__value {
+  flex: 0 1 auto;
+  min-width: 0;
+  margin-left: auto;
+  font-size: 15px;
+  color: var(--ob-dim);
+  text-align: right;
+}
+
+.ob-row__value--vacant {
+  color: var(--ob-faint);
+}
+
+.ob-row__value--none {
+  color: var(--ob-text);
+  font-weight: 600;
+}
+
+.ob-row.is-picked {
+  background: var(--ob-accent-wash);
+}
+
+.ob-row.is-picked .ob-row__name {
+  font-weight: 600;
+  color: var(--ob-accent);
+}
+
+/* Somebody is in hand: every room that can take them says so, quietly, with
+   the one colour that means selection. */
+.ob-row.is-target .ob-row__label {
+  color: var(--ob-accent);
+}
+
+.ob-row.is-target::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: 14px;
+  width: 9px;
+  height: 9px;
+  margin-top: -4px;
+  border-radius: 50%;
+  background: var(--ob-accent);
+}
+
+.ob-row.is-target .ob-row__value {
+  padding-right: 16px;
+}
+
+.ob-row__label {
+  flex: 0 0 auto;
+  min-width: 3.2em;
+  font-size: 17px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The people in a room, each one its own target. */
+.ob-party {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.ob-person {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  /* A name in a room is a target — tapping it picks that person up — so it is
+     sized as one. Four names in the Bunk Room is a tall row, which is four
+     names' worth of row. */
+  min-height: var(--ob-touch);
+  padding: 4px 14px;
+  border: 0;
+  border-radius: 22px;
+  background: var(--ob-quiet-fill);
+  font-size: 15px;
+  color: var(--ob-text);
+  cursor: pointer;
+}
+
+.ob-person.is-picked {
+  background: var(--ob-accent);
+  color: var(--ob-accent-ink);
+}
+
+.ob-person.is-child::after {
+  content: "child";
+  font-size: 11px;
+  color: var(--ob-dim);
+}
+
+.ob-person.is-picked.is-child::after {
+  color: var(--ob-accent-ink);
+  opacity: 0.8;
+}
+
+.ob-person.is-gone {
+  text-decoration: line-through;
+  color: var(--ob-faint);
+}
+
+/* --------------------------------------------------------------- the marks */
+
+/* What changed since the file was sent. Loud through fill and weight, never
+   through the accent — the accent means selection and nothing else. */
+.ob-mark {
+  display: inline-flex;
+  align-items: center;
+  height: 19px;
+  margin-left: 6px;
+  padding: 0 7px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  vertical-align: 1px;
+}
+
+/* Added and removed change the meal counts on the event order, so they are the
+   two that are filled solid and cannot be read past. */
+.ob-mark--added,
+.ob-mark--removed {
+  background: var(--ob-loud);
+  color: var(--ob-loud-ink);
+}
+
+.ob-mark--removed {
+  background: none;
+  color: var(--ob-loud);
+  box-shadow: inset 0 0 0 1.5px var(--ob-loud);
+}
+
+/* A guest who only changed rooms is a quieter fact, and is marked as one. The
+   same shape carries an ordinary tag — "child" — which is not a change at all
+   and has its own name so the two never come to mean each other. */
+.ob-mark--moved,
+.ob-mark--tag {
+  background: var(--ob-quiet-fill);
+  color: var(--ob-dim);
+  font-weight: 600;
+}
+
+.ob-row.is-removed .ob-row__name {
+  text-decoration: line-through;
+  color: var(--ob-faint);
+}
+
+/* -------------------------------------------------------------- the notice */
+
+/* A guest staying a night with nowhere to sleep. This is the thing the board
+   exists to make impossible to walk past, so it is a filled slab rather than a
+   tinted card: it reads at arm's length, in sun, on a phone. */
+.ob-notice {
+  margin: 0 0 22px;
+  padding: 14px var(--ob-inset) 12px;
+  border-radius: var(--ob-radius);
+  background: var(--ob-loud);
+  color: var(--ob-loud-ink);
+}
+
+.ob-notice__head {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.ob-notice__lead {
+  margin: 3px 0 10px;
+  font-size: 14px;
+  opacity: 0.78;
+}
+
+.ob-notice__names {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ob-notice__name {
+  min-height: var(--ob-touch);
+  padding: 6px 15px;
+  border: 0;
+  border-radius: 22px;
+  background: var(--ob-loud-ink);
+  color: var(--ob-loud);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ob-notice__else {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 11px 0 0;
+  padding: 10px 0 0;
+  border-top: 1px solid color-mix(in srgb, var(--ob-loud-ink) 26%, transparent);
+}
+
+.ob-notice__jump {
+  min-height: var(--ob-touch);
+  padding: 4px 13px;
+  border: 1px solid color-mix(in srgb, var(--ob-loud-ink) 45%, transparent);
+  border-radius: 8px;
+  background: none;
+  color: var(--ob-loud-ink);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+/* ------------------------------------------------------------- disclosure */
+
+/* Sixty-six rooms in ten buildings, and an event uses four of them. The rest
+   fold; none of them hides. Every folded building still says its name and how
+   many rooms it has free that night. */
+.ob-fold {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ob-fold__glyph {
+  flex: 0 0 auto;
+  width: 13px;
+  color: var(--ob-faint);
+  font-size: 13px;
+  transition: transform 160ms ease;
+}
+
+.ob-row[aria-expanded="true"] .ob-fold__glyph {
+  transform: rotate(90deg);
+}
+
+.ob-sub {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  background: color-mix(in srgb, var(--ob-group) 62%, var(--ob-bg));
+}
+
+/* An unfolded building's rooms are indented, and their separators are indented
+   with them: a hairline that starts to the left of the text it divides reads as
+   a mistake rather than as a level. */
+.ob-sub .ob-row {
+  padding-left: calc(var(--ob-inset) + 14px);
+}
+
+.ob-sub .ob-row + .ob-row::before {
+  left: calc(var(--ob-inset) + 14px);
+}
+
+/* ---------------------------------------------------------------- in hand */
+
+/* Between the two taps, this is the only thing on screen that matters: who is
+   in hand, how far the move reaches, and the way out. Pinned to the bottom,
+   above the home indicator, because that is where the thumb already is. */
+.ob-hand {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 30;
+  padding: 10px var(--ob-gutter-r) calc(10px + env(safe-area-inset-bottom)) var(--ob-gutter-l);
+  background: color-mix(in srgb, var(--ob-bg) 88%, transparent);
+  backdrop-filter: saturate(180%) blur(18px);
+  -webkit-backdrop-filter: saturate(180%) blur(18px);
+  border-top: 1px solid var(--ob-rule);
+  transform: translateY(110%);
+  transition: transform 220ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.ob.is-holding .ob-hand {
+  transform: none;
+}
+
+.ob-hand__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ob-hand__who {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.ob-hand__name,
+.ob-hand__what {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ob-hand__name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ob-accent);
+}
+
+.ob-hand__what {
+  font-size: 13px;
+  color: var(--ob-dim);
+}
+
+.ob-hand__cancel {
+  flex: 0 0 auto;
+  min-height: var(--ob-touch);
+  padding: 0 14px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--ob-quiet-fill);
+  font-size: 16px;
+  cursor: pointer;
+}
+
+/* How far the move reaches. Two answers, and the second is the default: when
+   ownership moves somebody they mean it for the rest of the stay. */
+.ob-scope {
+  display: flex;
+  margin-top: 9px;
+  padding: 3px;
+  border-radius: 12px;
+  background: var(--ob-quiet-fill);
+}
+
+.ob-scope__btn {
+  flex: 1 1 0;
+  min-height: var(--ob-touch);
+  padding: 0 8px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ob-dim);
+  cursor: pointer;
+}
+
+.ob-scope__btn.is-on {
+  background: var(--ob-group);
+  color: var(--ob-text);
+  font-weight: 600;
+}
+
+/* ----------------------------------------------------------------- sheets */
+
+/* Adding a guest, and the question a taken room asks. Both rise from the
+   bottom: an inline form would reflow the list under their thumb, and the
+   answer would arrive somewhere they were not looking. */
+.ob-sheet {
+  width: 100%;
+  max-width: 34rem;
+  margin: auto auto 0;
+  padding: 0;
+  border: 0;
+  border-radius: 16px 16px 0 0;
+  background: var(--ob-bg);
+  color: var(--ob-text);
+  font-family: var(--ob-font);
+}
+
+.ob-sheet::backdrop {
+  background: rgba(0, 0, 0, 0.42);
+}
+
+.ob-sheet[open] {
+  animation: ob-rise 260ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+@keyframes ob-rise {
+  from { transform: translateY(100%); }
+  to { transform: none; }
+}
+
+.ob-sheet__grip {
+  width: 36px;
+  height: 5px;
+  margin: 8px auto 0;
+  border-radius: 3px;
+  background: var(--ob-rule);
+}
+
+.ob-sheet__body {
+  padding: 12px var(--ob-gutter-r) calc(14px + env(safe-area-inset-bottom)) var(--ob-gutter-l);
+}
+
+.ob-sheet__head {
+  margin: 0 0 3px;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+
+.ob-sheet__lead {
+  margin: 0 0 14px;
+  font-size: 14px;
+  color: var(--ob-dim);
+}
+
+.ob-sheet__choices {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin: 0 0 10px;
+  border-radius: var(--ob-radius);
+  overflow: hidden;
+  background: var(--ob-sep);
+}
+
+.ob-choice {
+  display: block;
+  width: 100%;
+  min-height: var(--ob-touch);
+  padding: 12px var(--ob-inset);
+  border: 0;
+  background: var(--ob-group);
+  text-align: left;
+  cursor: pointer;
+}
+
+.ob-choice__title {
+  display: block;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.ob-choice__detail {
+  display: block;
+  margin-top: 2px;
+  font-size: 14px;
+  color: var(--ob-dim);
+}
+
+.ob-sheet__fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 0 0 14px;
+}
+
+.ob-field {
+  display: block;
+  min-width: 0;
+}
+
+.ob-field--wide {
+  grid-column: 1 / -1;
+}
+
+.ob-field__label {
+  display: block;
+  margin: 0 0 4px 2px;
+  font-size: 13px;
+  color: var(--ob-dim);
+}
+
+.ob-field__input {
+  width: 100%;
+  min-height: var(--ob-touch);
+  padding: 10px 12px;
+  border: 1px solid var(--ob-rule);
+  border-radius: 10px;
+  background: var(--ob-group);
+  color: var(--ob-text);
+  font-family: inherit;
+  /* 17px or larger, or iOS zooms the page when the field takes focus. */
+  font-size: 17px;
+}
+
+.ob-field__input:focus {
+  outline: 2px solid var(--ob-accent);
+  outline-offset: -1px;
+  border-color: transparent;
+}
+
+.ob-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: var(--ob-touch);
+  padding: 0 2px;
+  font-size: 16px;
+}
+
+.ob-toggle input {
+  width: 22px;
+  height: 22px;
+  accent-color: var(--ob-accent);
+}
+
+.ob-sheet__actions {
+  display: flex;
+  gap: 10px;
+}
+
+.ob-btn {
+  flex: 1 1 0;
+  min-height: var(--ob-touch);
+  padding: 0 16px;
+  border: 0;
+  border-radius: 11px;
+  background: var(--ob-quiet-fill);
+  color: var(--ob-text);
+  font-size: 17px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.ob-btn--go {
+  background: var(--ob-accent);
+  color: var(--ob-accent-ink);
+  font-weight: 600;
+}
+
+.ob-btn--off {
+  background: none;
+  color: var(--ob-loud);
+  box-shadow: inset 0 0 0 1.5px var(--ob-rule);
+}
+
+.ob-error {
+  margin: 0 0 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ob-loud);
+}
+
+/* --------------------------------------------------------------- the diff */
+
+.ob-change {
+  align-items: flex-start;
+}
+
+.ob-change__what {
+  display: block;
+  margin-top: 2px;
+  font-size: 14px;
+  color: var(--ob-dim);
+}
+
+.ob-lead {
+  margin: 0 0 18px;
+  padding: 0 4px;
+  font-size: 14px;
+  color: var(--ob-dim);
+}
+
+/* ------------------------------------------------------------ reduced motion */
+
+/* Brief and purposeful, or not at all. Nothing here depends on the movement
+   for its meaning — the sheet still arrives, the bar still compacts. */
+@media (prefers-reduced-motion: reduce) {
+  .ob *,
+  .ob *::before,
+  .ob *::after,
+  .ob-sheet {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
+}
+
+/* ------------------------------------------------------------------ wider */
+
+/* An iPad, or the tablet in the office. The groups stop growing and centre;
+   nothing else changes, because nothing else needs to. */
+@media (min-width: 44rem) {
+  .ob-bar__row,
+  .ob-nights,
+  .ob-large,
+  .ob-main {
+    max-width: 44rem;
+    margin-inline: auto;
+  }
+
+  .ob-hand__row,
+  .ob-scope {
+    max-width: 44rem;
+    margin-inline: auto;
+  }
+}
+
+/* The paper lives in #previews and is never shown on screen — the Print action
+   is the only thing that reveals it, and css/print.css does the revealing. */
+#previews {
+  display: none;
+}
+
+/* ------------------------------------------------- small parts, named once */
+
+/* A group heading with an action on the right of it. */
+.ob-group__head--split {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* Light to look at, full-sized to hit: a text action carries no fill, so the
+   height it reserves costs nothing on screen and everything to a thumb. */
+.ob-action--tiny {
+  min-height: var(--ob-touch);
+  padding: 0 6px;
+  font-size: 15px;
+}
+
+.ob-action--link {
+  min-height: var(--ob-touch);
+  padding: 0 4px;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+.ob-action.is-off {
+  color: var(--ob-faint);
+}
+
+/* The one row that offers rather than states. It reads as the action it is
+   without borrowing the pill the marks use. */
+.ob-row__name--go {
+  color: var(--ob-accent);
+  font-weight: 600;
+}
+
+.ob-btn--small {
+  flex: 0 0 auto;
+  min-height: var(--ob-touch);
+  padding: 0 14px;
+  font-size: 14px;
+}
+
+.ob-btn--small:disabled {
+  color: var(--ob-faint);
+  box-shadow: inset 0 0 0 1.5px var(--ob-sep);
+}
+
+/* Out of a room, rather than into another one. */
+.ob-hand__out {
+  flex: 0 0 auto;
+  min-height: var(--ob-touch);
+  padding: 0 14px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  box-shadow: inset 0 0 0 1.5px var(--ob-rule);
+  font-size: 15px;
+  cursor: pointer;
+}

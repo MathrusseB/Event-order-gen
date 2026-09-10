@@ -821,8 +821,12 @@ export function staffByPerson(event) {
     if (!row) continue;
     const name = String(row.name || '').trim();
     // An unnamed row is its own person rather than joining the first blank one:
-    // two blanks are two rows somebody has yet to name, not one person's day.
-    const key = name || ` unnamed:${row.id || people.size}`;
+    // two blanks are two rows somebody has yet to name, not one person's day. The
+    // sentinel is written as an escape and not as a literal control character: a
+    // raw NUL in the source makes this file binary to every text tool that reads
+    // it, and an HTML parser rewrites it to U+FFFD when the module is inlined
+    // (js/export.js), which would silently change what this key is.
+    const key = name || `\u0000unnamed:${row.id || people.size}`;
     if (!people.has(key)) people.set(key, { name, assignments: [] });
     people.get(key).assignments.push(row);
   }

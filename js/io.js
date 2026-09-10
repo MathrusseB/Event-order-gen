@@ -34,10 +34,15 @@ const SAMPLE_URL = new URL('../data/sample.json', import.meta.url);
 
 /**
  * Lowercase, hyphen-joined, filesystem-safe.
+ *
+ * [v11] Exported: js/export.js names the rooming board it writes the same way
+ * this names the working copy, and two slugifiers would eventually disagree
+ * about an apostrophe.
+ *
  * @param {string} value
  * @returns {string} may be empty
  */
-function slugify(value) {
+export function slugify(value) {
   return String(value || '')
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
@@ -96,7 +101,22 @@ function inbound(result) {
  */
 export function saveToFile(event) {
   const name = fileNameFor(event);
-  const blob = new Blob([`${JSON.stringify(event, null, 2)}\n`], { type: 'application/json' });
+  downloadBlob(name, new Blob([`${JSON.stringify(event, null, 2)}\n`],
+    { type: 'application/json' }));
+  return name;
+}
+
+/**
+ * Hand a blob to the browser as a download.
+ *
+ * [v11] Its own function because there are two things to download now — the
+ * working copy, and the rooming board js/export.js builds — and the revoke
+ * below is the part worth having in one place.
+ *
+ * @param {string} name the filename offered
+ * @param {Blob} blob
+ */
+export function downloadBlob(name, blob) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
@@ -108,7 +128,6 @@ export function saveToFile(event) {
   // synchronous revoke races the download and produces an empty or failed file.
   // Defer it: the URL costs nothing to hold, and the tab reclaims it anyway.
   window.setTimeout(() => URL.revokeObjectURL(url), OBJECT_URL_LIFETIME_MS);
-  return name;
 }
 
 // Debounce state. The pending event is held here, not by the caller, so a
