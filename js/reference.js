@@ -2,12 +2,44 @@
 // Property facts, not event data. Never written to the event JSON.
 // Constants and pure lookups over them: no DOM, no state, no imports.
 
-/** Buildings on property. BUILD-SPEC §6. */
-export const BUILDINGS = [
-  'Red Leaf Inn',
+/**
+ * [v9] The property's lodging, in display order. BUILD-SPEC §6.
+ *
+ * The order is the order these get used in — least-assigned first — so the
+ * building somebody reaches for is the building at the top of the list, and the
+ * room grid reads the way the property fills up.
+ *
+ * v3's registry was the Lodge's named suites and a pooled Red Leaf Inn, and
+ * both were wrong for the private side. Master, Brian's, Michael's and Upland
+ * are gone; the Lodge is here as the two groups that are actually assigned, its
+ * bunk rooms and its two lower suites. The Clubhouse King Suite is a building
+ * of its own because it is assigned on its own — a master suite down the hall
+ * from the six Clubhouse rooms, rarely used but real.
+ */
+export const LODGING_BUILDINGS = [
+  'Remington',
+  'Winchester',
+  'Mallard',
+  'Wigeon',
+  'Pintail',
+  'Lodge Bunk Rooms',
+  'Lodge Lower Suites',
+  'RLI',
+  'Clubhouse',
+  'Clubhouse King Suite'
+];
+
+/**
+ * Buildings that take no assignments and appear as locations. BUILD-SPEC §6.
+ *
+ * [v9] "Lodge" and "Red Leaf Inn" are not among them any more: the lodging
+ * registry above names their parts, and a location called "Lodge" beside two
+ * buildings called "Lodge Bunk Rooms" and "Lodge Lower Suites" is the kind of
+ * near-duplicate a coordinator picks wrongly once and then distrusts for ever.
+ */
+export const VENUE_BUILDINGS = [
   'The Wheel',
   'Bucket Shop',
-  'Lodge',
   'Wood Shop',
   'MRSO',
   'Dock / Boathouse',
@@ -17,27 +49,27 @@ export const BUILDINGS = [
   'Cottage'
 ];
 
-/** Short forms, where one is in use. */
-export const BUILDING_ABBREVIATIONS = {
-  'Red Leaf Inn': 'RLI'
-};
+/** Every building on property, lodging first. BUILD-SPEC §6. */
+export const BUILDINGS = [...LODGING_BUILDINGS, ...VENUE_BUILDINGS];
 
 /**
  * [v3] Building assignment modes. BUILD-SPEC §6.
  *
  *   `named`  — room-level assignment. `rooming[].room` is required, and the
  *              room grid is drawn in the editor and the render.
- *   `pooled` — assignment is to the building only. `rooming[].room` is null;
- *              "in RLI" is all the detail the document needs.
+ *   `pooled` — assignment is to the building only. `rooming[].room` is null.
  *
  * Buildings absent from this map are non-lodging and take no assignments.
- * Red Leaf Inn is pooled because it is backup overflow on the private side; its
- * room inventory is kept below so the mode can be flipped if that ever changes.
+ *
+ * [v9] Every lodging building is `named`. RLI was pooled from v3 on the
+ * grounds that "anywhere in RLI" was detail enough; testing said otherwise —
+ * when RLI is in use, staff need the room number to know which room to service.
+ * `pooled` is kept here, in `roomKeyOf`, in the renders and in §12.6 because it
+ * costs nothing and the concept may return; nothing currently uses it.
  */
-export const BUILDING_ASSIGNMENT_MODES = {
-  'Lodge': 'named',
-  'Red Leaf Inn': 'pooled'
-};
+export const BUILDING_ASSIGNMENT_MODES = Object.fromEntries(
+  LODGING_BUILDINGS.map((building) => [building, 'named'])
+);
 
 /** Mode reported for a building that takes no assignments at all. */
 export const ASSIGNMENT_MODE_NONE = 'none';
@@ -46,7 +78,9 @@ export const ASSIGNMENT_MODE_NONE = 'none';
  * A building's assignment mode. BUILD-SPEC §6 [v3].
  *
  * @param {string} building name as stored on a rooming row
- * @returns {'named'|'pooled'|'none'} `none` for non-lodging or unknown buildings
+ * @returns {'named'|'pooled'|'none'} `none` for non-lodging or unknown
+ *   buildings — including a room in a building this registry no longer carries,
+ *   which is left exactly as it was authored (§12.6 reports it)
  */
 export function assignmentModeFor(building) {
   return Object.hasOwn(BUILDING_ASSIGNMENT_MODES, building)
@@ -54,63 +88,45 @@ export function assignmentModeFor(building) {
     : ASSIGNMENT_MODE_NONE;
 }
 
-// Red Leaf Inn room inventory. Room numbers are strings to match rooming[].room.
-// `suite` is the suite label where one applies, otherwise null.
-//
-// [v5] Bedding is not stored. Even rooms are kings and odd rooms are double
-// queens — property knowledge everyone at the ranch already has, which belongs
-// in neither the room titles nor the data (BUILD-SPEC §6). Nothing here models
-// room capacity: a rooming row names the party a room is known by, never a head
-// count (§5, v5 changes).
-
-/** Red Leaf Inn rooms, 1 through 24. Retained but unused while pooled. §6. */
-export const RED_LEAF_INN_ROOMS = [
-  { room: '1',  suite: null },
-  { room: '2',  suite: null },
-  { room: '3',  suite: null },
-  { room: '4',  suite: null },
-  { room: '5',  suite: null },
-  { room: '6',  suite: null },
-  { room: '7',  suite: null },
-  { room: '8',  suite: 'Exec Suite' },
-  { room: '9',  suite: null },
-  { room: '10', suite: null },
-  { room: '11', suite: 'Suite' },
-  { room: '12', suite: null },
-  { room: '13', suite: null },
-  { room: '14', suite: null },
-  { room: '15', suite: null },
-  { room: '16', suite: null },
-  { room: '17', suite: null },
-  { room: '18', suite: null },
-  { room: '19', suite: null },
-  { room: '20', suite: 'Exec Suite' },
-  { room: '21', suite: null },
-  { room: '22', suite: null },
-  { room: '23', suite: 'Suite' },
-  { room: '24', suite: null }
-];
-
-/** Lodge rooms. BUILD-SPEC §6. */
-export const LODGE_ROOMS = [
-  { room: 'Master Suite',          suite: 'Suite' },
-  { room: "Brian's Suite",         suite: 'Suite' },
-  { room: "Michael's Suite",       suite: 'Suite' },
-  { room: 'Timber Suite',          suite: 'Suite' },
-  { room: 'Wetland Suite',         suite: 'Suite' },
-  { room: 'Basement Office Suite', suite: 'Suite' },
-  { room: 'Upland Suite',          suite: 'Suite' },
-  { room: 'Bunk Room',             suite: null }
-];
+/**
+ * Rooms 1..n as strings, which is how `rooming[].room` stores them.
+ *
+ * Numbers as strings deliberately: a room label is an identifier, not a
+ * quantity. Nothing sorts or arithmetics on it, and "8" beside "Bunk Room" in
+ * the same field would otherwise be two types in one column.
+ */
+function numbered(count) {
+  return Array.from({ length: count }, (_, index) => String(index + 1));
+}
 
 /**
- * Room inventory keyed by building. Buildings with no lodging are absent.
- * Red Leaf Inn's rooms are retained but unused while it is `pooled` (§6 [v3]).
+ * [v9] Room inventory by building. BUILD-SPEC §6.
+ *
+ * Plain strings, in the order they hang on the board. Buildings with no lodging
+ * are absent.
+ *
+ * [v5] Bedding is not stored — even rooms are kings, odd rooms are double
+ * queens, and everyone at the ranch knows it. Nothing here models capacity
+ * either: the Bunk Room sleeps twelve and the King Suite sleeps two, and both
+ * are one room holding a party of whatever size (§5, v5 changes).
  */
 export const ROOMS_BY_BUILDING = {
-  'Red Leaf Inn': RED_LEAF_INN_ROOMS,
-  'Lodge': LODGE_ROOMS
+  'Remington': numbered(4),
+  'Winchester': numbered(4),
+  'Mallard': numbered(8),
+  'Wigeon': numbered(8),
+  'Pintail': numbered(8),
+  'Lodge Bunk Rooms': ['Bunk Room'],
+  'Lodge Lower Suites': ['Timber', 'Wetland'],
+  'RLI': numbered(24),
+  'Clubhouse': numbered(6),
+  'Clubhouse King Suite': ['King Suite']
 };
+
+/** The rooms a building holds, always an array. */
+export function roomsIn(building) {
+  return ROOMS_BY_BUILDING[building] || [];
+}
 
 /** Schedule label autocomplete. Free text is always allowed. BUILD-SPEC §6. */
 export const SCHEDULE_LABEL_SUGGESTIONS = [
@@ -142,16 +158,18 @@ export const SERVES_OPTIONS = ['all', 'adults', 'children', 'custom'];
 export const DAYPARTS = ['AM', 'PM'];
 
 /**
- * Section types. BUILD-SPEC §4.
+ * Section types, in the order they are offered. BUILD-SPEC §4.
  *
  * [v7] `rooming` and `menu` are not here: each is its own document, always
- * generated, never a section of the event order (§4, §8). What the order
- * carries of the rooming data is `accommodations`, the per-night summary.
+ * generated, never a section of the event order (§4, §8). [v9] Either can be
+ * appended to the order through `meta.includeInOrder`, which is a flag on the
+ * event and still not a section.
+ *
+ * [v9] `guests` replaces `attendees` and `accommodations`.
  */
 export const SECTION_TYPES = [
-  'attendees',
-  'accommodations',
   'schedule',
+  'guests',
   'foodAndBev',
   'staff',
   'departments',

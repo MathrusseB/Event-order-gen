@@ -49,7 +49,7 @@ import {
   unassignedGuestsOn
 } from './derive.js';
 import { formatDate, formatDateShort, nextDate } from './dates.js';
-import { BUILDINGS, ROOMS_BY_BUILDING, assignmentModeFor } from './reference.js';
+import { LODGING_BUILDINGS, assignmentModeFor, roomsIn } from './reference.js';
 import { newId } from './ids.js';
 import { el, reconcile, setHidden, setText, toggleClass } from './dom.js';
 
@@ -868,7 +868,7 @@ export function createRoomingBoard({ onEvent }) {
     guestEntries.forEach((entry) => entry.update(event));
 
     const occupancy = night ? roomOccupancyOn(event, night) : {};
-    const lodging = BUILDINGS.filter((name) => assignmentModeFor(name) !== 'none');
+    const lodging = LODGING_BUILDINGS;
     const buildingEntries = reconcile(buildings, lodging, (name) => name, createBuilding);
     buildingEntries.forEach((entry, index) =>
       entry.update(event, occupancy[lodging[index]] || {}));
@@ -911,8 +911,7 @@ export function createRoomingBoard({ onEvent }) {
  * carrying no room at all so §12.6 is visible rather than swallowed.
  */
 function roomsToShow(event, building, occupancy) {
-  const inventory = (ROOMS_BY_BUILDING[building] || []).map((entry) => entry.room);
-  const rooms = [...inventory];
+  const rooms = [...roomsIn(building)];
   let roomless = false;
 
   for (const row of event.rooming || []) {

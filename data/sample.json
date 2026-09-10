@@ -6,19 +6,19 @@
     "eventLead": "Brian Mathrusse",
     "revisionDate": "2026-11-10",
     "revisedBy": "Brian Mathrusse",
-    "brandId": "maple-ranch"
+    "brandId": "maple-ranch",
+    "includeInOrder": { "rooming": false, "menu": false }
   },
 
   "sections": [
-    { "id": "s1", "type": "attendees",      "title": "Attendee List",        "enabled": true },
-    { "id": "s2", "type": "accommodations", "title": "Accommodations",       "enabled": true },
-    { "id": "s3", "type": "schedule",       "title": "Event Schedule",       "enabled": true },
-    { "id": "s4", "type": "foodAndBev",     "title": "Food & Beverage",      "enabled": true },
-    { "id": "s5", "type": "staff",          "title": "Staff Assignments",    "enabled": true },
-    { "id": "s6", "type": "freeText",       "title": "Security Notes",       "enabled": true,
+    { "id": "s1", "type": "schedule",    "title": "Itinerary",              "enabled": true },
+    { "id": "s2", "type": "guests",      "title": "Guests",                 "enabled": true },
+    { "id": "s3", "type": "foodAndBev",  "title": "Food & Beverage",        "enabled": true },
+    { "id": "s4", "type": "staff",       "title": "Staff Assignments",      "enabled": true },
+    { "id": "s5", "type": "freeText",    "title": "Security Notes",         "enabled": true,
       "body": "Range in use Saturday PM. Guest arrivals staggered 1400-1800. PSO on property from 1200 Saturday through Monday departure." },
-    { "id": "s7", "type": "departments",    "title": "Department Breakdown", "enabled": false },
-    { "id": "s8", "type": "freeText",       "title": "Notes",                "enabled": true,
+    { "id": "s6", "type": "departments", "title": "Department Breakdown",   "enabled": false },
+    { "id": "s7", "type": "freeText",    "title": "Notes",                  "enabled": true,
       "body": "" }
   ],
 
@@ -44,19 +44,19 @@
   ],
 
   "rooming": [
-    { "id": "r-2f18", "building": "Lodge",        "room": "Brian's Suite",   "guestIds": ["a-7f3c"],
+    { "id": "r-2f18", "building": "Remington",          "room": "1",         "guestIds": ["a-7f3c"],
       "from": "2026-11-14", "to": "2026-11-16" },
-    { "id": "r-b03c", "building": "Lodge",        "room": "Michael's Suite", "guestIds": ["a-1d55"],
+    { "id": "r-b03c", "building": "Remington",          "room": "2",         "guestIds": ["a-1d55"],
       "from": "2026-11-14", "to": "2026-11-16" },
-    { "id": "r-7d41", "building": "Lodge",        "room": "Bunk Room",       "guestIds": ["a-3fa1", "a-6b70"],
+    { "id": "r-7d41", "building": "Lodge Bunk Rooms",   "room": "Bunk Room", "guestIds": ["a-3fa1", "a-6b70"],
       "from": "2026-11-14", "to": "2026-11-16" },
-    { "id": "r-4a90", "building": "Lodge",        "room": "Timber Suite",    "guestIds": ["a-9d22"],
+    { "id": "r-4a90", "building": "Lodge Lower Suites", "room": "Timber",    "guestIds": ["a-9d22"],
       "from": "2026-11-14", "to": "2026-11-15" },
-    { "id": "r-c655", "building": "Lodge",        "room": "Timber Suite",    "guestIds": ["a-5e08"],
+    { "id": "r-c655", "building": "Lodge Lower Suites", "room": "Timber",    "guestIds": ["a-5e08"],
       "from": "2026-11-15", "to": "2026-11-16" },
-    { "id": "r-e2b7", "building": "Red Leaf Inn", "room": null,              "guestIds": ["a-8a17"],
+    { "id": "r-e2b7", "building": "RLI",                "room": "8",         "guestIds": ["a-8a17"],
       "from": "2026-11-14", "to": "2026-11-16" },
-    { "id": "r-91da", "building": "Red Leaf Inn", "room": null,              "guestIds": ["a-2b91"],
+    { "id": "r-91da", "building": "RLI",                "room": "11",        "guestIds": ["a-2b91"],
       "from": "2026-11-15", "to": "2026-11-16" }
   ],
 
@@ -79,7 +79,7 @@
     { "id": "sat-dinner",      "date": "2026-11-14", "start": "18:30", "end": null,
       "meal": "Dinner",            "location": "The Wheel",    "countBasis": "present",   "serves": "adults" },
     { "id": "sun-breakfast",   "date": "2026-11-15", "start": "10:30", "end": null,
-      "meal": "Breakfast",         "location": "Red Leaf Inn", "countBasis": "present",   "serves": "all" },
+      "meal": "Breakfast",         "location": "The Wheel",    "countBasis": "present",   "serves": "all" },
     { "id": "sun-cocktails",   "date": "2026-11-15", "start": "17:00", "end": "18:00",
       "meal": "Cocktails",         "location": "Hummer Bar",   "countBasis": "present",   "serves": "adults" },
     { "id": "sun-dinner",      "date": "2026-11-15", "start": "18:30", "end": null,
@@ -94,23 +94,31 @@
 
   "menu": [
     { "fnbId": "sat-kids-dinner",
-      "courses": [
-        { "heading": "Mains",   "items": ["All-Beef Hot Dogs", "Buttered Noodles"] },
-        { "heading": "Sides",   "items": ["Apple Slices", "Carrot Sticks and Ranch"] },
-        { "heading": "Dessert", "items": ["Vanilla Soft Serve - nut-free station"] }
+      "dishes": [
+        "All-Beef Hot Dogs",
+        "Buttered Noodles",
+        "Apple Slices",
+        "Carrot Sticks and Ranch",
+        "Vanilla Soft Serve - nut-free station"
       ] },
     { "fnbId": "sat-dinner",
-      "courses": [
-        { "heading": "Passed",  "items": ["Bacon-Wrapped Dove Poppers", "Smoked Trout Rillette on Rye"] },
-        { "heading": "Entrees", "items": ["American Wagyu Beef Tenderloin - Carved to Order", "Pan-Roasted Walleye, Brown Butter"] },
-        { "heading": "Sides",   "items": ["Wild Rice Pilaf", "Charred Broccolini", "Buttermilk Rolls"] },
-        { "heading": "Dessert", "items": ["Skillet Apple Crisp, Vanilla Bean Ice Cream"] }
+      "dishes": [
+        "Bacon-Wrapped Dove Poppers",
+        "Smoked Trout Rillette on Rye",
+        "American Wagyu Beef Tenderloin - Carved to Order",
+        "Pan-Roasted Walleye, Brown Butter",
+        "Wild Rice Pilaf",
+        "Charred Broccolini",
+        "Buttermilk Rolls",
+        "Skillet Apple Crisp, Vanilla Bean Ice Cream"
       ] },
     { "fnbId": "sun-dinner",
-      "courses": [
-        { "heading": "Entrees", "items": ["Cast-Iron Pheasant Breast, Sage Butter", "Butternut Squash Risotto - vegetarian"] },
-        { "heading": "Sides",   "items": ["Roasted Root Vegetables", "Skillet Cornbread"] },
-        { "heading": "Dessert", "items": ["Bourbon Pecan Tart"] }
+      "dishes": [
+        "Cast-Iron Pheasant Breast, Sage Butter",
+        "Butternut Squash Risotto - vegetarian",
+        "Roasted Root Vegetables",
+        "Skillet Cornbread",
+        "Bourbon Pecan Tart"
       ] }
   ],
 
@@ -120,11 +128,12 @@
     { "id": "t-13c9", "name": "Tanisha", "date": "2026-11-14", "daypart": "AM", "assignment": "AM duties" },
     { "id": "t-14d2", "name": "Evie",    "date": "2026-11-14", "daypart": "PM", "assignment": "PM stew" },
     { "id": "t-15e6", "name": "Sara",    "date": "2026-11-15", "daypart": "AM", "assignment": "Upland guide - Food Plot" },
-    { "id": "t-16f8", "name": "Tanisha", "date": "2026-11-15", "daypart": "PM", "assignment": "Turndown - Red Leaf Inn" },
+    { "id": "t-16f8", "name": "Tanisha", "date": "2026-11-15", "daypart": "PM", "assignment": "Turndown - RLI" },
     { "id": "t-1703", "name": "Evie",    "date": "2026-11-16", "daypart": "AM", "assignment": "Breakfast service - Wheel" }
   ],
 
   "departments": [],
 
-  "buildingsInUse": ["Red Leaf Inn", "The Wheel", "Lodge", "Hummer Bar", "Food Plot"]
+  "buildingsInUse": ["Remington", "Lodge Bunk Rooms", "Lodge Lower Suites", "RLI", "The Wheel", "Hummer Bar", "Food Plot"],
+  "overflowBuildings": ["Winchester"]
 }

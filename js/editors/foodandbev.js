@@ -365,8 +365,8 @@ function deleteEntry(id) {
 
   let prompt = `Delete ${name}${when ? ` (${when})` : ''}?`;
   if (block) {
-    const dishes = (Array.isArray(block.courses) ? block.courses : [])
-      .reduce((total, course) => total + ((course && course.items) || []).length, 0);
+    const dishes = (Array.isArray(block.dishes) ? block.dishes : [])
+      .filter((dish) => String(dish || '').trim()).length;
     prompt += ` Its menu — ${dishes} ${dishes === 1 ? 'dish' : 'dishes'} — stays in the file and`
       + ' shows up in the menu editor as written for a meal that is gone, so nothing is lost. You'
       + ' can point it at another meal or delete it there.';

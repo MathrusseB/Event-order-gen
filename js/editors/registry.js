@@ -20,20 +20,20 @@
 // itself, beside the outline rather than in it.
 
 import { el, setText } from '../dom.js';
-import { createAccommodationsEditor } from './accommodations.js';
-import { createAttendeesEditor } from './attendees.js';
 import { createDepartmentsEditor } from './departments.js';
 import { createFoodAndBevEditor } from './foodandbev.js';
 import { createFreeTextEditor } from './freetext.js';
+import { createGuestsEditor } from './guests.js';
 import { createScheduleEditor } from './schedule.js';
 import { createStaffEditor } from './staff.js';
 
 const EDITORS = {
-  accommodations: createAccommodationsEditor,
-  attendees: createAttendeesEditor,
   departments: createDepartmentsEditor,
   foodAndBev: createFoodAndBevEditor,
   freeText: createFreeTextEditor,
+  // [v9] One editor where `attendees` and `accommodations` were two. The
+  // attendee rows are the same rows, mounted by the guests editor.
+  guests: createGuestsEditor,
   schedule: createScheduleEditor,
   staff: createStaffEditor
 };

@@ -19,6 +19,13 @@
 // room is *known by* — spouses are never listed, children only when they have a
 // room of their own — so a cell reading one name may hold four people. That is
 // why the unassigned list below is worded as a prompt and not as a fault.
+//
+// [v9] The attendee list is gone from this document. It belongs to the Event
+// Order's `guests` section, and the same names printed on two documents drift
+// the moment one of them is reissued — the rooming sheet is the one that gets
+// reprinted at four in the afternoon when somebody swaps rooms. What is left is
+// the grid and the callout naming anyone staying with no room that night, which
+// is a warning *about* the grid and not a guest list (§8 C [v9]).
 
 import {
   attendeeName,
@@ -28,9 +35,9 @@ import {
   unassignedGuestsOn
 } from '../derive.js';
 import { formatDate } from '../dates.js';
-import { ROOMS_BY_BUILDING, assignmentModeFor } from '../reference.js';
+import { assignmentModeFor, roomsIn } from '../reference.js';
 import { el } from '../dom.js';
-import { emptyNote, nameWithTag, partyLine, section, table } from './parts.js';
+import { emptyNote, partyLine, section, table } from './parts.js';
 
 /**
  * The Rooming Assignment document descriptor.
@@ -44,10 +51,17 @@ export const roomingDocument = {
 };
 
 /**
+ * The Rooming Assignment's body — the grids, and the callout under them.
+ *
+ * Exported because `meta.includeInOrder.rooming` prints exactly this on the
+ * Event Order (§8 [v9]): the same render, wrapped in the order's own section
+ * bar instead of in this document's page furniture. One function, so the grid
+ * on the order cannot come to differ from the grid on the sheet.
+ *
  * @param {object} event
  * @returns {Node[]}
  */
-function renderRoomingBody(event) {
+export function renderRoomingBody(event) {
   const nights = eventNights(event);
   const buildings = buildingsWithRows(event);
 
@@ -59,8 +73,7 @@ function renderRoomingBody(event) {
 
   return [
     ...grids,
-    renderUnassigned(event, nights),
-    section('Attendees', [attendeeTable(event)], 'guests')
+    renderUnassigned(event, nights)
   ];
 }
 
@@ -140,8 +153,7 @@ function renderBuilding(event, building, nights) {
  * @returns {{key: string, label: string}[]}
  */
 function roomsOf(building, occupancy) {
-  const inventory = ROOMS_BY_BUILDING[building] || [];
-  const rooms = inventory.map((entry) => ({ key: entry.room, label: entry.room }));
+  const rooms = roomsIn(building).map((room) => ({ key: room, label: room }));
   const known = new Set(rooms.map((room) => room.key));
 
   let hasRoomless = false;
@@ -241,38 +253,4 @@ function renderUnassigned(event, nights) {
         .join(', ') })
     ])))
   ], 'unroomed');
-}
-
-/* --------------------------------------------------------------- attendees */
-
-/**
- * The attendee list, with arrival, departure and dietary notes. §8 C.
- *
- * Dietary is on this document and not only on the Menu because whoever is
- * arranging rooms is often the person who takes the call about an allergy, and
- * they should not have to go and find the other sheet.
- */
-function attendeeTable(event) {
-  const attendees = event.attendees || [];
-  if (!attendees.length) return emptyNote('No guests on the list yet.');
-
-  return table(
-    [
-      { label: 'Guest', class: 'col-name' },
-      { label: 'Arrives', class: 'col-date' },
-      { label: 'Departs', class: 'col-date' },
-      { label: 'Dietary', class: 'col-item' }
-    ],
-    attendees.map((attendee) => [
-      nameWithTag(attendeeName(attendee) || 'Unnamed guest', attendee.isChild ? 'child' : ''),
-      formatDate(attendee.arrive) || followsEvent(event, 'startDate'),
-      formatDate(attendee.depart) || followsEvent(event, 'endDate'),
-      String(attendee.dietary || '').trim()
-    ]),
-    'guests');
-}
-
-/** A guest with no dates of their own takes the event's (§5, v2 changes). */
-function followsEvent(event, key) {
-  return formatDate(((event && event.meta) || {})[key]) || '—';
 }

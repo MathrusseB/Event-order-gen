@@ -21,7 +21,12 @@
 // prints are compared, which is what makes "identical pagination" a checked
 // claim rather than an assumption.
 
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { readPages } from '../lib/pdf.mjs';
+
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 
 /** The three documents, by the id `views.js` stamps on `<html data-print>`. */
 const DOCUMENTS = [
@@ -41,22 +46,32 @@ const DOCUMENTS = [
 const EVENTS = [
   {
     name: 'the sample event',
-    sections: 8,
+    file: path.join(ROOT, 'data', 'sample.json'),
     open: (page) => page.click('#btn-sample')
   },
   {
     name: 'a large event',
-    sections: 8,
     fixture: 'large-event.json',
     why: 'every document runs past one page'
   },
   {
     name: 'an empty event',
-    sections: 0,
     fixture: 'empty-event.json',
     why: 'no dates, no guests, no sections'
   }
 ];
+
+/**
+ * How many sections the loaded event will show, read from the file itself.
+ *
+ * The wait below needs a number, and a number written here is a number that
+ * goes stale the next time the fixture changes — quietly, as a 30-second
+ * timeout rather than as a failed assertion about anything real.
+ */
+async function sectionCount(file) {
+  const event = JSON.parse(await fs.readFile(file, 'utf8'));
+  return Array.isArray(event.sections) ? event.sections.length : 0;
+}
 
 /** Ink from the furniture, removed so that ink means body. */
 const MARKER_CSS = `@media print {
@@ -77,15 +92,16 @@ export async function run({ browser, origin, fixture, savePdf, check }) {
     const page = await context.newPage();
 
     try {
+      const file = event.file || fixture(event.fixture);
       await page.goto(`${origin}/index.html`, { waitUntil: 'networkidle' });
       if (event.open) await event.open(page);
-      else await page.setInputFiles('#file-input', fixture(event.fixture));
+      else await page.setInputFiles('#file-input', file);
 
       // The event is in when the outline holds its sections. Waiting on a
       // timer instead would pass on a slow machine by luck.
       await page.waitForFunction(
         (count) => document.getElementById('section-blocks').children.length === count,
-        event.sections
+        await sectionCount(file)
       );
 
       for (const document of DOCUMENTS) {

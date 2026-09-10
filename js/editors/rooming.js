@@ -28,11 +28,7 @@ import { getEvent, update } from '../app.js';
 import { attendeeById, attendeeName, roomingWindow } from '../derive.js';
 import { datesBetween, formatDateShort } from '../dates.js';
 import { newId } from '../ids.js';
-import {
-  BUILDINGS,
-  ROOMS_BY_BUILDING,
-  assignmentModeFor
-} from '../reference.js';
+import { LODGING_BUILDINGS, assignmentModeFor, roomsIn } from '../reference.js';
 import {
   el,
   focusRowControl,
@@ -48,9 +44,9 @@ import { draftList, fieldWriter, moveRow, removeRow, rowById } from './rows.js';
 
 const write = fieldWriter('rooming');
 
-/** Buildings that take assignments at all. BUILD-SPEC §6 [v3]. */
+/** Buildings that take assignments at all. BUILD-SPEC §6 [v3], [v9]. */
 function lodgingBuildings() {
-  return BUILDINGS.filter((building) => assignmentModeFor(building) !== 'none');
+  return LODGING_BUILDINGS;
 }
 
 /** A blank assignment, in the shape of BUILD-SPEC §5. */
@@ -239,7 +235,7 @@ function createRoomingRow(list, id) {
       setValue(building.select, stored);
 
       const mode = assignmentModeFor(stored);
-      const inventory = (ROOMS_BY_BUILDING[stored] || []).map((entry) => entry.room);
+      const inventory = roomsIn(stored);
       const storedRoom = row.room === null || row.room === undefined ? '' : String(row.room);
       const roomValues = storedRoom && !inventory.includes(storedRoom)
         ? [...inventory, storedRoom]

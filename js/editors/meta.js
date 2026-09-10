@@ -25,7 +25,8 @@ import { update } from '../app.js';
 import { attendeeName, roomingWindow } from '../derive.js';
 import { formatDateShort } from '../dates.js';
 import { BRANDS, DEFAULT_BRAND_ID, brandFor } from '../reference.js';
-import { el, reconcile, setHidden, setText, setValue } from '../dom.js';
+import { includeFlags } from '../derive.js';
+import { el, reconcile, setChecked, setHidden, setText, setValue } from '../dom.js';
 
 /** How many outside-the-range items are named before the list summarises. */
 const MAX_LISTED = 8;
@@ -41,11 +42,40 @@ const FIELDS = [
   { key: 'revisedBy', label: 'Revised by', type: 'text', autocapitalize: 'words' }
 ];
 
+/** [v9] The two documents that can be appended to the order. §5, §8. */
+const INCLUDES = [
+  {
+    key: 'rooming',
+    label: 'The room grid',
+    note: 'Rooms down, nights across, and anyone staying with no room.'
+  },
+  {
+    key: 'menu',
+    label: 'The menu blocks',
+    note: 'One block per meal service, with its dishes.'
+  }
+];
+
 /** Write one meta field. */
 function writeMeta(key, value) {
   update((draft) => {
     if (!draft.meta || typeof draft.meta !== 'object') draft.meta = {};
     draft.meta[key] = value;
+  });
+}
+
+/**
+ * [v9] Set one inclusion flag.
+ *
+ * Written as a whole object rather than by reaching into one that may not be
+ * there: a file from before v9 has no `includeInOrder` at all, and a file
+ * hand-edited to `"includeInOrder": true` has one that is not an object.
+ */
+function writeInclude(key, on) {
+  update((draft) => {
+    if (!draft.meta || typeof draft.meta !== 'object') draft.meta = {};
+    const current = includeFlags(draft);
+    draft.meta.includeInOrder = { ...current, [key]: Boolean(on) };
   });
 }
 
@@ -90,6 +120,31 @@ export function createMetaEditor() {
     ]);
   }));
 
+  // [v9] §8: an addition to the order, never a replacement for the standalone
+  // document. The note says so on screen, because the one way to read a control
+  // called "include in the order" wrongly is as a move rather than a copy.
+  const includeBoxes = new Map();
+  const includes = el('fieldset', { class: 'includes' }, [
+    el('legend', { class: 'includes__legend', text: 'Also print on the Event Order' }),
+    el('div', { class: 'includes__set' }, INCLUDES.map((entry) => {
+      const input = el('input', { type: 'checkbox', class: 'check__box' });
+      input.addEventListener('change', () => writeInclude(entry.key, input.checked));
+      includeBoxes.set(entry.key, input);
+      return el('label', { class: 'check check--include' }, [
+        input,
+        el('span', { class: 'check__label' }, [
+          el('span', { class: 'check__text', text: entry.label }),
+          el('span', { class: 'check__note', text: entry.note })
+        ])
+      ]);
+    })),
+    el('p', {
+      class: 'includes__foot',
+      text: 'The Menu and the Rooming Assignment are generated either way and still print on '
+        + 'their own. This adds them to the end of the order; it does not move them.'
+    })
+  ]);
+
   const hint = el('p', { class: 'editor__legend' });
 
   const warnTitle = el('h3', { class: 'notice__title' });
@@ -108,7 +163,7 @@ export function createMetaEditor() {
     warnFoot
   ]);
 
-  const node = el('div', { class: 'editor editor--meta' }, [grid, hint, notice]);
+  const node = el('div', { class: 'editor editor--meta' }, [grid, includes, hint, notice]);
 
   return {
     node,
@@ -130,6 +185,9 @@ export function createMetaEditor() {
         ? 'On the Event Order and the Rooming Assignment. The Menu is always Maple Ranch.'
         : `${brand.name} on the Event Order and the Rooming Assignment. The Menu stays Maple `
           + 'Ranch — the menu is the ranch\'s, not the group\'s.');
+
+      const flags = includeFlags(event);
+      for (const [key, input] of includeBoxes) setChecked(input, flags[key]);
 
       // The end date cannot sensibly precede the start; the picker says so,
       // and a range typed backwards is still accepted and warned about below.

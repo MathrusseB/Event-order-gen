@@ -45,6 +45,16 @@ rather than about pixels, so it runs against `js/rooming.js` directly, in Node,
 with no browser involved — which is possible only because §9's portability
 decision means the module takes an event in and hands a new one back.
 
+**`checks/migration.mjs` — every shape this app has written still opens.**
+BUILD-SPEC §5: the JSON file is the source of truth, and files saved by earlier
+builds are on the machine right now. Each generation is checked on the shape as
+it was actually written — a pre-v4 rooming row naming a guest by name, a v4
+`guestId`, a v5 party, v7 `rooming` and `menu` sections, v8 menu courses and
+Lodge suites — along with the rule that matters most on the v9 registry change:
+a room that has left the property registry is reported and **left alone**, never
+remapped and never dropped. The run is checked to be idempotent, and to leave
+the caller's event untouched.
+
 ## Fixtures
 
 `fixtures/` is test data and is not `data/sample.json`. The sample is the event

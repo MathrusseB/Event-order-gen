@@ -15,10 +15,10 @@
 // anything when it goes. The confirmation the shell raises says which case it
 // is, because the user cannot be expected to know.
 //
-// [v7] `accommodations` is a third case: it owns nothing and edits nothing. It
-// is a summary of `rooming[]`, which belongs to the Rooming Assignment — its
-// own document (§4, §8) — so removing it changes what the event order prints
-// and nothing else at all.
+// [v9] `guests` is the section that carries the guest list, and it holds two
+// things that are not rows: `buildingsInUse[]` and `overflowBuildings[]`. Both
+// live on the event rather than on the section, so removing the section leaves
+// them where they are, exactly as it leaves the attendees.
 
 import { newId } from './ids.js';
 import { SECTION_TYPES } from './reference.js';
@@ -33,26 +33,25 @@ import { SECTION_TYPES } from './reference.js';
  * `freeText`, which holds its own `body`. `noun` names those rows in a sentence.
  */
 export const SECTION_TYPE_INFO = {
-  attendees: {
-    label: 'Attendee list',
-    defaultTitle: 'Attendee List',
-    dataKey: 'attendees',
-    noun: 'guests',
-    repeatable: false
-  },
-  accommodations: {
-    label: 'Accommodations',
-    defaultTitle: 'Accommodations',
-    dataKey: 'rooming',
-    noun: 'room assignments',
-    derived: true,
-    repeatable: false
-  },
   schedule: {
-    label: 'Schedule',
-    defaultTitle: 'Event Schedule',
+    label: 'Itinerary',
+    // [v7] The section renders the merged itinerary — schedule entries and meal
+    // services in one list (§7) — so [v9] it is called what it prints. A file
+    // that titled it "Event Schedule" keeps that title: it was chosen.
+    defaultTitle: 'Itinerary',
     dataKey: 'schedule',
     noun: 'schedule entries',
+    repeatable: false
+  },
+  // [v9] One section where `attendees` and `accommodations` were two. Two
+  // headings about the same people, one after the other, was one heading too
+  // many; the per-night lodging summary is gone with it, and an order that
+  // wants the whole rooming picture includes the grid itself (§5, v9 changes).
+  guests: {
+    label: 'Guests',
+    defaultTitle: 'Guests',
+    dataKey: 'attendees',
+    noun: 'guests',
     repeatable: false
   },
   foodAndBev: {
@@ -88,18 +87,19 @@ export const SECTION_TYPE_INFO = {
 /**
  * [v6] The sections a new event starts with. BUILD-SPEC §4, §5 (v6 changes).
  *
- * [v7] Five: the ones nearly every private-side order uses. Staff and
- * departments are deliberately absent — they are the exception, and an outline
- * listing sections the event will not use is noise the coordinator has to clear
- * before starting. Rooming and Menu are absent for a different reason: they are
- * not sections at all any more, but documents of their own that are always
- * generated (§4, §8).
+ * [v9] Three: the itinerary, the guests, and somewhere to write. Staff and
+ * departments are absent because they are the exception, and an outline listing
+ * sections the event will not use is noise the coordinator has to clear before
+ * starting. Food & Beverage is absent for a newer reason — the itinerary
+ * already carries every meal (§7 [v7]), so the separate F&B table is wanted on
+ * the order less often than not, and it is one tap to add. Rooming and Menu are
+ * absent for the oldest reason of all: they are not sections, but documents of
+ * their own that are always generated (§4, §8), and §5 [v9] can append either
+ * to the order without making it one.
  */
 export const SEEDED_SECTION_TYPES = [
-  'attendees',
-  'accommodations',
   'schedule',
-  'foodAndBev',
+  'guests',
   'freeText'
 ];
 
@@ -115,7 +115,7 @@ export function sectionTypes() {
  * Type metadata, with a usable shape for a type this build does not know.
  * @param {string} type
  * @returns {{label: string, defaultTitle: string, dataKey: string|null, noun: string|null,
- *   derived: boolean, repeatable: boolean}}
+ *   repeatable: boolean}}
  */
 export function typeInfo(type) {
   return SECTION_TYPE_INFO[type] || {
@@ -123,7 +123,6 @@ export function typeInfo(type) {
     defaultTitle: String(type || 'Section'),
     dataKey: null,
     noun: null,
-    derived: false,
     repeatable: true
   };
 }
@@ -289,30 +288,21 @@ export function setSectionBody(draft, id, body) {
  * section itself and would go with it. Everything else is a detach — the rows
  * stay in the file and come back with the section.
  *
- * [v7] `derived` marks a section that only summarises an array another
- * document owns — `accommodations` over `rooming[]`. Removing one takes a table
- * off the event order and touches nothing else.
- *
  * @param {object} event
  * @param {object} section
- * @returns {{count: number, noun: string, destroys: boolean, derived: boolean}}
+ * @returns {{count: number, noun: string, destroys: boolean}}
  */
 export function sectionContent(event, section) {
-  if (!section) return { count: 0, noun: '', destroys: false, derived: false };
+  if (!section) return { count: 0, noun: '', destroys: false };
 
   if (section.type === 'freeText') {
     const body = String(section.body || '');
-    return { count: body.length, noun: 'characters of text', destroys: true, derived: false };
+    return { count: body.length, noun: 'characters of text', destroys: true };
   }
 
   const info = typeInfo(section.type);
   const rows = info.dataKey && Array.isArray(event[info.dataKey]) ? event[info.dataKey] : [];
-  return {
-    count: rows.length,
-    noun: info.noun || 'rows',
-    destroys: false,
-    derived: Boolean(info.derived)
-  };
+  return { count: rows.length, noun: info.noun || 'rows', destroys: false };
 }
 
 /**
@@ -327,13 +317,8 @@ export function sectionContent(event, section) {
  */
 export function deleteSectionPrompt(event, section) {
   const title = String((section && section.title) || 'this section').trim() || 'this section';
-  const { count, noun, destroys, derived } = sectionContent(event, section);
+  const { count, noun, destroys } = sectionContent(event, section);
 
-  if (derived) {
-    return `Remove "${title}" from this order? It is a summary of the ${count} ${noun} in the `
-      + 'Rooming Assignment, which is its own document and is not affected. The order stops '
-      + 'showing who is housed where each night.';
-  }
   if (destroys && count > 0) {
     return `Delete "${title}"? Its text goes with it — ${count} characters, and there is no undo. `
       + 'To keep the text but leave it off the printed order, turn off "Include in the order" instead.';
