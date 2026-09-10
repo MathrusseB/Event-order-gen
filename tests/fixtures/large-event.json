@@ -1,0 +1,1838 @@
+{
+  "meta": {
+    "eventName": "Ranch Group Hunt - Full House",
+    "startDate": "2026-11-12",
+    "endDate": "2026-11-16",
+    "eventLead": "Brian Mathrusse",
+    "revisionDate": "2026-11-08",
+    "revisedBy": "Brian Mathrusse",
+    "brandId": "bloody-feather"
+  },
+  "sections": [
+    {
+      "id": "s1",
+      "type": "attendees",
+      "title": "Attendee List",
+      "enabled": true
+    },
+    {
+      "id": "s2",
+      "type": "accommodations",
+      "title": "Accommodations",
+      "enabled": true
+    },
+    {
+      "id": "s3",
+      "type": "schedule",
+      "title": "Event Schedule",
+      "enabled": true
+    },
+    {
+      "id": "s4",
+      "type": "foodAndBev",
+      "title": "Food & Beverage",
+      "enabled": true
+    },
+    {
+      "id": "s5",
+      "type": "staff",
+      "title": "Staff Assignments",
+      "enabled": true
+    },
+    {
+      "id": "s6",
+      "type": "departments",
+      "title": "Department Breakdown",
+      "enabled": true
+    },
+    {
+      "id": "s7",
+      "type": "freeText",
+      "title": "Security Notes",
+      "enabled": true,
+      "body": "Range in use each afternoon. Guest arrivals staggered 1400-1800 Thursday and Friday. PSO on property from 1200 Thursday through Monday departure.\n\nVehicles stage at the Bucket Shop. No traffic past the Food Plot during a hunt."
+    },
+    {
+      "id": "s8",
+      "type": "freeText",
+      "title": "Notes",
+      "enabled": true,
+      "body": ""
+    }
+  ],
+  "attendees": [
+    {
+      "id": "a-0000",
+      "last": "Illig",
+      "first": "Brian",
+      "arrive": "2026-11-13",
+      "depart": "2026-11-15",
+      "isChild": false,
+      "dietary": "",
+      "note": ""
+    },
+    {
+      "id": "a-0001",
+      "last": "Illig",
+      "first": "Michael",
+      "arrive": "2026-11-12",
+      "depart": "2026-11-16",
+      "isChild": false,
+      "dietary": "",
+      "note": ""
+    },
+    {
+      "id": "a-0002",
+      "last": "Illig",
+      "first": "Nora",
+      "arrive": "2026-11-12",
+      "depart": "2026-11-16",
+      "isChild": true,
+      "dietary": "Severe tree nut allergy",
+      "note": ""
+    },
+    {
+      "id": "a-0003",
+      "last": "Illig",
+      "first": "Charlie",
+      "arrive": "2026-11-12",
+      "depart": "2026-11-16",
+      "isChild": true,
+      "dietary": "",
+      "note": ""
+    },
+    {
+      "id": "a-0004",
+      "last": "Palmer",
+      "first": "Kim",
+      "arrive": "2026-11-13",
+      "depart": "2026-11-16",
+      "isChild": false,
+      "dietary": "Shellfish allergy",
+      "note": "Arriving late"
+    },
+    {
+      "id": "a-0005",
+      "last": "Baldwin",
+      "first": "Chase",
+      "arrive": "2026-11-14",
+      "depart": "2026-11-14",
+      "isChild": false,
+      "dietary": "",
+      "note": "Day guest, departing after dinner"
+    },
+    {
+      "id": "a-0006",
+      "last": "Reyes",
+      "first": "Dana",
+      "arrive": "2026-11-12",
+      "depart": "2026-11-16",
+      "isChild": false,
+      "dietary": "Vegetarian",
+      "note": ""
+    },
+    {
+      "id": "a-0007",
+      "last": "Whitfield",
+      "first": "Tom",
+      "arrive": "2026-11-12",
+      "depart": "2026-11-16",
+      "isChild": false,
+      "dietary": "",
+      "note": ""
+    },
+    {
+      "id": "a-0008",
+      "last": "Navarro",
+      "first": "Elise",
+      "arrive": "2026-11-13",
+      "depart": "2026-11-16",
+      "isChild": false,
+      "dietary": "",
+      "note": ""
+    },
+    {
+      "id": "a-0009",
+      "last": "Kane",
+      "first": "Marcus",
+      "arrive": "2026-11-12",
+      "depart": "2026-11-16",
+      "isChild": false,
+      "dietary": "Pescatarian",
+      "note": ""
+    },
+    {
+      "id": "a-0010",
+      "last": "Duarte",
+      "first": "Sofia",
+      "arrive": "2026-11-12",
+      "depart": "2026-11-15",
+      "isChild": false,
+      "dietary": "",
+      "note": ""
+    },
+    {
+      "id": "a-0011",
+      "last": "Holloway",
+      "first": "Grant",
+      "arrive": "2026-11-12",
+      "depart": "2026-11-16",
+      "isChild": false,
+      "dietary": "Gluten free",
+      "note": ""
+    },
+    {
+      "id": "a-0012",
+      "last": "Kane",
+      "first": "Ava",
+      "arrive": "2026-11-13",
+      "depart": "2026-11-16",
+      "isChild": false,
+      "dietary": "",
+      "note": ""
+    },
+    {
+      "id": "a-0013",
+      "last": "Sandoval",
+      "first": "Peter",
+      "arrive": "2026-11-12",
+      "depart": "2026-11-16",
+      "isChild": false,
+      "dietary": "",
+      "note": "Prefers a ground floor room"
+    },
+    {
+      "id": "a-0014",
+      "last": "Beckett",
+      "first": "Ruth",
+      "arrive": "2026-11-12",
+      "depart": "2026-11-16",
+      "isChild": true,
+      "dietary": "",
+      "note": ""
+    },
+    {
+      "id": "a-0015",
+      "last": "Fairbanks",
+      "first": "Owen",
+      "arrive": "2026-11-12",
+      "depart": "2026-11-15",
+      "isChild": false,
+      "dietary": "",
+      "note": ""
+    },
+    {
+      "id": "a-0016",
+      "last": "Ortega",
+      "first": "Lena",
+      "arrive": "2026-11-13",
+      "depart": "2026-11-16",
+      "isChild": false,
+      "dietary": "",
+      "note": ""
+    },
+    {
+      "id": "a-0017",
+      "last": "Delacroix",
+      "first": "Hugh",
+      "arrive": "2026-11-12",
+      "depart": "2026-11-16",
+      "isChild": false,
+      "dietary": "No pork",
+      "note": ""
+    },
+    {
+      "id": "a-0018",
+      "last": "Monroe",
+      "first": "Ivy",
+      "arrive": "2026-11-12",
+      "depart": "2026-11-16",
+      "isChild": true,
+      "dietary": "",
+      "note": ""
+    },
+    {
+      "id": "a-0019",
+      "last": "Rutledge",
+      "first": "Cole",
+      "arrive": "2026-11-12",
+      "depart": "2026-11-16",
+      "isChild": false,
+      "dietary": "",
+      "note": "Wheelchair access needed at the Lodge entry"
+    },
+    {
+      "id": "a-0020",
+      "last": "Vance",
+      "first": "Mara",
+      "arrive": "2026-11-13",
+      "depart": "2026-11-15",
+      "isChild": false,
+      "dietary": "",
+      "note": ""
+    },
+    {
+      "id": "a-0021",
+      "last": "Thornbury",
+      "first": "Ellis",
+      "arrive": "2026-11-12",
+      "depart": "2026-11-16",
+      "isChild": false,
+      "dietary": "",
+      "note": ""
+    },
+    {
+      "id": "a-0022",
+      "last": "Castellano",
+      "first": "June",
+      "arrive": "2026-11-12",
+      "depart": "2026-11-16",
+      "isChild": false,
+      "dietary": "Dairy free - severe",
+      "note": ""
+    },
+    {
+      "id": "a-0023",
+      "last": "Pike",
+      "first": "Walt",
+      "arrive": "2026-11-12",
+      "depart": "2026-11-16",
+      "isChild": false,
+      "dietary": "",
+      "note": ""
+    },
+    {
+      "id": "a-0024",
+      "last": "Abernathy",
+      "first": "Nina",
+      "arrive": "2026-11-13",
+      "depart": "2026-11-16",
+      "isChild": false,
+      "dietary": "",
+      "note": ""
+    },
+    {
+      "id": "a-0025",
+      "last": "Stillwater",
+      "first": "Roy",
+      "arrive": "2026-11-12",
+      "depart": "2026-11-15",
+      "isChild": false,
+      "dietary": "",
+      "note": ""
+    }
+  ],
+  "rooming": [
+    {
+      "id": "r-0001",
+      "building": "Lodge",
+      "room": "Master Suite",
+      "guestIds": [
+        "a-0000"
+      ],
+      "from": "2026-11-12",
+      "to": "2026-11-16"
+    },
+    {
+      "id": "r-0002",
+      "building": "Lodge",
+      "room": "Brian's Suite",
+      "guestIds": [
+        "a-0001"
+      ],
+      "from": "2026-11-12",
+      "to": "2026-11-16"
+    },
+    {
+      "id": "r-0003",
+      "building": "Lodge",
+      "room": "Michael's Suite",
+      "guestIds": [
+        "a-0004"
+      ],
+      "from": "2026-11-13",
+      "to": "2026-11-16"
+    },
+    {
+      "id": "r-0004",
+      "building": "Lodge",
+      "room": "Timber Suite",
+      "guestIds": [
+        "a-0006"
+      ],
+      "from": "2026-11-12",
+      "to": "2026-11-14"
+    },
+    {
+      "id": "r-0005",
+      "building": "Lodge",
+      "room": "Timber Suite",
+      "guestIds": [
+        "a-0007"
+      ],
+      "from": "2026-11-14",
+      "to": "2026-11-16"
+    },
+    {
+      "id": "r-0006",
+      "building": "Lodge",
+      "room": "Wetland Suite",
+      "guestIds": [
+        "a-0008",
+        "a-0009"
+      ],
+      "from": "2026-11-12",
+      "to": "2026-11-16"
+    },
+    {
+      "id": "r-0007",
+      "building": "Lodge",
+      "room": "Basement Office Suite",
+      "guestIds": [
+        "a-0010"
+      ],
+      "from": "2026-11-12",
+      "to": "2026-11-15"
+    },
+    {
+      "id": "r-0008",
+      "building": "Lodge",
+      "room": "Upland Suite",
+      "guestIds": [
+        "a-0011"
+      ],
+      "from": "2026-11-12",
+      "to": "2026-11-16"
+    },
+    {
+      "id": "r-0009",
+      "building": "Lodge",
+      "room": "Bunk Room",
+      "guestIds": [
+        "a-0002",
+        "a-0003",
+        "a-0014",
+        "a-0018"
+      ],
+      "from": "2026-11-12",
+      "to": "2026-11-16"
+    },
+    {
+      "id": "r-0010",
+      "building": "Red Leaf Inn",
+      "room": null,
+      "guestIds": [
+        "a-0012"
+      ],
+      "from": "2026-11-13",
+      "to": "2026-11-16"
+    },
+    {
+      "id": "r-0011",
+      "building": "Red Leaf Inn",
+      "room": null,
+      "guestIds": [
+        "a-0013"
+      ],
+      "from": "2026-11-12",
+      "to": "2026-11-16"
+    },
+    {
+      "id": "r-0012",
+      "building": "Red Leaf Inn",
+      "room": null,
+      "guestIds": [
+        "a-0015"
+      ],
+      "from": "2026-11-12",
+      "to": "2026-11-15"
+    },
+    {
+      "id": "r-0013",
+      "building": "Red Leaf Inn",
+      "room": null,
+      "guestIds": [
+        "a-0016"
+      ],
+      "from": "2026-11-13",
+      "to": "2026-11-16"
+    },
+    {
+      "id": "r-0014",
+      "building": "Red Leaf Inn",
+      "room": null,
+      "guestIds": [
+        "a-0017"
+      ],
+      "from": "2026-11-12",
+      "to": "2026-11-16"
+    },
+    {
+      "id": "r-0015",
+      "building": "Red Leaf Inn",
+      "room": null,
+      "guestIds": [
+        "a-0019"
+      ],
+      "from": "2026-11-12",
+      "to": "2026-11-16"
+    },
+    {
+      "id": "r-0016",
+      "building": "Red Leaf Inn",
+      "room": null,
+      "guestIds": [
+        "a-0020"
+      ],
+      "from": "2026-11-13",
+      "to": "2026-11-15"
+    },
+    {
+      "id": "r-0017",
+      "building": "Red Leaf Inn",
+      "room": null,
+      "guestIds": [
+        "a-0021"
+      ],
+      "from": "2026-11-12",
+      "to": "2026-11-16"
+    },
+    {
+      "id": "r-0018",
+      "building": "Red Leaf Inn",
+      "room": null,
+      "guestIds": [
+        "a-0022"
+      ],
+      "from": "2026-11-12",
+      "to": "2026-11-16"
+    },
+    {
+      "id": "r-0019",
+      "building": "Red Leaf Inn",
+      "room": null,
+      "guestIds": [
+        "a-0023"
+      ],
+      "from": "2026-11-12",
+      "to": "2026-11-16"
+    },
+    {
+      "id": "r-0020",
+      "building": "Red Leaf Inn",
+      "room": null,
+      "guestIds": [
+        "a-0024"
+      ],
+      "from": "2026-11-13",
+      "to": "2026-11-16"
+    },
+    {
+      "id": "r-0021",
+      "building": "Red Leaf Inn",
+      "room": null,
+      "guestIds": [
+        "a-0025"
+      ],
+      "from": "2026-11-12",
+      "to": "2026-11-15"
+    }
+  ],
+  "schedule": [
+    {
+      "id": "s-0001",
+      "date": "2026-11-12",
+      "start": "05:00",
+      "end": "10:00",
+      "label": "Duck Hunt"
+    },
+    {
+      "id": "s-0002",
+      "date": "2026-11-12",
+      "start": "10:30",
+      "end": "12:00",
+      "label": "Range"
+    },
+    {
+      "id": "s-0003",
+      "date": "2026-11-12",
+      "start": "13:00",
+      "end": "16:00",
+      "label": "Upland Hunt"
+    },
+    {
+      "id": "s-0004",
+      "date": "2026-11-12",
+      "start": "16:00",
+      "end": "17:30",
+      "label": "Downtime"
+    },
+    {
+      "id": "s-0005",
+      "date": "2026-11-13",
+      "start": "05:00",
+      "end": "10:00",
+      "label": "Duck Hunt"
+    },
+    {
+      "id": "s-0006",
+      "date": "2026-11-13",
+      "start": "10:30",
+      "end": "12:00",
+      "label": "Range"
+    },
+    {
+      "id": "s-0007",
+      "date": "2026-11-13",
+      "start": "13:00",
+      "end": "16:00",
+      "label": "Upland Hunt"
+    },
+    {
+      "id": "s-0008",
+      "date": "2026-11-13",
+      "start": "16:00",
+      "end": "17:30",
+      "label": "Downtime"
+    },
+    {
+      "id": "s-0009",
+      "date": "2026-11-14",
+      "start": "05:00",
+      "end": "10:00",
+      "label": "Duck Hunt"
+    },
+    {
+      "id": "s-0010",
+      "date": "2026-11-14",
+      "start": "10:30",
+      "end": "12:00",
+      "label": "Range"
+    },
+    {
+      "id": "s-0011",
+      "date": "2026-11-14",
+      "start": "13:00",
+      "end": "16:00",
+      "label": "Upland Hunt"
+    },
+    {
+      "id": "s-0012",
+      "date": "2026-11-14",
+      "start": "16:00",
+      "end": "17:30",
+      "label": "Downtime"
+    },
+    {
+      "id": "s-0013",
+      "date": "2026-11-15",
+      "start": "05:00",
+      "end": "10:00",
+      "label": "Duck Hunt"
+    },
+    {
+      "id": "s-0014",
+      "date": "2026-11-15",
+      "start": "10:30",
+      "end": "12:00",
+      "label": "Range"
+    },
+    {
+      "id": "s-0015",
+      "date": "2026-11-15",
+      "start": "13:00",
+      "end": "16:00",
+      "label": "Upland Hunt"
+    },
+    {
+      "id": "s-0016",
+      "date": "2026-11-15",
+      "start": "16:00",
+      "end": "17:30",
+      "label": "Downtime"
+    },
+    {
+      "id": "s-0017",
+      "date": "2026-11-16",
+      "start": "05:00",
+      "end": "10:00",
+      "label": "Duck Hunt"
+    },
+    {
+      "id": "s-0018",
+      "date": "2026-11-16",
+      "start": "10:30",
+      "end": "12:00",
+      "label": "Range"
+    },
+    {
+      "id": "s-0019",
+      "date": "2026-11-16",
+      "start": "13:00",
+      "end": "16:00",
+      "label": "Upland Hunt"
+    },
+    {
+      "id": "s-0020",
+      "date": "2026-11-16",
+      "start": "16:00",
+      "end": "17:30",
+      "label": "Downtime"
+    }
+  ],
+  "foodAndBev": [
+    {
+      "id": "fnb-0-0",
+      "date": "2026-11-12",
+      "start": "07:00",
+      "end": null,
+      "meal": "Breakfast",
+      "location": "The Wheel",
+      "countBasis": "present",
+      "serves": "all"
+    },
+    {
+      "id": "fnb-0-1",
+      "date": "2026-11-12",
+      "start": "12:30",
+      "end": null,
+      "meal": "Lunch",
+      "location": "Hummer Bar",
+      "countBasis": "present",
+      "serves": "all"
+    },
+    {
+      "id": "fnb-0-2",
+      "date": "2026-11-12",
+      "start": "17:30",
+      "end": null,
+      "meal": "Children's Dinner",
+      "location": "The Wheel",
+      "countBasis": "present",
+      "serves": "children"
+    },
+    {
+      "id": "fnb-0-3",
+      "date": "2026-11-12",
+      "start": "18:30",
+      "end": null,
+      "meal": "Dinner",
+      "location": "The Wheel",
+      "countBasis": "present",
+      "serves": "adults"
+    },
+    {
+      "id": "fnb-1-0",
+      "date": "2026-11-13",
+      "start": "07:00",
+      "end": null,
+      "meal": "Breakfast",
+      "location": "The Wheel",
+      "countBasis": "present",
+      "serves": "all"
+    },
+    {
+      "id": "fnb-1-1",
+      "date": "2026-11-13",
+      "start": "12:30",
+      "end": null,
+      "meal": "Lunch",
+      "location": "Hummer Bar",
+      "countBasis": "present",
+      "serves": "all"
+    },
+    {
+      "id": "fnb-1-2",
+      "date": "2026-11-13",
+      "start": "17:30",
+      "end": null,
+      "meal": "Children's Dinner",
+      "location": "The Wheel",
+      "countBasis": "present",
+      "serves": "children"
+    },
+    {
+      "id": "fnb-1-3",
+      "date": "2026-11-13",
+      "start": "18:30",
+      "end": null,
+      "meal": "Dinner",
+      "location": "The Wheel",
+      "countBasis": "present",
+      "serves": "adults"
+    },
+    {
+      "id": "fnb-2-0",
+      "date": "2026-11-14",
+      "start": "07:00",
+      "end": null,
+      "meal": "Breakfast",
+      "location": "The Wheel",
+      "countBasis": "present",
+      "serves": "all"
+    },
+    {
+      "id": "fnb-2-1",
+      "date": "2026-11-14",
+      "start": "12:30",
+      "end": null,
+      "meal": "Lunch",
+      "location": "Hummer Bar",
+      "countBasis": "present",
+      "serves": "all"
+    },
+    {
+      "id": "fnb-2-2",
+      "date": "2026-11-14",
+      "start": "17:30",
+      "end": null,
+      "meal": "Children's Dinner",
+      "location": "The Wheel",
+      "countBasis": "present",
+      "serves": "children"
+    },
+    {
+      "id": "fnb-2-3",
+      "date": "2026-11-14",
+      "start": "18:30",
+      "end": null,
+      "meal": "Dinner",
+      "location": "The Wheel",
+      "countBasis": "present",
+      "serves": "adults"
+    },
+    {
+      "id": "fnb-3-0",
+      "date": "2026-11-15",
+      "start": "07:00",
+      "end": null,
+      "meal": "Breakfast",
+      "location": "The Wheel",
+      "countBasis": "present",
+      "serves": "all"
+    },
+    {
+      "id": "fnb-3-1",
+      "date": "2026-11-15",
+      "start": "12:30",
+      "end": null,
+      "meal": "Lunch",
+      "location": "Hummer Bar",
+      "countBasis": "present",
+      "serves": "all"
+    },
+    {
+      "id": "fnb-3-2",
+      "date": "2026-11-15",
+      "start": "17:30",
+      "end": null,
+      "meal": "Children's Dinner",
+      "location": "The Wheel",
+      "countBasis": "present",
+      "serves": "children"
+    },
+    {
+      "id": "fnb-3-3",
+      "date": "2026-11-15",
+      "start": "18:30",
+      "end": null,
+      "meal": "Dinner",
+      "location": "The Wheel",
+      "countBasis": "present",
+      "serves": "adults"
+    },
+    {
+      "id": "fnb-4-0",
+      "date": "2026-11-16",
+      "start": "07:00",
+      "end": null,
+      "meal": "Breakfast",
+      "location": "The Wheel",
+      "countBasis": "present",
+      "serves": "all"
+    },
+    {
+      "id": "fnb-4-1",
+      "date": "2026-11-16",
+      "start": "12:30",
+      "end": null,
+      "meal": "Lunch",
+      "location": "Hummer Bar",
+      "countBasis": "present",
+      "serves": "all"
+    },
+    {
+      "id": "fnb-4-2",
+      "date": "2026-11-16",
+      "start": "17:30",
+      "end": null,
+      "meal": "Children's Dinner",
+      "location": "The Wheel",
+      "countBasis": "present",
+      "serves": "children"
+    },
+    {
+      "id": "fnb-4-3",
+      "date": "2026-11-16",
+      "start": "18:30",
+      "end": null,
+      "meal": "Dinner",
+      "location": "The Wheel",
+      "countBasis": "present",
+      "serves": "adults"
+    }
+  ],
+  "menu": [
+    {
+      "fnbId": "fnb-0-0",
+      "courses": [
+        {
+          "heading": "Starters",
+          "items": [
+            "Roasted Squash Soup",
+            "Chopped Wedge Salad"
+          ]
+        },
+        {
+          "heading": "Mains",
+          "items": [
+            "American Wagyu Beef Tenderloin - Carved to Order",
+            "Pan Roasted Walleye",
+            "Wild Mushroom Risotto"
+          ]
+        }
+      ]
+    },
+    {
+      "fnbId": "fnb-0-1",
+      "courses": [
+        {
+          "heading": "Starters",
+          "items": [
+            "Roasted Squash Soup",
+            "Chopped Wedge Salad"
+          ]
+        },
+        {
+          "heading": "Mains",
+          "items": [
+            "American Wagyu Beef Tenderloin - Carved to Order",
+            "Pan Roasted Walleye",
+            "Wild Mushroom Risotto"
+          ]
+        }
+      ]
+    },
+    {
+      "fnbId": "fnb-0-2",
+      "courses": [
+        {
+          "heading": "Starters",
+          "items": [
+            "Roasted Squash Soup",
+            "Chopped Wedge Salad"
+          ]
+        },
+        {
+          "heading": "Mains",
+          "items": [
+            "American Wagyu Beef Tenderloin - Carved to Order",
+            "Pan Roasted Walleye",
+            "Wild Mushroom Risotto"
+          ]
+        },
+        {
+          "heading": "Sides",
+          "items": [
+            "Whipped Potato",
+            "Charred Broccolini",
+            "Buttermilk Rolls"
+          ]
+        },
+        {
+          "heading": "Dessert",
+          "items": [
+            "Bourbon Pecan Tart",
+            "Seasonal Sorbet"
+          ]
+        }
+      ]
+    },
+    {
+      "fnbId": "fnb-0-3",
+      "courses": [
+        {
+          "heading": "Starters",
+          "items": [
+            "Roasted Squash Soup",
+            "Chopped Wedge Salad"
+          ]
+        },
+        {
+          "heading": "Mains",
+          "items": [
+            "American Wagyu Beef Tenderloin - Carved to Order",
+            "Pan Roasted Walleye",
+            "Wild Mushroom Risotto"
+          ]
+        },
+        {
+          "heading": "Sides",
+          "items": [
+            "Whipped Potato",
+            "Charred Broccolini",
+            "Buttermilk Rolls"
+          ]
+        },
+        {
+          "heading": "Dessert",
+          "items": [
+            "Bourbon Pecan Tart",
+            "Seasonal Sorbet"
+          ]
+        }
+      ]
+    },
+    {
+      "fnbId": "fnb-1-0",
+      "courses": [
+        {
+          "heading": "Starters",
+          "items": [
+            "Roasted Squash Soup",
+            "Chopped Wedge Salad"
+          ]
+        },
+        {
+          "heading": "Mains",
+          "items": [
+            "American Wagyu Beef Tenderloin - Carved to Order",
+            "Pan Roasted Walleye",
+            "Wild Mushroom Risotto"
+          ]
+        }
+      ]
+    },
+    {
+      "fnbId": "fnb-1-1",
+      "courses": [
+        {
+          "heading": "Starters",
+          "items": [
+            "Roasted Squash Soup",
+            "Chopped Wedge Salad"
+          ]
+        },
+        {
+          "heading": "Mains",
+          "items": [
+            "American Wagyu Beef Tenderloin - Carved to Order",
+            "Pan Roasted Walleye",
+            "Wild Mushroom Risotto"
+          ]
+        }
+      ]
+    },
+    {
+      "fnbId": "fnb-1-2",
+      "courses": [
+        {
+          "heading": "Starters",
+          "items": [
+            "Roasted Squash Soup",
+            "Chopped Wedge Salad"
+          ]
+        },
+        {
+          "heading": "Mains",
+          "items": [
+            "American Wagyu Beef Tenderloin - Carved to Order",
+            "Pan Roasted Walleye",
+            "Wild Mushroom Risotto"
+          ]
+        },
+        {
+          "heading": "Sides",
+          "items": [
+            "Whipped Potato",
+            "Charred Broccolini",
+            "Buttermilk Rolls"
+          ]
+        },
+        {
+          "heading": "Dessert",
+          "items": [
+            "Bourbon Pecan Tart",
+            "Seasonal Sorbet"
+          ]
+        }
+      ]
+    },
+    {
+      "fnbId": "fnb-1-3",
+      "courses": [
+        {
+          "heading": "Starters",
+          "items": [
+            "Roasted Squash Soup",
+            "Chopped Wedge Salad"
+          ]
+        },
+        {
+          "heading": "Mains",
+          "items": [
+            "American Wagyu Beef Tenderloin - Carved to Order",
+            "Pan Roasted Walleye",
+            "Wild Mushroom Risotto"
+          ]
+        },
+        {
+          "heading": "Sides",
+          "items": [
+            "Whipped Potato",
+            "Charred Broccolini",
+            "Buttermilk Rolls"
+          ]
+        },
+        {
+          "heading": "Dessert",
+          "items": [
+            "Bourbon Pecan Tart",
+            "Seasonal Sorbet"
+          ]
+        }
+      ]
+    },
+    {
+      "fnbId": "fnb-2-0",
+      "courses": [
+        {
+          "heading": "Starters",
+          "items": [
+            "Roasted Squash Soup",
+            "Chopped Wedge Salad"
+          ]
+        },
+        {
+          "heading": "Mains",
+          "items": [
+            "American Wagyu Beef Tenderloin - Carved to Order",
+            "Pan Roasted Walleye",
+            "Wild Mushroom Risotto"
+          ]
+        }
+      ]
+    },
+    {
+      "fnbId": "fnb-2-1",
+      "courses": [
+        {
+          "heading": "Starters",
+          "items": [
+            "Roasted Squash Soup",
+            "Chopped Wedge Salad"
+          ]
+        },
+        {
+          "heading": "Mains",
+          "items": [
+            "American Wagyu Beef Tenderloin - Carved to Order",
+            "Pan Roasted Walleye",
+            "Wild Mushroom Risotto"
+          ]
+        }
+      ]
+    },
+    {
+      "fnbId": "fnb-2-2",
+      "courses": [
+        {
+          "heading": "Starters",
+          "items": [
+            "Roasted Squash Soup",
+            "Chopped Wedge Salad"
+          ]
+        },
+        {
+          "heading": "Mains",
+          "items": [
+            "American Wagyu Beef Tenderloin - Carved to Order",
+            "Pan Roasted Walleye",
+            "Wild Mushroom Risotto"
+          ]
+        },
+        {
+          "heading": "Sides",
+          "items": [
+            "Whipped Potato",
+            "Charred Broccolini",
+            "Buttermilk Rolls"
+          ]
+        },
+        {
+          "heading": "Dessert",
+          "items": [
+            "Bourbon Pecan Tart",
+            "Seasonal Sorbet"
+          ]
+        }
+      ]
+    },
+    {
+      "fnbId": "fnb-2-3",
+      "courses": [
+        {
+          "heading": "Starters",
+          "items": [
+            "Roasted Squash Soup",
+            "Chopped Wedge Salad"
+          ]
+        },
+        {
+          "heading": "Mains",
+          "items": [
+            "American Wagyu Beef Tenderloin - Carved to Order",
+            "Pan Roasted Walleye",
+            "Wild Mushroom Risotto"
+          ]
+        },
+        {
+          "heading": "Sides",
+          "items": [
+            "Whipped Potato",
+            "Charred Broccolini",
+            "Buttermilk Rolls"
+          ]
+        },
+        {
+          "heading": "Dessert",
+          "items": [
+            "Bourbon Pecan Tart",
+            "Seasonal Sorbet"
+          ]
+        }
+      ]
+    },
+    {
+      "fnbId": "fnb-3-0",
+      "courses": [
+        {
+          "heading": "Starters",
+          "items": [
+            "Roasted Squash Soup",
+            "Chopped Wedge Salad"
+          ]
+        },
+        {
+          "heading": "Mains",
+          "items": [
+            "American Wagyu Beef Tenderloin - Carved to Order",
+            "Pan Roasted Walleye",
+            "Wild Mushroom Risotto"
+          ]
+        }
+      ]
+    },
+    {
+      "fnbId": "fnb-3-1",
+      "courses": [
+        {
+          "heading": "Starters",
+          "items": [
+            "Roasted Squash Soup",
+            "Chopped Wedge Salad"
+          ]
+        },
+        {
+          "heading": "Mains",
+          "items": [
+            "American Wagyu Beef Tenderloin - Carved to Order",
+            "Pan Roasted Walleye",
+            "Wild Mushroom Risotto"
+          ]
+        }
+      ]
+    },
+    {
+      "fnbId": "fnb-3-2",
+      "courses": [
+        {
+          "heading": "Starters",
+          "items": [
+            "Roasted Squash Soup",
+            "Chopped Wedge Salad"
+          ]
+        },
+        {
+          "heading": "Mains",
+          "items": [
+            "American Wagyu Beef Tenderloin - Carved to Order",
+            "Pan Roasted Walleye",
+            "Wild Mushroom Risotto"
+          ]
+        },
+        {
+          "heading": "Sides",
+          "items": [
+            "Whipped Potato",
+            "Charred Broccolini",
+            "Buttermilk Rolls"
+          ]
+        },
+        {
+          "heading": "Dessert",
+          "items": [
+            "Bourbon Pecan Tart",
+            "Seasonal Sorbet"
+          ]
+        }
+      ]
+    },
+    {
+      "fnbId": "fnb-3-3",
+      "courses": [
+        {
+          "heading": "Starters",
+          "items": [
+            "Roasted Squash Soup",
+            "Chopped Wedge Salad"
+          ]
+        },
+        {
+          "heading": "Mains",
+          "items": [
+            "American Wagyu Beef Tenderloin - Carved to Order",
+            "Pan Roasted Walleye",
+            "Wild Mushroom Risotto"
+          ]
+        },
+        {
+          "heading": "Sides",
+          "items": [
+            "Whipped Potato",
+            "Charred Broccolini",
+            "Buttermilk Rolls"
+          ]
+        },
+        {
+          "heading": "Dessert",
+          "items": [
+            "Bourbon Pecan Tart",
+            "Seasonal Sorbet"
+          ]
+        }
+      ]
+    },
+    {
+      "fnbId": "fnb-4-0",
+      "courses": [
+        {
+          "heading": "Starters",
+          "items": [
+            "Roasted Squash Soup",
+            "Chopped Wedge Salad"
+          ]
+        },
+        {
+          "heading": "Mains",
+          "items": [
+            "American Wagyu Beef Tenderloin - Carved to Order",
+            "Pan Roasted Walleye",
+            "Wild Mushroom Risotto"
+          ]
+        }
+      ]
+    },
+    {
+      "fnbId": "fnb-4-1",
+      "courses": [
+        {
+          "heading": "Starters",
+          "items": [
+            "Roasted Squash Soup",
+            "Chopped Wedge Salad"
+          ]
+        },
+        {
+          "heading": "Mains",
+          "items": [
+            "American Wagyu Beef Tenderloin - Carved to Order",
+            "Pan Roasted Walleye",
+            "Wild Mushroom Risotto"
+          ]
+        }
+      ]
+    },
+    {
+      "fnbId": "fnb-4-2",
+      "courses": [
+        {
+          "heading": "Starters",
+          "items": [
+            "Roasted Squash Soup",
+            "Chopped Wedge Salad"
+          ]
+        },
+        {
+          "heading": "Mains",
+          "items": [
+            "American Wagyu Beef Tenderloin - Carved to Order",
+            "Pan Roasted Walleye",
+            "Wild Mushroom Risotto"
+          ]
+        },
+        {
+          "heading": "Sides",
+          "items": [
+            "Whipped Potato",
+            "Charred Broccolini",
+            "Buttermilk Rolls"
+          ]
+        },
+        {
+          "heading": "Dessert",
+          "items": [
+            "Bourbon Pecan Tart",
+            "Seasonal Sorbet"
+          ]
+        }
+      ]
+    }
+  ],
+  "staff": [
+    {
+      "id": "t-0001",
+      "name": "Sara",
+      "date": "2026-11-12",
+      "daypart": "AM",
+      "assignment": "Duck blind - North"
+    },
+    {
+      "id": "t-0002",
+      "name": "Sara",
+      "date": "2026-11-12",
+      "daypart": "PM",
+      "assignment": "Bartend - Wheel"
+    },
+    {
+      "id": "t-0003",
+      "name": "Tanisha",
+      "date": "2026-11-12",
+      "daypart": "AM",
+      "assignment": "Duck blind - North"
+    },
+    {
+      "id": "t-0004",
+      "name": "Tanisha",
+      "date": "2026-11-12",
+      "daypart": "PM",
+      "assignment": "Bartend - Wheel"
+    },
+    {
+      "id": "t-0005",
+      "name": "Evie",
+      "date": "2026-11-12",
+      "daypart": "AM",
+      "assignment": "PM stew, Lodge turndown"
+    },
+    {
+      "id": "t-0006",
+      "name": "Evie",
+      "date": "2026-11-12",
+      "daypart": "PM",
+      "assignment": "PM stew, Lodge turndown"
+    },
+    {
+      "id": "t-0007",
+      "name": "Marcus",
+      "date": "2026-11-12",
+      "daypart": "AM",
+      "assignment": "Duck blind - North"
+    },
+    {
+      "id": "t-0008",
+      "name": "Marcus",
+      "date": "2026-11-12",
+      "daypart": "PM",
+      "assignment": "Bartend - Wheel"
+    },
+    {
+      "id": "t-0009",
+      "name": "Gil",
+      "date": "2026-11-12",
+      "daypart": "AM",
+      "assignment": "Duck blind - North"
+    },
+    {
+      "id": "t-0010",
+      "name": "Gil",
+      "date": "2026-11-12",
+      "daypart": "PM",
+      "assignment": "Bartend - Wheel"
+    },
+    {
+      "id": "t-0011",
+      "name": "Sara",
+      "date": "2026-11-13",
+      "daypart": "AM",
+      "assignment": "Duck blind - North"
+    },
+    {
+      "id": "t-0012",
+      "name": "Sara",
+      "date": "2026-11-13",
+      "daypart": "PM",
+      "assignment": "Bartend - Wheel"
+    },
+    {
+      "id": "t-0013",
+      "name": "Tanisha",
+      "date": "2026-11-13",
+      "daypart": "AM",
+      "assignment": "Duck blind - North"
+    },
+    {
+      "id": "t-0014",
+      "name": "Tanisha",
+      "date": "2026-11-13",
+      "daypart": "PM",
+      "assignment": "Bartend - Wheel"
+    },
+    {
+      "id": "t-0015",
+      "name": "Evie",
+      "date": "2026-11-13",
+      "daypart": "AM",
+      "assignment": "PM stew, Lodge turndown"
+    },
+    {
+      "id": "t-0016",
+      "name": "Evie",
+      "date": "2026-11-13",
+      "daypart": "PM",
+      "assignment": "PM stew, Lodge turndown"
+    },
+    {
+      "id": "t-0017",
+      "name": "Marcus",
+      "date": "2026-11-13",
+      "daypart": "AM",
+      "assignment": "Duck blind - North"
+    },
+    {
+      "id": "t-0018",
+      "name": "Marcus",
+      "date": "2026-11-13",
+      "daypart": "PM",
+      "assignment": "Bartend - Wheel"
+    },
+    {
+      "id": "t-0019",
+      "name": "Gil",
+      "date": "2026-11-13",
+      "daypart": "AM",
+      "assignment": "Duck blind - North"
+    },
+    {
+      "id": "t-0020",
+      "name": "Gil",
+      "date": "2026-11-13",
+      "daypart": "PM",
+      "assignment": "Bartend - Wheel"
+    },
+    {
+      "id": "t-0021",
+      "name": "Sara",
+      "date": "2026-11-14",
+      "daypart": "AM",
+      "assignment": "Duck blind - North"
+    },
+    {
+      "id": "t-0022",
+      "name": "Sara",
+      "date": "2026-11-14",
+      "daypart": "PM",
+      "assignment": "Bartend - Wheel"
+    },
+    {
+      "id": "t-0023",
+      "name": "Tanisha",
+      "date": "2026-11-14",
+      "daypart": "AM",
+      "assignment": "Duck blind - North"
+    },
+    {
+      "id": "t-0024",
+      "name": "Tanisha",
+      "date": "2026-11-14",
+      "daypart": "PM",
+      "assignment": "Bartend - Wheel"
+    },
+    {
+      "id": "t-0025",
+      "name": "Evie",
+      "date": "2026-11-14",
+      "daypart": "AM",
+      "assignment": "PM stew, Lodge turndown"
+    },
+    {
+      "id": "t-0026",
+      "name": "Evie",
+      "date": "2026-11-14",
+      "daypart": "PM",
+      "assignment": "PM stew, Lodge turndown"
+    },
+    {
+      "id": "t-0027",
+      "name": "Marcus",
+      "date": "2026-11-14",
+      "daypart": "AM",
+      "assignment": "Duck blind - North"
+    },
+    {
+      "id": "t-0028",
+      "name": "Marcus",
+      "date": "2026-11-14",
+      "daypart": "PM",
+      "assignment": "Bartend - Wheel"
+    },
+    {
+      "id": "t-0029",
+      "name": "Gil",
+      "date": "2026-11-14",
+      "daypart": "AM",
+      "assignment": "Duck blind - North"
+    },
+    {
+      "id": "t-0030",
+      "name": "Gil",
+      "date": "2026-11-14",
+      "daypart": "PM",
+      "assignment": "Bartend - Wheel"
+    },
+    {
+      "id": "t-0031",
+      "name": "Sara",
+      "date": "2026-11-15",
+      "daypart": "AM",
+      "assignment": "Duck blind - North"
+    },
+    {
+      "id": "t-0032",
+      "name": "Sara",
+      "date": "2026-11-15",
+      "daypart": "PM",
+      "assignment": "Bartend - Wheel"
+    },
+    {
+      "id": "t-0033",
+      "name": "Tanisha",
+      "date": "2026-11-15",
+      "daypart": "AM",
+      "assignment": "Duck blind - North"
+    },
+    {
+      "id": "t-0034",
+      "name": "Tanisha",
+      "date": "2026-11-15",
+      "daypart": "PM",
+      "assignment": "Bartend - Wheel"
+    },
+    {
+      "id": "t-0035",
+      "name": "Evie",
+      "date": "2026-11-15",
+      "daypart": "AM",
+      "assignment": "PM stew, Lodge turndown"
+    },
+    {
+      "id": "t-0036",
+      "name": "Evie",
+      "date": "2026-11-15",
+      "daypart": "PM",
+      "assignment": "PM stew, Lodge turndown"
+    },
+    {
+      "id": "t-0037",
+      "name": "Marcus",
+      "date": "2026-11-15",
+      "daypart": "AM",
+      "assignment": "Duck blind - North"
+    },
+    {
+      "id": "t-0038",
+      "name": "Marcus",
+      "date": "2026-11-15",
+      "daypart": "PM",
+      "assignment": "Bartend - Wheel"
+    },
+    {
+      "id": "t-0039",
+      "name": "Gil",
+      "date": "2026-11-15",
+      "daypart": "AM",
+      "assignment": "Duck blind - North"
+    },
+    {
+      "id": "t-0040",
+      "name": "Gil",
+      "date": "2026-11-15",
+      "daypart": "PM",
+      "assignment": "Bartend - Wheel"
+    },
+    {
+      "id": "t-0041",
+      "name": "Sara",
+      "date": "2026-11-16",
+      "daypart": "AM",
+      "assignment": "Duck blind - North"
+    },
+    {
+      "id": "t-0042",
+      "name": "Sara",
+      "date": "2026-11-16",
+      "daypart": "PM",
+      "assignment": "Bartend - Wheel"
+    },
+    {
+      "id": "t-0043",
+      "name": "Tanisha",
+      "date": "2026-11-16",
+      "daypart": "AM",
+      "assignment": "Duck blind - North"
+    },
+    {
+      "id": "t-0044",
+      "name": "Tanisha",
+      "date": "2026-11-16",
+      "daypart": "PM",
+      "assignment": "Bartend - Wheel"
+    },
+    {
+      "id": "t-0045",
+      "name": "Evie",
+      "date": "2026-11-16",
+      "daypart": "AM",
+      "assignment": "PM stew, Lodge turndown"
+    },
+    {
+      "id": "t-0046",
+      "name": "Evie",
+      "date": "2026-11-16",
+      "daypart": "PM",
+      "assignment": "PM stew, Lodge turndown"
+    },
+    {
+      "id": "t-0047",
+      "name": "Marcus",
+      "date": "2026-11-16",
+      "daypart": "AM",
+      "assignment": "Duck blind - North"
+    },
+    {
+      "id": "t-0048",
+      "name": "Marcus",
+      "date": "2026-11-16",
+      "daypart": "PM",
+      "assignment": "Bartend - Wheel"
+    },
+    {
+      "id": "t-0049",
+      "name": "Gil",
+      "date": "2026-11-16",
+      "daypart": "AM",
+      "assignment": "Duck blind - North"
+    },
+    {
+      "id": "t-0050",
+      "name": "Gil",
+      "date": "2026-11-16",
+      "daypart": "PM",
+      "assignment": "Bartend - Wheel"
+    }
+  ],
+  "departments": [
+    {
+      "id": "p-1",
+      "name": "Security",
+      "priorToEvent": [
+        "Print attendee list for arrivals",
+        "Confirm gate codes with the PSO team"
+      ],
+      "duringEvent": [
+        {
+          "date": "2026-11-12",
+          "time": "07:00",
+          "task": "Front gate for arrivals"
+        },
+        {
+          "date": "2026-11-13",
+          "time": "07:00",
+          "task": "Front gate for arrivals"
+        },
+        {
+          "date": "2026-11-14",
+          "time": "07:00",
+          "task": "Front gate for arrivals"
+        },
+        {
+          "date": "2026-11-15",
+          "time": "07:00",
+          "task": "Front gate for arrivals"
+        },
+        {
+          "date": "2026-11-16",
+          "time": "07:00",
+          "task": "Front gate for arrivals"
+        }
+      ],
+      "notes": [
+        "One guest departing after dinner, not returning"
+      ]
+    },
+    {
+      "id": "p-2",
+      "name": "Housekeeping",
+      "priorToEvent": [
+        "Full Lodge turn, all eight rooms",
+        "Red Leaf Inn 1 through 14 made up"
+      ],
+      "duringEvent": [
+        {
+          "date": "2026-11-12",
+          "time": "10:00",
+          "task": "Daily refresh, Lodge and RLI"
+        },
+        {
+          "date": "2026-11-13",
+          "time": "10:00",
+          "task": "Daily refresh, Lodge and RLI"
+        },
+        {
+          "date": "2026-11-14",
+          "time": "10:00",
+          "task": "Daily refresh, Lodge and RLI"
+        },
+        {
+          "date": "2026-11-15",
+          "time": "10:00",
+          "task": "Daily refresh, Lodge and RLI"
+        },
+        {
+          "date": "2026-11-16",
+          "time": "10:00",
+          "task": "Daily refresh, Lodge and RLI"
+        }
+      ],
+      "notes": []
+    }
+  ],
+  "buildingsInUse": [
+    "Lodge",
+    "Red Leaf Inn",
+    "The Wheel",
+    "Hummer Bar",
+    "Bucket Shop",
+    "Food Plot"
+  ]
+}
