@@ -7,16 +7,16 @@
 // coordinator's arrangement stops being trustworthy.
 //
 // Three section types render something other than the array they are named
-// after (§8 [v7]), and all three are easy to get wrong:
+// after (§8 [v7], [v9]), and all three are easy to get wrong:
 //
 //   * `schedule` prints the **merged itinerary** from `itineraryFor`, not
 //     `schedule[]`. Meals are on it because they come from `foodAndBev[]`, and
 //     that merge is the point: dinner moved by half an hour moves here, in the
 //     F&B table and on the Menu at once, because all three read one array.
-//   * `accommodations` prints the per-night **summary** from
-//     `lodgingByBuilding` — rooms for a named building, guests for a pooled one
-//     — and never the room grid. The grid is the Rooming Assignment's, and
-//     nobody reading an order should have to scroll past it to reach the menu.
+//   * `guests` prints the buildings line — `buildingsInUse[]`,
+//     `overflowBuildings[]`, and any building the rooming sheet is using that
+//     neither names — and then `attendees[]`. It is the only place either
+//     appears on any document (§8 [v9]).
 //   * `foodAndBev` prints the F&B schedule table, which the Menu prints too.
 //     The repetition is deliberate: the Menu leaves the kitchen on its own and
 //     has to say when each service is.
@@ -25,21 +25,26 @@
 // An *enabled* section holding nothing prints its heading and a quiet note
 // (§8 [v8]): a section left blank should be visible on the page rather than
 // silently missing.
+//
+// [v9] After the sections come the inclusions: `meta.includeInOrder` can put
+// the room grid and the menu blocks on the end of the order. They are not
+// sections — nothing about them reorders or renames, and they always print
+// last — and they change nothing about the two standalone documents, which are
+// still generated and still printed on their own (§8 [v9]).
 
 import {
   attendeeName,
-  dietaryNotes,
-  eventNights,
+  buildingsSentence,
   fnbCount,
   itineraryDates,
   itineraryFor,
-  lodgingByBuilding,
   staffByPerson
 } from '../derive.js';
-import { formatDate, formatDateFull, formatTimeRange } from '../dates.js';
+import { formatDate, formatDateFull, formatDateShort, formatTimeRange } from '../dates.js';
 import { typeInfo } from '../sections.js';
 import { el } from '../dom.js';
-import { emptyNote, lines, nameWithTag, section, table } from './parts.js';
+import { dietaryBlock, emptyNote, lines, nameWithTag, section, table } from './parts.js';
+import { includedInOrder } from '../include.js';
 
 /**
  * The Event Order document descriptor. `render.js` wraps `body` in the page
@@ -62,11 +67,12 @@ export const eventOrder = {
 function renderOrderBody(event) {
   const sections = (Array.isArray(event.sections) ? event.sections : [])
     .filter((entry) => entry && entry.enabled !== false);
+  const included = includedInOrder(event);
 
-  if (!sections.length) {
+  if (!sections.length && !included.length) {
     return [emptyNote('This order has no sections turned on, so it has no body to print.')];
   }
-  return sections.map((entry) => renderSection(event, entry));
+  return [...sections.map((entry) => renderSection(event, entry)), ...included];
 }
 
 /**
@@ -135,53 +141,6 @@ function renderSchedule(event) {
   });
 }
 
-/* ------------------------------------------------------------ accommodations */
-
-/**
- * §8 A [v7] — the per-night lodging summary. Date, figure, building.
- *
- * **Which figure** is §7 [v4] and not a style choice: rooms for a `named`
- * building, guests for a `pooled` one. Counting distinct rooms in Red Leaf Inn
- * returns 1 however many guests are in it, because pooled rows carry no room.
- */
-function renderAccommodations(event) {
-  const nights = eventNights(event);
-  const rows = [];
-
-  for (const night of nights) {
-    const lodging = lodgingByBuilding(event, night);
-    for (const [building, entry] of Object.entries(lodging)) {
-      rows.push([formatDate(night), figureFor(entry), building || 'No building set']);
-    }
-  }
-
-  if (!rows.length) {
-    return [emptyNote('Nobody is housed yet. Assign rooms in the Rooming Assignment and this '
-      + 'summary follows them.')];
-  }
-
-  return [
-    table(
-      [
-        { label: 'Night', class: 'col-date' },
-        { label: 'Occupied', class: 'col-figure' },
-        { label: 'Building', class: 'col-where' }
-      ],
-      rows,
-      'lodging'),
-    el('p', { class: 'sec__foot', text: 'Rooms are counted where rooms are assigned, guests where '
-      + 'the building is pooled. Room-by-room detail is on the Rooming Assignment.' })
-  ];
-}
-
-/** "4 rooms" or "2 guests", per the building's mode. §7 [v4]. */
-function figureFor(entry) {
-  const pooled = entry.mode === 'pooled';
-  const count = pooled ? entry.guests : entry.rooms;
-  const noun = pooled ? 'guest' : 'room';
-  return `${count} ${count === 1 ? noun : `${noun}s`}`;
-}
-
 /* ---------------------------------------------------------------- foodAndBev */
 
 /**
@@ -220,58 +179,47 @@ function renderFoodAndBev(event) {
   return [schedule, dietaryBlock(event)];
 }
 
-/**
- * The allergies and dietary block, with names. §7 [v5], §8 [v8].
- *
- * Names, not strings: "Kim Palmer — shellfish" is the useful line, and
- * "shellfish" on its own tells the kitchen nothing about which plate.
- *
- * @param {object} event
- * @param {boolean} [heading] false where the block already sits under a section
- *   bar of its own — on the Menu, where it is a section rather than the tail of
- *   the F&B one, its own heading would only repeat the bar above it
- * @returns {HTMLElement}
- */
-export function dietaryBlock(event, heading = true) {
-  const notes = dietaryNotes(event);
-  return el('div', { class: 'diet' }, [
-    heading ? el('h3', { class: 'diet__head', text: 'Allergies and dietary' }) : false,
-    notes.length
-      ? el('ul', { class: 'diet__list' }, notes.map((attendee) =>
-          el('li', { class: 'diet__item' }, [
-            el('span', { class: 'diet__who', text: attendeeName(attendee) || 'Unnamed guest' }),
-            el('span', { class: 'diet__what', text: String(attendee.dietary || '').trim() })
-          ])))
-      // §8 [v8]: printed, not omitted. "None known" was checked; a missing
-      // block was forgotten, and the kitchen cannot tell which from the page.
-      : el('p', { class: 'diet__none', text: 'None known.' })
-  ]);
-}
-
-/* ----------------------------------------------------------------- attendees */
+/* -------------------------------------------------------------------- guests */
 
 /**
- * §8 A — the guest list, with arrival and departure.
+ * §8 A [v9] — the buildings line, then the guest list.
  *
- * Children are indicated, discreetly (§5, v5 changes). This document goes to
- * ownership, not to a nurse: a small grey tag beside the name, and no column of
- * its own.
+ * One section where there were two. The line above the list is the thing an
+ * order was always missing: which buildings this event is in, and which are
+ * being held back in case it grows. It is one sentence and it is derived, so it
+ * cannot disagree with the rooming sheet about a building holding guests.
+ *
+ * The list is deliberately dense. A guest list is read to find one name, not
+ * studied, and a normal party should not cost a page of an order that people
+ * have to carry around. Dates are short — "Nov 14", not "Sat, Nov 14" — because
+ * the weekday is on the itinerary above and repeating it here buys nothing but
+ * width. Children are indicated discreetly (§5, v5 changes): a small grey tag
+ * beside the name, never a column of its own.
  */
-function renderAttendees(event) {
+function renderGuests(event) {
   const attendees = event.attendees || [];
-  if (!attendees.length) return [emptyNote('No guests on the list yet.')];
+  const sentence = buildingsSentence(event);
+
+  const line = sentence
+    ? el('p', { class: 'sec__lead', text: sentence })
+    : el('p', { class: 'sec__lead is-quiet', text: 'No buildings named for this event yet.' });
+
+  if (!attendees.length) return [line, emptyNote('No guests on the list yet.')];
 
   return [
+    line,
     table(
       [
         { label: 'Guest', class: 'col-name' },
         { label: 'Arrives', class: 'col-date' },
-        { label: 'Departs', class: 'col-date' }
+        { label: 'Departs', class: 'col-date' },
+        { label: 'Dietary', class: 'col-item' }
       ],
       attendees.map((attendee) => [
         nameWithTag(attendeeName(attendee) || 'Unnamed guest', attendee.isChild ? 'child' : ''),
-        formatDate(attendee.arrive) || followsEvent(event, 'startDate'),
-        formatDate(attendee.depart) || followsEvent(event, 'endDate')
+        formatDateShort(attendee.arrive) || followsEvent(event, 'startDate'),
+        formatDateShort(attendee.depart) || followsEvent(event, 'endDate'),
+        String(attendee.dietary || '').trim()
       ]),
       'guests'),
     el('p', { class: 'sec__count', text: `${attendees.length} on the list.` })
@@ -284,7 +232,7 @@ function renderAttendees(event) {
  * a blank arrival on a guest list reads as missing information.
  */
 function followsEvent(event, key) {
-  return formatDate(((event && event.meta) || {})[key]) || '—';
+  return formatDateShort(((event && event.meta) || {})[key]) || '—';
 }
 
 /* --------------------------------------------------------------------- staff */
@@ -388,8 +336,7 @@ function renderFreeText(event, entry) {
  * printed explanation, not a silent fall-through to nothing.
  */
 const SECTIONS = {
-  attendees: renderAttendees,
-  accommodations: renderAccommodations,
+  guests: renderGuests,
   schedule: renderSchedule,
   foodAndBev: renderFoodAndBev,
   staff: renderStaff,

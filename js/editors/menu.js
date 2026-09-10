@@ -22,15 +22,8 @@
 import { getEvent, update } from '../app.js';
 import { attendeeName, fnbCount } from '../derive.js';
 import { formatDate, formatTimeRange } from '../dates.js';
-import {
-  el,
-  reconcile,
-  setHidden,
-  setText,
-  setValue,
-  toggleClass
-} from '../dom.js';
-import { lineList, optionSignature, rowButton, textField } from './fields.js';
+import { el, reconcile, setHidden, setText, toggleClass } from '../dom.js';
+import { lineList, optionSignature } from './fields.js';
 import { draftList } from './rows.js';
 
 /** The menu blocks of an event, always an array. */
@@ -63,7 +56,7 @@ function writeBlock(fnbId, mutate) {
     const blocks = draftList(draft, 'menu');
     const block = blocks.find((entry) => entry && entry.fnbId === fnbId);
     if (!block) return;
-    if (!Array.isArray(block.courses)) block.courses = [];
+    if (!Array.isArray(block.dishes)) block.dishes = [];
     mutate(block, blocks);
   });
 }
@@ -176,18 +169,17 @@ function createMealBlock(fnbId) {
   const when = el('p', { class: 'menublock__when' });
   const covers = el('span', { class: 'menublock__covers' });
 
-  const courses = el('div', { class: 'courses' });
-
-  const addCourse = el('button', { type: 'button', class: 'btn btn--small', text: 'Add a course' });
-  addCourse.addEventListener('click', () => {
-    let landed = 0;
-    writeBlock(fnbId, (block) => {
-      block.courses.push({ heading: '', items: [] });
-      landed = block.courses.length - 1;
-    });
-    const course = courses.children[landed];
-    const field = course && course.querySelector('[data-field="heading"]');
-    if (field) field.focus();
+  // [v9] A flat list of dishes in the order they are served — §5 (v9 changes).
+  // The course editor that stood here had a heading, its own dish list, and its
+  // own move and delete controls per course, which was three levels of
+  // structure over a list of about six lines. `lineList` is the same control
+  // every other free list in this app uses.
+  const dishes = lineList({
+    addLabel: 'Add a dish',
+    placeholder: 'Dish',
+    emptyText: 'Nothing written yet.',
+    itemLabel: 'dish',
+    write: (mutate) => writeBlock(fnbId, (block) => mutate(block.dishes))
   });
 
   const removeMenu = el('button', {
@@ -206,9 +198,9 @@ function createMealBlock(fnbId) {
     update((draft) => {
       const blocks = draftList(draft, 'menu');
       if (blocks.some((block) => block && block.fnbId === fnbId)) return;
-      blocks.push({ fnbId, courses: [{ heading: '', items: [] }] });
+      blocks.push({ fnbId, dishes: [''] });
     });
-    const field = courses.querySelector('[data-field="heading"]');
+    const field = dishes.node.querySelector('[data-field="line"]');
     if (field) field.focus();
   });
 
@@ -222,8 +214,8 @@ function createMealBlock(fnbId) {
   ]);
 
   const written = el('div', { class: 'menublock__written' }, [
-    courses,
-    el('div', { class: 'menublock__foot' }, [addCourse, removeMenu])
+    dishes.node,
+    el('div', { class: 'menublock__foot' }, [removeMenu])
   ]);
 
   const node = el('section', { class: 'menublock', 'data-row': fnbId }, [
@@ -254,130 +246,9 @@ function createMealBlock(fnbId) {
       setHidden(written, !block);
       toggleClass(node, 'is-unwritten', !block);
 
-      const list = block && Array.isArray(block.courses) ? block.courses : [];
-      const entries = reconcile(courses, list, (course, index) => `course-${index}`,
-        (course, key) => createCourse(courses, fnbId, key));
-      entries.forEach((entry, index) => entry.update(list[index], index, list.length));
+      dishes.update(block && Array.isArray(block.dishes) ? block.dishes : []);
     }
   };
-}
-
-/**
- * One course: a heading and an unlimited list of dish lines.
- *
- * §5 stores courses as a plain array, so — as in `lineList` — the node at
- * position *n* is the course at position *n*, and the move buttons carry focus
- * to the destination position.
- */
-function createCourse(parent, fnbId, key) {
-  const position = Number(String(key).replace('course-', ''));
-
-  const heading = textField({
-    field: 'heading',
-    label: 'Course',
-    placeholder: 'Entrees',
-    onInput: (value) => {
-      writeBlock(fnbId, (block) => {
-        const course = block.courses[position];
-        if (course) course.heading = value;
-      });
-    }
-  });
-
-  const dishes = lineList({
-    addLabel: 'Add a dish',
-    placeholder: 'American Wagyu Beef Tenderloin - Carved to Order',
-    emptyText: 'No dishes in this course yet.',
-    itemLabel: 'Dish',
-    write: (mutate) => {
-      writeBlock(fnbId, (block) => {
-        const course = block.courses[position];
-        if (!course) return;
-        if (!Array.isArray(course.items)) course.items = [];
-        mutate(course.items);
-      });
-    }
-  });
-
-  const moveUp = rowButton('course-up', 'Move course up', '↑');
-  const moveDown = rowButton('course-down', 'Move course down', '↓');
-  const remove = rowButton('course-remove', 'Delete course', '✕', 'btn--danger');
-
-  const moveCourse = (delta) => {
-    writeBlock(fnbId, (block) => {
-      const to = position + delta;
-      if (position < 0 || position >= block.courses.length || to < 0 || to >= block.courses.length) return;
-      const [moved] = block.courses.splice(position, 1);
-      block.courses.splice(to, 0, moved);
-    });
-    focusCourse(parent, position + delta, delta < 0 ? ['course-up', 'course-down'] : ['course-down', 'course-up']);
-  };
-  moveUp.addEventListener('click', () => moveCourse(-1));
-  moveDown.addEventListener('click', () => moveCourse(1));
-  remove.addEventListener('click', () => {
-    const dishCount = countDishes(fnbId, position);
-    if (dishCount > 0) {
-      const label = headingOf(fnbId, position) || 'this course';
-      if (!window.confirm(`Delete ${label}? Its ${dishCount} ${dishCount === 1 ? 'dish' : 'dishes'} `
-        + 'go with it, and there is no undo.')) return;
-    }
-    let total = 0;
-    writeBlock(fnbId, (block) => {
-      if (position < block.courses.length) block.courses.splice(position, 1);
-      total = block.courses.length;
-    });
-    focusCourse(parent, Math.min(position, total - 1), ['course-remove']);
-  });
-
-  const node = el('section', { class: 'course' }, [
-    el('header', { class: 'course__head' }, [
-      heading.root,
-      el('div', { class: 'course__controls' }, [moveUp, moveDown, remove])
-    ]),
-    dishes.node
-  ]);
-
-  return {
-    node,
-    update(course, index, total) {
-      setValue(heading.input, (course && course.heading) || '');
-      dishes.update(course && course.items);
-      moveUp.disabled = index === 0;
-      moveDown.disabled = index === total - 1;
-    }
-  };
-}
-
-/** A course's heading, read from the live event for a confirmation. */
-function headingOf(fnbId, position) {
-  const event = getEvent();
-  const block = event ? blockFor(event, fnbId) : null;
-  const course = block && Array.isArray(block.courses) ? block.courses[position] : null;
-  return course ? String(course.heading || '').trim() : '';
-}
-
-/** How many dishes a course holds, for a confirmation. */
-function countDishes(fnbId, position) {
-  const event = getEvent();
-  const block = event ? blockFor(event, fnbId) : null;
-  const course = block && Array.isArray(block.courses) ? block.courses[position] : null;
-  return course && Array.isArray(course.items) ? course.items.length : 0;
-}
-
-/** Focus a control on the course now at `position`. */
-function focusCourse(parent, position, controls) {
-  if (position < 0) return;
-  const node = parent.children[position];
-  if (!node) return;
-  for (const control of controls) {
-    const button = node.querySelector(`[data-control="${control}"]`);
-    if (button && !button.disabled) {
-      button.focus();
-      return;
-    }
-  }
-  const field = node.querySelector('[data-field="heading"]');
-  if (field) field.focus();
 }
 
 /**
@@ -436,17 +307,12 @@ function createOrphanBlock(fnbId) {
     node,
     update(event, item) {
       const block = item.block || {};
-      const courses = Array.isArray(block.courses) ? block.courses : [];
-      const dishes = courses.reduce((total, course) =>
-        total + ((course && course.items) || []).length, 0);
-      const preview = courses
-        .map((course) => {
-          const items = ((course && course.items) || []).filter(Boolean);
-          const label = String((course && course.heading) || '').trim() || 'Untitled course';
-          return items.length ? `${label}: ${items.join(', ')}` : label;
-        })
-        .join(' · ');
-      setText(summary, `${dishes} ${dishes === 1 ? 'dish' : 'dishes'}${preview ? ` — ${preview}` : ''}`);
+      const written = (Array.isArray(block.dishes) ? block.dishes : [])
+        .map((dish) => String(dish || '').trim())
+        .filter(Boolean);
+      const preview = written.join(', ');
+      setText(summary, `${written.length} ${written.length === 1 ? 'dish' : 'dishes'}`
+        + `${preview ? ` — ${preview}` : ''}`);
 
       // Only services with no menu of their own: attaching to one that already
       // has a menu would put two blocks on one meal, which is the state §12.7
@@ -478,8 +344,8 @@ function deleteMenu(fnbId) {
   const block = event ? blockFor(event, fnbId) : null;
   if (!block) return;
 
-  const dishes = (Array.isArray(block.courses) ? block.courses : [])
-    .reduce((total, course) => total + ((course && course.items) || []).length, 0);
+  const dishes = (Array.isArray(block.dishes) ? block.dishes : [])
+    .filter((dish) => String(dish || '').trim()).length;
   const prompt = dishes
     ? `Delete this menu? Its ${dishes} ${dishes === 1 ? 'dish' : 'dishes'} go with it, and there `
       + 'is no undo.'

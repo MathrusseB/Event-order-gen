@@ -158,7 +158,7 @@
   /* NOT on .sec, .sec__body, .doc__body or .doc. See the note at the top. */
   .tbl tr,
   .diet__item,
-  .mealcourse__item,
+  .meal__dish,
   .plainlist li,
   .unroomed__night {
     break-inside: avoid;
@@ -169,7 +169,6 @@
      one department's tasks, one day of the itinerary. Each is short by nature;
      a section made of them still flows. */
   .meal,
-  .mealcourse,
   .block-person,
   .block-dept__part,
   .day {
@@ -182,7 +181,6 @@
   .day__head,
   .diet__head,
   .meal__head,
-  .mealcourse__head,
   .block-person__name,
   .block-dept__name,
   .block-dept__head,
@@ -206,7 +204,7 @@
   /* Never one line of a paragraph alone at either end of a page. */
   .para,
   .sec__lead,
-  .mealcourse__item,
+  .meal__dish,
   .unroomed__names {
     orphans: 2;
     widows: 2;

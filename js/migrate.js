@@ -22,6 +22,7 @@
 
 import { attendeeName } from './derive.js';
 import { newId } from './ids.js';
+import { assignmentModeFor, roomsIn } from './reference.js';
 
 /**
  * Bring an event up to the current shape. Pure: the argument is not touched.
@@ -57,6 +58,19 @@ import { newId } from './ids.js';
  *      left at the old default is renamed, because "Rooming Assignments" over a
  *      two-line summary table would be a lie.
  *
+ *   9. [v9] A menu block's `courses[]` becomes a flat `dishes[]`, in the order
+ *      the dishes appeared, headings discarded (§5, v9 changes).
+ *  10. [v9] `attendees` and `accommodations` sections become one `guests`
+ *      section, in the position of whichever came first. The second is dropped
+ *      rather than duplicated, and a file that already has a `guests` section
+ *      keeps it.
+ *  11. [v9] Rooming rows in a building or room the registry no longer carries
+ *      are **reported and left exactly as they are**. Not remapped and not
+ *      dropped: an assignment to a room that is gone is information — somebody
+ *      is expecting that room — and §12.6 goes on reporting it every time the
+ *      file is opened. Guessing which of the new rooms was meant is the one
+ *      thing that would lose it.
+ *
  * `foodAndBev[].serves` needs no rule: it defaults to `all` where it is read
  * (`fnbCount`), so a pre-v5 entry counts exactly as it always did.
  *
@@ -73,7 +87,9 @@ export function migrate(event) {
     unresolvedRooming: [],
     rowIdsAdded: 0,
     sectionsRetyped: 0,
-    sectionsDropped: 0
+    sectionsDropped: 0,
+    menusFlattened: 0,
+    retiredRooms: []
   };
 
   if (!event || typeof event !== 'object' || Array.isArray(event)) {
@@ -196,8 +212,87 @@ export function migrate(event) {
     next.sections = kept;
   }
 
+  // 9. [v9] Courses become a flat list of dishes.
+  for (const block of Array.isArray(next.menu) ? next.menu : []) {
+    if (!block || typeof block !== 'object') continue;
+    if (Array.isArray(block.dishes)) {
+      delete block.courses;
+      continue;
+    }
+    if (!Array.isArray(block.courses)) continue;
+    block.dishes = block.courses.flatMap((course) =>
+      (course && Array.isArray(course.items) ? course.items : [])
+        .map((item) => String(item == null ? '' : item)));
+    delete block.courses;
+    summary.menusFlattened += 1;
+    summary.changed = true;
+  }
+
+  // 10. [v9] Two sections about the same people become one.
+  if (Array.isArray(next.sections)) {
+    const kept = [];
+    let hasGuests = next.sections.some((entry) => entry && entry.type === 'guests');
+
+    for (const entry of next.sections) {
+      if (!entry || typeof entry !== 'object' || !MERGED_INTO_GUESTS.has(entry.type)) {
+        kept.push(entry);
+        continue;
+      }
+      if (hasGuests) {
+        summary.sectionsDropped += 1;
+        summary.changed = true;
+        continue;
+      }
+      entry.type = 'guests';
+      if (OLD_GUEST_TITLES.has(String(entry.title || '').trim())) entry.title = 'Guests';
+      hasGuests = true;
+      summary.sectionsRetyped += 1;
+      summary.changed = true;
+      kept.push(entry);
+    }
+    next.sections = kept;
+  }
+
+  // 11. [v9] Rooms the registry no longer carries. Reported, never touched.
+  for (const row of Array.isArray(next.rooming) ? next.rooming : []) {
+    if (!row || typeof row !== 'object') continue;
+    const building = String(row.building || '');
+    const room = row.room === null || row.room === undefined ? '' : String(row.room);
+    if (!building) continue;
+    if (assignmentModeFor(building) === 'none') {
+      summary.retiredRooms.push({ building, room, reason: 'building' });
+      continue;
+    }
+    // An empty room under a named building is §12.6 — a row nobody has finished
+    // — and not a room that has been retired from the property.
+    if (room && !roomsIn(building).includes(room)) {
+      summary.retiredRooms.push({ building, room, reason: 'room' });
+    }
+  }
+
+  // [v9] Fields the shape has always implied, filled in without counting as a
+  // change — the same rule as the v5 attendee defaults above. The editors write
+  // through these, and Save round-trips them.
+  if (next.meta && typeof next.meta === 'object'
+      && (!next.meta.includeInOrder || typeof next.meta.includeInOrder !== 'object')) {
+    next.meta.includeInOrder = { rooming: false, menu: false };
+  }
+  if (!Array.isArray(next.overflowBuildings)) next.overflowBuildings = [];
+
   return { event: next, summary };
 }
+
+/** [v9] The section types that became `guests`. */
+const MERGED_INTO_GUESTS = new Set(['attendees', 'accommodations']);
+
+/**
+ * [v9] Titles those two sections carried by default, renamed on the way to
+ * `guests`. Anything else was chosen by a person and is kept — "Who is coming"
+ * over a guest list is still true.
+ */
+const OLD_GUEST_TITLES = new Set([
+  'Attendee List', 'Attendees', 'Attendee list', 'Guest List', 'Guests', 'Accommodations'
+]);
 
 /** [v7] The arrays whose rows were identified by position before v7. */
 const ROW_ID_ARRAYS = ['rooming', 'schedule', 'staff', 'departments'];
@@ -233,7 +328,15 @@ function nameKey(name) {
  *   keeps reporting it, until someone picks the person.
  * @property {number} rowIdsAdded [v7] rows given an `id`
  * @property {number} sectionsRetyped [v7] `rooming` sections that became
- *   `accommodations`
+ *   `accommodations`, [v9] and `attendees` or `accommodations` sections that
+ *   became `guests`
  * @property {number} sectionsDropped [v7] `menu` sections, and duplicate
- *   `rooming` sections, removed from the outline
+ *   `rooming` sections, removed from the outline. [v9] Also the second of an
+ *   `attendees` / `accommodations` pair, once the first has become `guests`
+ * @property {number} menusFlattened [v9] menu blocks whose `courses[]` became a
+ *   flat `dishes[]`
+ * @property {{building: string, room: string, reason: 'building'|'room'}[]}
+ *   retiredRooms [v9] rooming rows naming a building or a room the registry no
+ *   longer carries. Reported and left alone: the row still holds its room, and
+ *   §12.6 keeps reporting it until somebody moves that guest themselves
  */

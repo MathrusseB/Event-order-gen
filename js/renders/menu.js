@@ -24,8 +24,7 @@ import { fnbCount, mealServices, menuFor } from '../derive.js';
 import { formatDate, formatTimeRange } from '../dates.js';
 import { MENU_BRAND_ID } from '../reference.js';
 import { el } from '../dom.js';
-import { emptyNote, joinParts, section, table } from './parts.js';
-import { dietaryBlock } from './order.js';
+import { dietaryBlock, emptyNote, joinParts, section, table } from './parts.js';
 
 /**
  * The Menu document descriptor. `render.js` wraps `body` in the page furniture.
@@ -51,8 +50,25 @@ function renderMenuBody(event) {
     // kitchen checks before it plates anything, and its absence would read as
     // an oversight rather than as an all-clear.
     section('Allergies and Dietary', [dietaryBlock(event, false)], 'diet'),
-    ...services.map((service) => renderService(event, service))
+    ...menuBlocks(event)
   ];
+}
+
+/**
+ * [v9] The per-meal menu blocks alone, without the schedule table or the
+ * allergies block above them.
+ *
+ * This is what `meta.includeInOrder.menu` appends to the Event Order (§8 [v9]).
+ * The blocks, and not the whole document: the order carries the F&B schedule
+ * and the allergies in its own Food & Beverage section, and printing either of
+ * them twice in one document is how a reader learns to stop trusting that two
+ * tables of the same thing agree.
+ *
+ * @param {object} event
+ * @returns {Node[]}
+ */
+export function menuBlocks(event) {
+  return mealServices(event).map((service) => renderService(event, service));
 }
 
 /**
@@ -81,7 +97,7 @@ function scheduleTable(event, services) {
 }
 
 /**
- * One meal service: its heading, then its courses.
+ * One meal service: its heading, then its dishes.
  *
  * The heading carries date, time, location and count so the block stands on its
  * own — a menu block read on a prep bench, away from the schedule table three
@@ -93,9 +109,12 @@ function scheduleTable(event, services) {
  */
 function renderService(event, service) {
   const block = menuFor(event, service.id);
-  const courses = (block && Array.isArray(block.courses) ? block.courses : [])
-    .filter((course) => course && (String(course.heading || '').trim()
-      || (Array.isArray(course.items) && course.items.some((item) => String(item || '').trim()))));
+  // [v9] A flat list of dishes, in the order they were written. The course
+  // headings were the events department's convention (§5, v9 changes); the
+  // private side wants the dishes and nothing between them.
+  const dishes = (block && Array.isArray(block.dishes) ? block.dishes : [])
+    .map((dish) => String(dish || '').trim())
+    .filter(Boolean);
 
   const detail = joinParts([
     formatDate(service.date),
@@ -109,31 +128,12 @@ function renderService(event, service) {
       el('span', { class: 'meal__name', text: service.meal || 'Untitled service' }),
       detail ? el('span', { class: 'meal__detail', text: detail }) : false
     ]),
-    courses.length
-      ? el('div', { class: 'meal__courses' }, courses.map(renderCourse))
-      // §12.8 — a meal with no menu block. Named on the page, deliberately, so
-      // the gap is found here rather than in the kitchen.
+    dishes.length
+      ? el('ul', { class: 'meal__dishes' }, dishes.map((dish) =>
+          el('li', { class: 'meal__dish', text: dish })))
+      // §12.8 — a meal with no menu block, and a block with nothing written in
+      // it, which read the same way from the kitchen. Named on the page,
+      // deliberately, so the gap is found here rather than at service.
       : el('p', { class: 'meal__none', text: 'No menu set for this service.' })
-  ]);
-}
-
-/**
- * One course: its heading, then its dishes.
- *
- * A course with a heading and no dishes still prints its heading — the same
- * rule as everywhere else in this document, one level down. Somebody wrote
- * "Dessert" and has not decided yet, and that is worth seeing.
- */
-function renderCourse(course) {
-  const items = (Array.isArray(course.items) ? course.items : [])
-    .map((item) => String(item || '').trim())
-    .filter(Boolean);
-
-  return el('div', { class: 'mealcourse' }, [
-    el('h3', { class: 'mealcourse__head', text: String(course.heading || '').trim() || 'Course' }),
-    items.length
-      ? el('ul', { class: 'mealcourse__items' }, items.map((item) =>
-          el('li', { class: 'mealcourse__item', text: item })))
-      : el('p', { class: 'mealcourse__none', text: 'No dishes written yet.' })
   ]);
 }

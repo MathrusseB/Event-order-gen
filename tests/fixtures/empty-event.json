@@ -6,7 +6,11 @@
     "eventLead": "",
     "revisionDate": "",
     "revisedBy": "",
-    "brandId": "maple-ranch"
+    "brandId": "maple-ranch",
+    "includeInOrder": {
+      "rooming": false,
+      "menu": false
+    }
   },
   "sections": [],
   "attendees": [],
@@ -16,5 +20,6 @@
   "menu": [],
   "staff": [],
   "departments": [],
-  "buildingsInUse": []
+  "buildingsInUse": [],
+  "overflowBuildings": []
 }

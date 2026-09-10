@@ -645,7 +645,8 @@ body.outline-open .outline {
   max-width: 46em;
 }
 
-.editor--meta {
+.editor--meta,
+.editor--guestsection {
   container-type: inline-size;
 }
 
@@ -1117,6 +1118,141 @@ body.outline-open .outline {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* ------------------------------------------------ the guests section [v9] */
+
+/* BUILD-SPEC §4 [v9]. Two lists of buildings over a guest list, in one section
+   where there were two. The buildings are ticked from the registry rather than
+   typed (§6): a property has the buildings it has, and a typed "Wigen" beside
+   "Wigeon" is a building nobody can find. */
+
+.buildings {
+  margin-bottom: var(--space-5);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--rule);
+}
+
+.buildings__head {
+  margin: 0 0 var(--space-3);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--ink-700);
+}
+
+.buildings__lists {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-4);
+}
+
+.buildings__list {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.buildings__legend {
+  padding: 0;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--ink-800);
+}
+
+.buildings__hint {
+  margin: 2px 0 var(--space-2);
+  color: var(--text-faint);
+  font-size: var(--text-xs);
+}
+
+.buildings__set {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+  gap: 2px var(--space-3);
+}
+
+/* Full-height rows: this list gets tapped on a tablet as often as it gets
+   clicked, and a 1.15rem box with a label beside it is not a target. */
+.check--building {
+  min-height: var(--touch-h);
+}
+
+/* The line the order will print, shown as the line the order will print. */
+.buildings__preview {
+  margin: var(--space-3) 0 0;
+  padding: var(--space-2) var(--space-3);
+  background: var(--ink-50);
+  border-left: 2px solid var(--forest-300);
+  font-family: var(--font-serif);
+  font-size: var(--text-base);
+  color: var(--ink-800);
+}
+
+.buildings__none {
+  margin: var(--space-3) 0 0;
+  color: var(--text-faint);
+  font-size: var(--text-sm);
+}
+
+/* --------------------------------------------- included documents [v9] */
+
+.includes {
+  margin: var(--space-4) 0 0;
+  padding: var(--space-3) 0 0;
+  border: 0;
+  border-top: 1px solid var(--rule);
+}
+
+.includes__legend {
+  padding: 0;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--ink-800);
+}
+
+.includes__set {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-5);
+  margin-top: var(--space-2);
+}
+
+.check--include {
+  align-items: flex-start;
+  min-height: var(--touch-h);
+}
+
+.check--include .check__box {
+  margin-top: 0.55rem;
+}
+
+.check--include .check__label {
+  display: grid;
+  gap: 1px;
+}
+
+.check__text {
+  color: var(--ink-800);
+  font-size: var(--text-sm);
+}
+
+.check__note {
+  color: var(--text-faint);
+  font-size: var(--text-xs);
+}
+
+.includes__foot {
+  margin: var(--space-2) 0 0;
+  max-width: 52em;
+  color: var(--text-faint);
+  font-size: var(--text-xs);
+}
+
+@container (min-width: 42rem) {
+  .buildings__lists {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -1668,38 +1804,12 @@ body.outline-open .outline {
   margin-top: var(--space-3);
 }
 
-.courses {
-  display: grid;
-  gap: var(--space-4);
+/* [v9] The dish list. What stood here was a grid of courses, each with a
+   heading field and its own controls; the private side wants the dishes and
+   nothing between them (§5, v9 changes), so it is one `lineList` now and needs
+   no rules of its own. */
+.menublock__written .lines__wrap {
   margin-top: var(--space-3);
-}
-
-.course {
-  border-left: 2px solid var(--ink-100);
-  padding-left: var(--space-3);
-}
-
-.course__head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: var(--space-2);
-  margin-bottom: var(--space-2);
-}
-
-.course__head .cell--heading {
-  flex: 1 1 12rem;
-}
-
-.course__head .input {
-  font-family: var(--font-serif);
-  font-size: var(--text-md);
-}
-
-.course__controls {
-  display: flex;
-  gap: var(--space-1);
 }
 
 .orphan__summary {
@@ -2584,6 +2694,19 @@ body.outline-open .outline {
   color: var(--ink-500);
 }
 
+/* [v9] The buildings line on the guests section, when there is nothing to say. */
+.sec__lead.is-quiet {
+  color: var(--ink-500);
+  font-style: italic;
+}
+
+/* [v9] A document included in the order (§8). The bar names it; the sections
+   inside it are the ones the standalone document draws, so they keep their own
+   bars and nothing is restyled to pretend otherwise. */
+.sec--included > .sec__body > .sec:last-child {
+  margin-bottom: 0;
+}
+
 /* ------------------------------------------------------------- data tables */
 
 /* Hairlines between rows and one rule under the head — not a border on every
@@ -2806,42 +2929,18 @@ body.outline-open .outline {
   color: var(--ink-500);
 }
 
-.meal__courses {
-  padding-left: 6pt;
-}
-
-.mealcourse {
-  margin: 0 0 7pt;
-}
-
-.mealcourse:last-child {
-  margin-bottom: 0;
-}
-
-.mealcourse__head {
-  margin: 0 0 2pt;
-  font-family: var(--font-sans);
-  font-size: 7.5pt;
-  font-weight: 600;
-  color: var(--ink-600);
-}
-
-.mealcourse__items {
+/* [v9] A flat list of dishes. No course headings — they were the events
+   department's convention and the private side does not want them (§5, v9
+   changes), which leaves the dishes as the only thing in the block. */
+.meal__dishes {
   margin: 0;
-  padding: 0;
+  padding: 0 0 0 6pt;
   list-style: none;
 }
 
-.mealcourse__item {
+.meal__dish {
   padding: 1pt 0;
   font-size: 10.5pt;
-}
-
-.mealcourse__none {
-  margin: 0;
-  font-size: 9.5pt;
-  font-style: italic;
-  color: var(--ink-500);
 }
 
 /* ---------------------------------------------------------- rooming grid */

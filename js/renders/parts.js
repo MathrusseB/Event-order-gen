@@ -20,6 +20,7 @@
 // everywhere so it reads as a statement about the data rather than a defect in
 // the document.
 
+import { attendeeName, dietaryNotes } from '../derive.js';
 import { el } from '../dom.js';
 
 /**
@@ -172,4 +173,32 @@ export function partyLine(party) {
     }));
   });
   return nodes;
+}
+
+/**
+ * The allergies and dietary block, with names. §7 [v5], §8 [v8].
+ *
+ * Names, not strings: "Kim Palmer — shellfish" is the useful line, and
+ * "shellfish" on its own tells the kitchen nothing about which plate.
+ *
+ * @param {object} event
+ * @param {boolean} [heading] false where the block already sits under a section
+ *   bar of its own — on the Menu, where it is a section rather than the tail of
+ *   the F&B one, its own heading would only repeat the bar above it
+ * @returns {HTMLElement}
+ */
+export function dietaryBlock(event, heading = true) {
+  const notes = dietaryNotes(event);
+  return el('div', { class: 'diet' }, [
+    heading ? el('h3', { class: 'diet__head', text: 'Allergies and dietary' }) : false,
+    notes.length
+      ? el('ul', { class: 'diet__list' }, notes.map((attendee) =>
+          el('li', { class: 'diet__item' }, [
+            el('span', { class: 'diet__who', text: attendeeName(attendee) || 'Unnamed guest' }),
+            el('span', { class: 'diet__what', text: String(attendee.dietary || '').trim() })
+          ])))
+      // §8 [v8]: printed, not omitted. "None known" was checked; a missing
+      // block was forgotten, and the kitchen cannot tell which from the page.
+      : el('p', { class: 'diet__none', text: 'None known.' })
+  ]);
 }

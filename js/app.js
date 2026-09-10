@@ -175,7 +175,10 @@ export function emptyEvent() {
       // [v8] Written explicitly rather than left absent, so the field the meta
       // editor writes to already exists and Save round-trips it. `brandFor`
       // would resolve an absent id to the same brand either way (§6).
-      brandId: DEFAULT_BRAND_ID
+      brandId: DEFAULT_BRAND_ID,
+      // [v9] Both false: the Menu and the Rooming Assignment are their own
+      // documents, and an order that also carries them is the exception (§5).
+      includeInOrder: { rooming: false, menu: false }
     },
     sections: defaultSections(),
     attendees: [],
@@ -185,7 +188,10 @@ export function emptyEvent() {
     menu: [],
     staff: [],
     departments: [],
-    buildingsInUse: []
+    buildingsInUse: [],
+    // [v9] The buildings held back in case the party grows, named on the order
+    // beside the ones in use (§5, §8 A).
+    overflowBuildings: []
   };
 }
 

@@ -584,6 +584,7 @@ now keeps that port cheap.
 /js/reference.js     buildings, rooms, static lists
 /js/render.js        document shell — page furniture, brand header, print
 /js/renders/         one module per document: order, menu, rooming
+/js/include.js       [v9] what meta.includeInOrder appends to the Event Order
 /js/views.js         edit / document destinations, and the per-document print
 /js/rooming.js       drag-and-drop assignment editor
 /js/validate.js      pre-print checks

@@ -341,6 +341,87 @@ export function unassignedGuestsOn(event, night) {
 }
 
 /**
+ * [v9] What `meta.includeInOrder` asks the Event Order to carry. §5 (v9).
+ *
+ * Both default to false, and an absent object, a stray string, a file written
+ * before v9 — all of them read as false. The flags add content to the Event
+ * Order and take nothing away from anything: the Menu and the Rooming
+ * Assignment are still generated and still print on their own whatever these
+ * say, which is the whole of §8 [v9] and the one thing about this feature worth
+ * being careful with.
+ *
+ * @param {object} event
+ * @returns {{rooming: boolean, menu: boolean}}
+ */
+export function includeFlags(event) {
+  const include = ((event && event.meta) || {}).includeInOrder;
+  const flags = include && typeof include === 'object' ? include : {};
+  return { rooming: flags.rooming === true, menu: flags.menu === true };
+}
+
+/**
+ * [v9] The buildings an event is using, for the `guests` section. §7.
+ *
+ * Three lists, and the third is the one that earns this function: the
+ * buildings somebody has actually assigned a room in that nobody put on either
+ * list. `buildingsInUse` is typed by a coordinator early and the rooming sheet
+ * moves afterwards, so the two drift, and the drift is worth printing — a
+ * building holding guests that the order does not mention is how a building
+ * goes unopened.
+ *
+ * Order is the order each list was authored in; the assigned extras come in the
+ * order they first appear on the rooming sheet.
+ *
+ * @param {object} event
+ * @returns {{inUse: string[], overflow: string[], alsoAssigned: string[]}}
+ */
+export function buildingsFor(event) {
+  const clean = (list) => (Array.isArray(list) ? list : [])
+    .map((name) => String(name || '').trim())
+    .filter(Boolean);
+
+  const inUse = clean(event && event.buildingsInUse);
+  const overflow = clean(event && event.overflowBuildings);
+  const named = new Set([...inUse, ...overflow]);
+
+  const alsoAssigned = [];
+  for (const row of (event && event.rooming) || []) {
+    const building = String((row && row.building) || '').trim();
+    if (!building || named.has(building) || alsoAssigned.includes(building)) continue;
+    alsoAssigned.push(building);
+  }
+
+  return { inUse, overflow, alsoAssigned };
+}
+
+/**
+ * [v9] The same three lists as one sentence, for the `guests` section (§7, §8).
+ *
+ * A string rather than markup, so the editor can show the coordinator exactly
+ * the line the order will print rather than an approximation of it. Empty when
+ * there is nothing to say at all, which the render answers with its own note.
+ *
+ * @param {object} event
+ * @returns {string}
+ */
+export function buildingsSentence(event) {
+  const { inUse, overflow, alsoAssigned } = buildingsFor(event);
+  const parts = [];
+  if (inUse.length) parts.push(`In use: ${listPhrase(inUse)}.`);
+  if (overflow.length) parts.push(`Held for overflow: ${listPhrase(overflow)}.`);
+  if (alsoAssigned.length) {
+    parts.push(`Also holding guests on the rooming sheet: ${listPhrase(alsoAssigned)}.`);
+  }
+  return parts.join(' ');
+}
+
+/** "A", "A and B", "A, B and C". */
+function listPhrase(names) {
+  if (names.length < 3) return names.join(' and ');
+  return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+}
+
+/**
  * §7 [v5] — Dietary notes: attendees with a non-empty `dietary`.
  *
  * The Menu render's allergies block and the buffet labels. Attendees are
