@@ -806,6 +806,46 @@ since changed, and adding it by hand is the fix.** The migration summary counts 
 upgraded (`mealLedgerUpgraded`), and it is idempotent — it runs on every load and the second run
 changes nothing.
 
+### Changes from v16
+
+**[v17] The editor holds one open section at a time.** Every section was open at once, which made the
+editor one long scroll: the headers got lost between the rows and finding the section you wanted meant
+scrolling past four you did not. The sections are a disclosure set — one open, the rest collapsed to
+their headers — and opening one closes the other.
+
+**A collapsed section keeps its header, and gains a line.** The title, the include-in-the-order
+control, reorder and remove all stay on the collapsed header and all keep working without opening the
+section: turning a section off is not a reason to open it. Beside them is a short summary of what is
+inside — how many guests and how many of them are children, how many days and entries the itinerary
+holds, how many meal services, how many people on staff, how many departments, the first few words of
+a note — read from the event and never counted off the rows on screen, which would report a blank
+seeded itinerary row as an entry and a staff assignment as a person. **An empty section says it is
+empty rather than showing a zero:** "No guests yet" reads as a section nobody has filled in, and
+"0 guests" reads as a broken count.
+
+**Which section is open is not in the file.** It is view state — not saved, not autosaved, not
+migrated, and not in `meta`. An event opens on its first *enabled* section on whatever machine opens
+it, because a disabled section is one the order is not carrying and the section that happened to be
+open when somebody pressed Save is not a fact about the event.
+
+**A collapsed section is hidden, never unmounted.** `dom.js` keys rows by id and patches them in
+place (§5, v4 changes); tearing a section's DOM down and rebuilding it on the way back would throw
+that identity away along with everything attached to it. So the body keeps its nodes, and a half-typed
+surname, the caret inside it and every scroll position come back exactly as they were. Focus is the
+one thing hiding does take: the browser blurs whatever held it and does not hand it back. So a section
+remembers the control the caret was in and puts it back on the way in — and only that section, only
+that control, and only when the caret was actually taken from it.
+
+**Findings travel to the header.** §12 marks a finding on the row it concerns, and a row inside a
+collapsed section cannot be seen, so a collapsed section carries the count on its header, at its
+severity. Opening it shows them in place as before. The pre-print panel's way into a finding opens the
+section the finding is in **before** it scrolls, because a reveal that lands on a hidden row is worse
+than no reveal at all. The navigator's markers are unchanged.
+
+**Menu and the Rooming Assignment are unaffected, and so is the event header.** The two documents are
+not sections (§4, §8) and the header prints on every document rather than being part of one; none of
+the three is in the outline, and none of them is in the disclosure set.
+
 ## 6. Static reference data
 
 Seeded in `js/reference.js`. Not part of event JSON.
@@ -1062,6 +1102,18 @@ blank rows it will clear, and the list shows what it read out of each line as ed
 last names before a single guest is written. Each is one `update()`, so a batch is one step and not
 eleven. §5 (v14 changes) has the reasoning.
 
+**[v17] The editor holds one open section at a time, and a closed one still says something.** The
+sections are a disclosure set: each header carries a button with `aria-expanded` pointing at the body
+it opens, one body is open at a time, and opening one closes the other. A collapsed header keeps
+every control it had — the title, the include-in-the-order switch, move up, move down, remove, all
+working without opening the section — and adds one line of what is inside it plus the §12 count where
+there is one (§5, v17 changes). The first enabled section opens on load and the choice is never
+written to the file. Collapsing **hides** the body and keeps its nodes, so nothing half-typed is lost
+and no scroll position moves. The Sections navigator is the way between them — choosing a section
+there opens it and closes the rest, and below 960px, where the navigator is behind the Sections
+button, it closes itself once a section is chosen. The event header is not a section and stays open;
+Menu and the Rooming Assignment are separate destinations and are not in the set.
+
 **[v2] Correction to v1:** do *not* put `break-inside: avoid` on whole sections. Sections have no
 length limit and must be free to flow across pages. Apply `break-inside: avoid` to individual rows,
 table rows, and staff blocks only. Section headings get `break-after: avoid` so a heading never
@@ -1093,6 +1145,7 @@ now keeps that port cheap.
 /js/derive.js        counts and lodging, derived from the event
 /js/reference.js     buildings, rooms, static lists
 /js/seed.js          [v10] the meals and itinerary rows a day starts with, [v15] by day
+/js/summary.js       [v17] the one line a collapsed section says about itself
 /js/shift.js         [v13] a date range that moves, and the rows that move with it
 /js/copyday.js       [v14] one day's itinerary copied onto another day
 /js/names.js         [v14] a typed list of names read into first and last names
