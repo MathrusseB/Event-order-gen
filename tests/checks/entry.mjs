@@ -82,13 +82,14 @@ export async function run({ check }) {
   const fresh = { meta: { startDate: '2026-11-14', endDate: '2026-11-16' } };
   const made = seedForDates(fresh);
   check(
-    'setting the dates seeds three meals and three itinerary rows a day',
-    made.meals === 9 && made.itinerary === 9
+    'setting the dates seeds the meals a day is due and three itinerary rows [v15]',
+    made.meals === 5 && made.itinerary === 9
       && fresh.foodAndBev.map((row) => row.meal).join(',')
-        === 'Breakfast,Lunch,Dinner,Breakfast,Lunch,Dinner,Breakfast,Lunch,Dinner'
-      && fresh.foodAndBev[0].start === '09:00' && fresh.foodAndBev[2].end === '20:30'
+        === 'Dinner,Breakfast,Lunch,Dinner,Breakfast'
+      && fresh.foodAndBev[0].start === '18:30' && fresh.foodAndBev[0].end === '20:30'
       && fresh.schedule.every((row) => !row.label && !row.start),
-    `${made.meals} meals, ${made.itinerary} itinerary rows`
+    `${made.meals} meals, ${made.itinerary} itinerary rows: `
+      + fresh.foodAndBev.map((row) => `${row.date.slice(8)} ${row.meal}`).join(' | ')
   );
 
   check(
@@ -99,18 +100,18 @@ export async function run({ check }) {
 
   check(
     'seeding the same dates again creates nothing',
-    seedForDates(fresh).meals === 0 && fresh.foodAndBev.length === 9,
+    seedForDates(fresh).meals === 0 && fresh.foodAndBev.length === 5,
     `${fresh.foodAndBev.length} meals after a second pass`
   );
 
   const edited = structuredClone(fresh);
-  edited.foodAndBev[0].meal = 'Late Breakfast';
-  edited.foodAndBev[0].start = '10:30';
+  edited.foodAndBev[0].meal = 'Late Dinner';
+  edited.foodAndBev[0].start = '20:00';
   seedForDates(edited);
   check(
     'an edited row is never overwritten and never joined by a replacement',
-    edited.foodAndBev.length === 9 && edited.foodAndBev[0].meal === 'Late Breakfast'
-      && edited.foodAndBev[0].start === '10:30',
+    edited.foodAndBev.length === 5 && edited.foodAndBev[0].meal === 'Late Dinner'
+      && edited.foodAndBev[0].start === '20:00',
     JSON.stringify(edited.foodAndBev[0])
   );
 
@@ -119,7 +120,7 @@ export async function run({ check }) {
   seedForDates(trimmed);
   check(
     'a day trimmed by hand stays trimmed — nothing is resurrected',
-    trimmed.foodAndBev.length === 6,
+    trimmed.foodAndBev.length === 2,
     `${trimmed.foodAndBev.length} meals after re-seeding a day that was cleared`
   );
 
@@ -128,7 +129,7 @@ export async function run({ check }) {
   seedForDates(narrowed);
   check(
     'narrowing the range deletes nothing — §12.9 reports it, this does not remove it',
-    narrowed.foodAndBev.length === 9,
+    narrowed.foodAndBev.length === 5,
     `${narrowed.foodAndBev.length} meals after narrowing`
   );
 
@@ -136,7 +137,7 @@ export async function run({ check }) {
   seedForDates(narrowed);
   check(
     'and widening it again brings nothing back twice',
-    narrowed.foodAndBev.length === 9,
+    narrowed.foodAndBev.length === 5,
     `${narrowed.foodAndBev.length} meals after widening again`
   );
 
@@ -145,8 +146,7 @@ export async function run({ check }) {
   seedForDates(front);
   check(
     'a day added to the front of an event lands at the front, not on the end',
-    front.foodAndBev.slice(0, 3).every((row) => row.date === '2026-11-13')
-      && front.foodAndBev.length === 12,
+    front.foodAndBev[0].date === '2026-11-13' && front.foodAndBev.length === 6,
     front.foodAndBev.map((row) => `${row.date.slice(5)} ${row.meal}`).join(' | ')
   );
 

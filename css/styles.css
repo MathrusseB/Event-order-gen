@@ -1917,6 +1917,58 @@ body.outline-open .outline {
   color: var(--text-faint);
 }
 
+/* [v15] The way off the day, on a meal line only (§5, v15 changes). Pushed to
+   the right edge so the crosses are a column rather than a ragged margin
+   wandering behind the text, and quiet until it is pointed at — this is a
+   delete on a list that is mostly read. */
+.preview__drop {
+  margin-left: auto;
+  align-self: center;
+  padding: 0 var(--space-1);
+  border: 0;
+  background: none;
+  color: var(--text-faint);
+  font: inherit;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.preview__drop:hover {
+  color: var(--brick-600);
+}
+
+/* Where the line is narrow enough to wrap, the column stops being a column:
+   `margin-left: auto` on a wrapped flex line puts the cross alone on a row of
+   its own, three lines below the meal it belongs to and level with nothing. It
+   follows the text instead. */
+@media (max-width: 47.99rem) {
+  .preview__drop {
+    margin-left: 0;
+  }
+}
+
+/* [v15] Under a thumb. This block is here, and not with the other touch rules a
+   few hundred lines up, because file order decides a tie and `.preview__line`
+   above sets `align-items` at the same weight — the rule that comes second is
+   the rule that applies. */
+@media (pointer: coarse) {
+  /* A delete is the one control that must not be shared with the line above
+     it, and preview lines are two millimetres apart. The meal lines grow to
+     fit this, which is the right way round. */
+  .preview__drop {
+    min-width: var(--touch-h);
+    min-height: var(--touch-h);
+  }
+
+  /* And the line centres on it. Baseline alignment is right for the type and
+     wrong for a 44px control beside 13px text: the words sit at the top of a
+     row three times their height and the cross hangs below them, reading as
+     something under the line rather than part of it. */
+  .preview__line {
+    align-items: center;
+  }
+}
+
 .preview__none,
 .preview__empty {
   margin-top: var(--space-1);

@@ -296,6 +296,15 @@ export async function run({ browser, origin, check }) {
     );
 
     check(
+      'ACCEPTED: the meals came with it — every service on the new days [v15]',
+      after.foodAndBev.length === before.foodAndBev.length
+        && after.foodAndBev.every((row) => row.date >= TO.start && row.date <= TO.end)
+        && after.foodAndBev.map((row) => row.meal).join(',')
+          === before.foodAndBev.map((row) => row.meal).join(','),
+      after.foodAndBev.map((row) => `${row.date} ${row.meal}`).join(' | ')
+    );
+
+    check(
       'ACCEPTED: nothing is left outside the event dates',
       await page.evaluate(() => document.querySelector('.notice--warn').hidden),
       'the forty-five findings are the thing this feature exists to prevent'
@@ -325,7 +334,9 @@ export async function run({ browser, origin, check }) {
 
     check(
       'DECLINED: seeding then runs for the new range, exactly as it does on any date change',
-      after.foodAndBev.length === before.foodAndBev.length + 9
+      // [v15] Five meals for three days, not nine: Dinner on the arrival day,
+      // all three in the middle, Breakfast on the departure day (§5, v15).
+      after.foodAndBev.length === before.foodAndBev.length + 5
         && after.schedule.length === before.schedule.length + 9
         && after.seeded.meals.includes('2026-12-02')
         && after.seeded.meals.includes('2026-11-14'),
@@ -360,7 +371,9 @@ export async function run({ browser, origin, check }) {
 
     check(
       'NOT A SHIFT: the two new days are seeded there and then, as before',
-      after.foodAndBev.length === before.foodAndBev.length + 6
+      // [v15] The 17th is a middle day now and gets three; the 18th is the new
+      // departure day and gets Breakfast. Four, not six.
+      after.foodAndBev.length === before.foodAndBev.length + 4
         && after.schedule.length === before.schedule.length + 6
         && nothingMoved(before, after),
       `${after.foodAndBev.length} meals, ${after.schedule.length} rows`
@@ -392,7 +405,7 @@ export async function run({ browser, origin, check }) {
 
     check(
       'an order started with New seeds its days when the dates are typed',
-      before.foodAndBev.length === 9 && before.schedule.length === 9,
+      before.foodAndBev.length === 5 && before.schedule.length === 9,
       `${before.foodAndBev.length} meals, ${before.schedule.length} rows`
     );
 
@@ -480,7 +493,9 @@ export async function run({ browser, origin, check }) {
       'AN OFFER NOBODY ANSWERS STILL LEAVES THE NEW RANGE SEEDED [v13]',
       withOfferUp.seeded.meals.includes('2026-12-02')
         && withOfferUp.seeded.meals.includes('2026-12-04')
-        && withOfferUp.foodAndBev.filter((row) => row.date === '2026-12-02').length === 3,
+        // [v15] One meal on the 2nd, because the 2nd is the arrival day.
+        && withOfferUp.foodAndBev.filter((row) => row.date === '2026-12-02')
+          .map((row) => row.meal).join(',') === 'Dinner',
       'holding seeding back for an answer loses it when the tab closes, and markSeeded '
         + 'then records the range on the way back in — three days that can never be seeded'
     );

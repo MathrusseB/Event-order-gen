@@ -332,7 +332,7 @@ function createFnbRow(list, id) {
 
   moveUp.addEventListener('click', () => moveEntry(list, id, -1));
   moveDown.addEventListener('click', () => moveEntry(list, id, 1));
-  remove.addEventListener('click', () => deleteEntry(id));
+  remove.addEventListener('click', () => removeMealService(id));
 
   const warn = warnLine();
 
@@ -432,8 +432,16 @@ function moveEntry(list, id, delta) {
  * resolves, and the menu editor shows it with its dishes intact and offers to
  * re-point it. Quietly deleting a written menu because a time changed would
  * lose an evening's work with no trace.
+ *
+ * [v15] Exported, because the itinerary preview in the schedule editor can now
+ * take a meal off the day it is wrong on (§5, v15 changes) — and that is the
+ * same act as deleting it here, so it is the same function. A second
+ * implementation would be a second confirmation, and the one thing this
+ * confirmation has to get right is what happens to a written menu.
+ *
+ * @param {string} id the `foodAndBev[]` row to delete
  */
-function deleteEntry(id) {
+export function removeMealService(id) {
   const event = getEvent();
   if (!event) return;
   const entry = ((event && event.foodAndBev) || []).find((row) => row && row.id === id);
