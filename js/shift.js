@@ -24,7 +24,7 @@
 // a bed.
 
 import { shiftDate } from './dates.js';
-import { SEEDED_MEALS } from './seed.js';
+import { isAsSeeded } from './seed.js';
 
 /**
  * The dated fields, by the array that holds them.
@@ -71,34 +71,6 @@ function rowKey(list, id) {
 }
 
 /**
- * Whether a row is still exactly as `seedForDates` made it.
- *
- * The one question that decides whether an accepted shift may take a row back
- * off again. A seeded row is an ordinary row from the moment it exists (seed.js)
- * and nothing may delete one somebody has touched — so this is deliberately
- * strict: every field as seeding wrote it, and for a meal, no menu written
- * against it. Anything else, and the row stays and moves with the rest.
- *
- * @param {object} event
- * @param {string} list which array
- * @param {object} row
- * @returns {boolean}
- */
-function untouched(event, list, row) {
-  if (list === 'schedule') {
-    return !row.start && !row.end && !String(row.label || '').trim();
-  }
-  if (list !== 'foodAndBev') return false;
-  const asSeeded = SEEDED_MEALS.some((meal) => meal.meal === row.meal
-    && meal.start === row.start && meal.end === row.end);
-  const counted = row.count === undefined || row.count === null || row.count === '';
-  const written = rowsOf(event, 'menu').some((block) => block.fnbId === row.id);
-  return asSeeded && counted && !written
-    && !String(row.location || '').trim()
-    && row.countBasis === 'present' && row.serves === 'all';
-}
-
-/**
  * The rows seeding put down while the dates were half-typed, and which of them
  * may be taken back off.
  *
@@ -123,7 +95,7 @@ function clearable(event, created) {
   for (const entry of created || []) {
     if (!entry || !entry.id) continue;
     const row = rowsOf(event, entry.list).find((item) => item.id === entry.id);
-    if (row && untouched(event, entry.list, row)) keys.add(rowKey(entry.list, entry.id));
+    if (row && isAsSeeded(event, entry.list, row)) keys.add(rowKey(entry.list, entry.id));
   }
   return keys;
 }

@@ -644,6 +644,70 @@ the primary action, it asks nothing when there is nothing to discard, and it lan
 fields, which are the two that everything else reads from (§5, v2 changes). The sample stays, says
 in its own name that it is a sample, and asks before replacing work in progress.
 
+### Changes from v13
+
+Both of these came back off a real event being built rather than out of a design. Neither adds a
+field, a document, or anything to the model: they are two places the tool made somebody type the
+same thing over and over, and the correction in each case is a way of saying it once.
+
+**[v14] A day's itinerary can be copied onto another day.** A private-side weekend repeats itself —
+hunting out at 05:00 and back by 09:00, downtime 11:00 to 12:00, the same shape on Friday, Saturday
+and Sunday. Typed by hand that is one day's rows written three times, and the third time is where
+the typo lands. Each day of the itinerary preview carries the action, because the day block is the
+only place in that editor where a day exists as a thing to point at; the rows themselves are one
+flat list.
+
+Four things that action deliberately does not do:
+
+- **It does not copy meals.** `foodAndBev[]` is seeded for every day in range (§5, v10 changes), so
+  copying breakfast across would serve it twice. The interface says so where the action lives, in a
+  few words — an omission nobody explains reads as a defect.
+- **It copies one day onto one day.** Not "fill the rest of the week". A coordinator who wants three
+  days presses it three times and reads three answers; the one who wanted a single day has not had
+  two more to undo.
+- **It carries what somebody wrote.** The blank rows seeding leaves are not content, so a day nobody
+  has written yet copies nothing at all rather than quietly clearing the day it was aimed at.
+- **It never overwrites content.** The target day usually holds the three blank rows seeding put
+  there, and those are cleared first so the copies do not land underneath them. A row somebody typed
+  into stays exactly where it is and the copies go in beside it. The test for "still exactly as
+  seeding made it" is the one an accepted date shift already uses (§5, v13 changes), moved into
+  `seed.js` beside the code that makes those rows.
+
+Every copy is a new row with a fresh `newId()` — an id is never reused, because two rows sharing one
+is two rows sharing one node in the reconciler. The whole copy is a single `update()`: eleven rows
+arriving is one step, one render and one entry in the autosave, not eleven. Afterwards the panel
+says how many rows were copied and how many blanks were cleared, in those words.
+
+**[v14] Guests can be added as a list of names.** Nine guests was nine rows opened one at a time and
+nine sets of fields tabbed through, when the names had arrived as a list in the first place. They
+are pasted as a list now — one name a line — and become one attendee row each, with arrivals,
+departures, child flags and dietary notes filled in afterwards in the rows that then exist.
+
+**The parse is a guess and is treated as one.** A line with a comma is `Last, First`, which the
+comma settles. A line without one is `First Last`, with the last word taken as the surname — and
+that is wrong for every compound surname on the property's lists: Van Der Berg, De La Cruz, St John.
+A longer list of particles does not fix it, because `Anneke Van Der Berg` and `Mary Anne Berg` are
+the same shape and only the person typing knows which is which. So **nothing is written on the
+strength of the parse**: what was read is shown as editable first and last fields first, and the
+write happens after somebody has looked at it. One wrong guess is a nuisance; twenty committed in
+silence is worse than having typed them by hand.
+
+The rest of the rules it follows:
+
+- Blank lines are ignored; every line is trimmed end to end.
+- A line yielding one word is a first name with an empty surname — Cher — shown that way to be
+  corrected rather than guessed at.
+- A line naming somebody already on the guest list is **flagged and never blocked**, and can be
+  unticked out of the batch. Two guests genuinely can share a name, which is the reason rows carry
+  ids (§5 [v4]); what the flag buys is the other case, a list pasted twice.
+- Every row committed gets a fresh `newId()` and the event's default arrive and depart — an empty
+  string at each end, which is what "follow the event dates" is stored as (§5, v2 changes) and
+  exactly what adding one guest leaves behind.
+- The whole batch is a single `update()`.
+
+**Adding one guest is still one button.** Most guests are added one at a time, and a list box is the
+wrong amount of ceremony for one name.
+
 ## 6. Static reference data
 
 Seeded in `js/reference.js`. Not part of event JSON.
@@ -880,6 +944,16 @@ the two notes that explain them — which is what lets the notes be there at eve
 being the first thing dropped on a tablet. The app still opens on the autosave where there is one
 and on an empty order where there is not — never on the sample.
 
+**[v14] Itinerary rows and guests are entered two ways each, and the single row leads both.** Add
+entry and Add guest are unchanged and are still the first control in each editor: one row, one
+press, the caret in the field that gets typed into first. Beside each of them is the way in for the
+case that was costing a coordinator an afternoon — a day of the itinerary copied onto another day,
+and a list of names pasted one to a line and turned into a row each. Both of the second kind say
+what they are about to do before they do it: the copy names the day, the row count and how many
+blank rows it will clear, and the list shows what it read out of each line as editable first and
+last names before a single guest is written. Each is one `update()`, so a batch is one step and not
+eleven. §5 (v14 changes) has the reasoning.
+
 **[v2] Correction to v1:** do *not* put `break-inside: avoid` on whole sections. Sections have no
 length limit and must be free to flow across pages. Apply `break-inside: avoid` to individual rows,
 table rows, and staff blocks only. Section headings get `break-after: avoid` so a heading never
@@ -912,6 +986,8 @@ now keeps that port cheap.
 /js/reference.js     buildings, rooms, static lists
 /js/seed.js          [v10] the meals and itinerary rows a day starts with
 /js/shift.js         [v13] a date range that moves, and the rows that move with it
+/js/copyday.js       [v14] one day's itinerary copied onto another day
+/js/names.js         [v14] a typed list of names read into first and last names
 /js/activities.js    [v10] the itinerary's activity list, and where a custom one lives
 /js/render.js        document shell — page furniture, brand header, print
 /js/renders/         one module per document: order, menu, rooming

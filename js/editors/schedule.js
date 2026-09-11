@@ -12,10 +12,18 @@
 // is the print-time rule for the same thing) — the coordinator may be part way
 // through moving a meal across, and an editor that refused the keystroke would
 // be wrong about that.
+//
+// [v14] Each day of that preview carries the one action that is about a whole
+// day rather than about a row: copy this day onto another one (§5, v14
+// changes). A weekend that hunts at the same hour every morning was three
+// identical sets of rows typed out by hand, and the day block is the only place
+// in this editor where a day exists as a thing to point at — the rows below are
+// one flat list.
 
 import { findingsFor, getEvent, update } from '../app.js';
 import { itineraryFor } from '../derive.js';
 import { datesBetween, formatDate, formatTime, formatTimeRange } from '../dates.js';
+import { copyDayInto, defaultTarget, planCopyDay } from '../copyday.js';
 import { newId } from '../ids.js';
 import { OTHER_OPTION } from '../reference.js';
 import {
@@ -183,7 +191,8 @@ export function createScheduleEditor() {
       const days = datesBetween(meta.startDate, meta.endDate);
       setHidden(previewBody, days.length === 0);
       setHidden(previewEmpty, days.length > 0);
-      const dayEntries = reconcile(previewBody, days, (date) => date, () => createPreviewDay());
+      const dayEntries = reconcile(previewBody, days, (date) => date, (date) =>
+        createPreviewDay(date));
       dayEntries.forEach((entry, index) => entry.update(event, days[index]));
 
       setHidden(emptyNote, entries.length > 0);
@@ -202,24 +211,216 @@ export function createScheduleEditor() {
   };
 }
 
-/** One day of the merged itinerary. Read-only: the rows below are the edit. */
-function createPreviewDay() {
+/**
+ * One day of the merged itinerary.
+ *
+ * The lines are read-only — the rows below are the edit — and [v14] the one
+ * control here is about the day as a whole rather than about any line in it.
+ */
+function createPreviewDay(date) {
   const heading = el('h4', { class: 'preview__day' });
   const body = el('ul', { class: 'preview__lines' });
   const empty = el('p', { class: 'preview__none', text: 'Nothing on this day yet.' });
-  const node = el('div', { class: 'preview__block' }, [heading, body, empty]);
+  const copy = createDayCopy(date);
+  const node = el('div', { class: 'preview__block' }, [heading, body, empty, copy.node]);
 
   return {
     node,
-    update(event, date) {
-      setText(heading, formatDate(date));
-      const items = itineraryFor(event, date);
+    update(event, day) {
+      setText(heading, formatDate(day));
+      const items = itineraryFor(event, day);
       setHidden(empty, items.length > 0);
       const lines = reconcile(body, items, (item, index) => `${item.source}:${item.id || index}`,
         () => createPreviewLine());
       lines.forEach((line, index) => line.update(items[index]));
+      copy.update(event);
     }
   };
+}
+
+/**
+ * [v14] Copy this day onto another day — BUILD-SPEC §5 (v14 changes).
+ *
+ * Behind a disclosure rather than sitting open on every day: four days of an
+ * event is four of these, and a control that is used once a weekend should not
+ * be four rows of furniture above the rows that are used all day.
+ *
+ * The target it offers is the next day of the event, because that is the shape
+ * of the thing being solved — Saturday onto Sunday — and any day in the range
+ * can be chosen instead. **One day at a time.** There is no "and the rest of
+ * the week": a coordinator who wants three days presses this three times and
+ * sees the three answers, and the one who wanted one day has not had to undo
+ * two.
+ *
+ * Nothing in here is event state. The target sits in this closure, so a
+ * keystroke somewhere else in the form — which re-renders this whole editor —
+ * cannot reset a half-made choice back to the default.
+ *
+ * @param {string} date the day this block is about
+ */
+function createDayCopy(date) {
+  /** The day chosen, once somebody has chosen one. '' means "use the default". */
+  let target = '';
+  /** The last day this panel copied onto, so a second press cannot double it. */
+  let copiedTo = '';
+  /** The option list currently drawn, so it is rebuilt only when the days move. */
+  let signature = '';
+
+  const panelId = `copyday-${date}`;
+
+  const toggle = el('button', {
+    type: 'button',
+    class: 'linkish copyday__open',
+    'data-control': 'copy-day',
+    'aria-expanded': 'false',
+    'aria-controls': panelId,
+    text: 'Copy this day to another day'
+  });
+
+  const select = el('select', { class: 'input input--select', 'data-field': 'copy-target' });
+  const go = el('button', { type: 'button', class: 'btn btn--primary', text: 'Copy the day' });
+  const close = el('button', { type: 'button', class: 'btn', text: 'Close' });
+
+  // §5 (v14 changes) — said where the action is. Meals are seeded onto every
+  // day in range (seed.js), so copying them would serve breakfast twice; an
+  // omission nobody explains reads as something that is broken.
+  const note = el('p', {
+    class: 'copyday__note',
+    text: 'Times and what is happening. Meals are not copied — every day already has its own '
+      + 'breakfast, lunch and dinner.'
+  });
+  const said = el('p', { class: 'copyday__said', role: 'status', hidden: true });
+
+  const panel = el('div', { class: 'copyday__panel', id: panelId, hidden: true }, [
+    el('div', { class: 'copyday__row' }, [
+      el('label', { class: 'field' }, [
+        el('span', { class: 'field__label', text: 'Copy to' }),
+        select
+      ]),
+      go,
+      close
+    ]),
+    note,
+    said
+  ]);
+
+  const node = el('div', { class: 'copyday', hidden: true }, [toggle, panel]);
+
+  /** Open or shut, and say so where a screen reader will hear it. */
+  function show(open) {
+    setHidden(panel, !open);
+    toggle.setAttribute('aria-expanded', String(open));
+  }
+
+  /**
+   * What the button under this line would do, said before it is pressed.
+   *
+   * Called from the handlers as well as from the render, because opening the
+   * panel and choosing a day are not writes: nothing re-renders this editor,
+   * so nothing else would put the sentence up.
+   */
+  function sayWhatWouldHappen() {
+    if (panel.hidden || !select.value || select.value === copiedTo) return;
+    const plan = planCopyDay(getEvent(), date, select.value);
+    setText(said, plan.copies === 0 ? 'Nothing on this day to copy yet.' : sayPlan(plan));
+    setHidden(said, false);
+  }
+
+  toggle.addEventListener('click', () => {
+    const opening = panel.hidden;
+    show(opening);
+    if (opening) {
+      sayWhatWouldHappen();
+      select.focus();
+    }
+  });
+  close.addEventListener('click', () => {
+    show(false);
+    toggle.focus();
+  });
+
+  select.addEventListener('change', () => {
+    target = select.value;
+    // A different day is a different copy, so the guard against copying the
+    // same day twice comes off.
+    go.disabled = false;
+    sayWhatWouldHappen();
+  });
+
+  go.addEventListener('click', () => {
+    const to = select.value;
+    if (!to || to === date) return;
+
+    let done = { copied: 0, cleared: 0 };
+    update((draft) => {
+      done = copyDayInto(draft, date, to);
+    });
+
+    copiedTo = to;
+    target = to;
+    go.disabled = true;
+    setText(said, sayCopy(done, to));
+    setHidden(said, false);
+  });
+
+  return {
+    node,
+    update(event) {
+      const meta = (event && event.meta) || {};
+      const days = datesBetween(meta.startDate, meta.endDate).filter((day) => day !== date);
+
+      // A one-day event has nowhere to copy to, and a day outside the range is
+      // not a day of this event. Either way there is no action, so there is no
+      // control — and the panel goes with it, so it cannot be left open over a
+      // select with nothing in it.
+      setHidden(node, days.length === 0);
+      if (!days.length) {
+        show(false);
+        return;
+      }
+
+      const next = optionSignature(days.map((day) => ({ value: day, label: formatDate(day) })));
+      if (next !== signature) {
+        signature = next;
+        select.replaceChildren(...days.map((day) =>
+          el('option', { value: day, text: formatDate(day) })));
+      }
+
+      // The default is re-asked rather than remembered: the dates move, and
+      // "the next day" on a range that has since changed is a different day.
+      if (!target || !days.includes(target)) target = defaultTarget(event, date) || days[0];
+      setValue(select, target);
+      go.disabled = select.value === copiedTo;
+
+      // Kept current while the panel is open: a row typed into either day
+      // between opening this and pressing the button changes the answer, and
+      // this sentence is what somebody is reading when they decide.
+      sayWhatWouldHappen();
+    }
+  };
+}
+
+/** "4 rows" / "one row", for a sentence rather than a count beside a label. */
+function rowCount(n) {
+  return n === 1 ? 'one row' : `${n} rows`;
+}
+
+/** What a copy would do, in one sentence, before it does it. */
+function sayPlan(plan) {
+  const parts = [`Would copy ${rowCount(plan.copies)} to ${formatDate(plan.to)}`];
+  if (plan.clears) parts.push(`clearing ${rowCount(plan.clears)} left blank there`);
+  if (plan.keeps) {
+    parts.push(`${rowCount(plan.keeps)} already written on that day ${plan.keeps === 1 ? 'stays' : 'stay'}`);
+  }
+  return `${parts.join(', ')}.`;
+}
+
+/** And what it did, afterwards. §5 (v14 changes) asks for both numbers. */
+function sayCopy(done, to) {
+  const cleared = done.cleared
+    ? ` ${rowCount(done.cleared)} left blank there ${done.cleared === 1 ? 'was' : 'were'} cleared first.`
+    : ' Nothing was cleared.';
+  return `Copied ${rowCount(done.copied)} to ${formatDate(to)}.${cleared}`;
 }
 
 /** One merged itinerary line. */
