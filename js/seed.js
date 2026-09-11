@@ -1,9 +1,22 @@
-// Seeding the days of an event — BUILD-SPEC §5 (v10 changes).
+// Seeding the days of an event — BUILD-SPEC §5 (v10 changes, v15 changes).
 //
-// Setting the event dates puts three meal services and three blank itinerary
-// rows on every day in range. Every private-side event has breakfast, lunch and
-// dinner; typing them in by hand for a four-day weekend is twelve rows of the
-// same three words, and the times are the same times every time.
+// Setting the event dates puts meal services and three blank itinerary rows on
+// every day in range. Every private-side event has breakfast, lunch and dinner;
+// typing them in by hand for a four-day weekend is twelve rows of the same
+// three words, and the times are the same times every time.
+//
+// [v15] BUT NOT ON THE FIRST AND LAST DAY. Guests arrive in the afternoon and
+// leave in the morning, so an arrival day seeded with a 09:00 breakfast puts a
+// service on the order seven hours before anybody is on the property, and a
+// departure day carries a dinner for a party that went home. The first day
+// seeds Dinner, the last day seeds Breakfast, and every day between seeds all
+// three. A single-day event seeds all three: both rules apply to it at once and
+// their intersection is nothing, which is plainly wrong — with no arrival or
+// departure to reason from, seed everything and let it be trimmed.
+//
+// It is a default and not a constraint. Nothing stops a meal being added to any
+// day, nothing here removes one that is already there, and the itinerary
+// preview can take one off (js/editors/schedule.js [v15]).
 //
 // SEEDING FILLS GAPS AND DOES NOTHING ELSE. That sentence is the whole module,
 // and each half of it is a rule somebody could reasonably break later:
@@ -46,6 +59,42 @@ export const SEEDED_MEALS = [
   { meal: 'Lunch', start: '12:00', end: '14:00' },
   { meal: 'Dinner', start: '18:30', end: '20:30' }
 ];
+
+/** [v15] The one service an arrival day gets, and the one a departure day gets. */
+const ARRIVAL_DAY_MEAL = 'Dinner';
+const DEPARTURE_DAY_MEAL = 'Breakfast';
+
+/**
+ * [v15] Which of the three a day is offered — BUILD-SPEC §5 (v15 changes).
+ *
+ * **Keyed on the event's own first and last date, never on guest arrivals.**
+ * The dates are the first thing typed into a new order and the attendee list is
+ * usually the last, so a rule that read `attendees[].arrive` would be reading an
+ * empty array at the only moment it runs and would simply never fire. The dates
+ * are also the thing the coordinator is asserting when they set them: this
+ * event starts on the 6th, which means people turn up on the 6th.
+ *
+ * A range of one day gets all three — see the note at the top of this module.
+ * So does a date the range does not contain, which `seedForDates` cannot ask
+ * about but an outside caller could: with no edge to reason from, the answer is
+ * everything.
+ *
+ * @param {string[]} dates the event's days, in order — `datesBetween` output
+ * @param {string} date the day being seeded
+ * @returns {{meal: string, start: string, end: string}[]} a subset of
+ *   `SEEDED_MEALS`, in serving order
+ */
+export function mealsSeededFor(dates, date) {
+  const days = Array.isArray(dates) ? dates : [];
+  if (days.length < 2 || !days.includes(date)) return SEEDED_MEALS;
+  if (date === days[0]) {
+    return SEEDED_MEALS.filter((service) => service.meal === ARRIVAL_DAY_MEAL);
+  }
+  if (date === days[days.length - 1]) {
+    return SEEDED_MEALS.filter((service) => service.meal === DEPARTURE_DAY_MEAL);
+  }
+  return SEEDED_MEALS;
+}
 
 /** How many blank itinerary rows a day starts with. */
 export const SEEDED_ITINERARY_ROWS = 3;
@@ -91,6 +140,17 @@ function insertByDateAndTime(rows, row) {
  * Called from the one place the event dates are written. Safe to call at any
  * time and any number of times: a date already in the ledger is skipped.
  *
+ * [v15] THE LEDGER STILL RECORDS THE DATE AND NOT WHICH MEALS IT GOT, and that
+ * is deliberate rather than an omission. A finer ledger — "this day was offered
+ * Dinner" — would let a day that stops being the first day be offered the other
+ * two later, which sounds like an improvement until the coordinator has already
+ * added Lunch to that day by hand: nothing in the file can tell a hand-added
+ * Lunch from a missing one, so the day would end up with two. A day offered
+ * anything is a day that has been offered, for good. The cost is the other
+ * direction — a last day that becomes a middle day keeps only its Breakfast and
+ * the rest are added by hand — and that is the cheaper of the two mistakes,
+ * because it is visible on the order and a duplicate meal is not.
+ *
  * @param {object} draft the mutable event from `update()`
  * @returns {{meals: number, itinerary: number, dates: string[],
  *   created: {list: string, id: string, date: string}[]}} what was created, for
@@ -106,7 +166,10 @@ export function seedForDates(draft) {
   for (const date of dates) {
     if (!seeded.meals.includes(date)) {
       const services = list(draft, 'foodAndBev');
-      for (const meal of SEEDED_MEALS) {
+      // [v15] A subset on the first and last day. The ledger below still
+      // records the *date*, not which meals it got: see `seedForDates`.
+      const offered = mealsSeededFor(dates, date);
+      for (const meal of offered) {
         const id = newId();
         made.created.push({ list: 'foodAndBev', id, date });
         insertByDateAndTime(services, {
@@ -123,7 +186,7 @@ export function seedForDates(draft) {
         });
       }
       seeded.meals.push(date);
-      made.meals += SEEDED_MEALS.length;
+      made.meals += offered.length;
     }
 
     if (!seeded.itinerary.includes(date)) {

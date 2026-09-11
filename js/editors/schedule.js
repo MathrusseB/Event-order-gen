@@ -19,6 +19,17 @@
 // identical sets of rows typed out by hand, and the day block is the only place
 // in this editor where a day exists as a thing to point at — the rows below are
 // one flat list.
+//
+// [v15] And each *meal* line in it can be taken off the day (§5, v15 changes).
+// Seeding no longer puts breakfast on an arrival day, but plenty of orders
+// carry a meal that does not belong on a day for reasons no rule knows about,
+// and the preview is where that is visible — it was the one place in this app
+// that showed you a mistake and sent you somewhere else to fix it. Schedule
+// lines need no such control: they are the rows immediately below, editable in
+// place. Only meals live in another array, which is the asymmetry worth
+// closing. The delete itself is the F&B editor's own, imported rather than
+// rewritten, so there is one confirmation and it is the one that knows what
+// happens to a written menu.
 
 import { findingsFor, getEvent, update } from '../app.js';
 import { itineraryFor } from '../derive.js';
@@ -45,6 +56,7 @@ import {
   toggleClass
 } from '../dom.js';
 import { dateField, optionSignature, rowButton, timeField, warnLine } from './fields.js';
+import { removeMealService } from './foodandbev.js';
 import { draftList, fieldWriter, moveRow, removeRow } from './rows.js';
 
 const write = fieldWriter('schedule');
@@ -113,7 +125,9 @@ export function createScheduleEditor() {
     el('p', {
       class: 'preview__lead',
       text: 'Schedule entries and meal services, merged in time order. Meals are edited in Food '
-        + '& Beverage; moving one there moves it here, on the menu, and in the F&B table at once.'
+        + '& Beverage — moving one there moves it here, on the menu, and in the F&B table at '
+        + 'once — and a meal that does not belong on a day can be taken off from here. Schedule '
+        + 'entries are the rows below.'
     }),
     previewBody,
     previewEmpty
@@ -423,24 +437,58 @@ function sayCopy(done, to) {
   return `Copied ${rowCount(done.copied)} to ${formatDate(to)}.${cleared}`;
 }
 
-/** One merged itinerary line. */
+/**
+ * One merged itinerary line.
+ *
+ * [v15] A meal line carries the way off the day. A schedule line does not: it
+ * is one of the rows underneath this preview and is changed there, in place.
+ */
 function createPreviewLine() {
   const time = el('span', { class: 'preview__time' });
   const text = el('span', { class: 'preview__text' });
   const where = el('span', { class: 'preview__where' });
-  const node = el('li', { class: 'preview__line' }, [time, text, where]);
+
+  const drop = el('button', {
+    type: 'button',
+    class: 'preview__drop',
+    'data-control': 'remove-meal',
+    hidden: true
+  }, [el('span', { 'aria-hidden': 'true', text: '✕' })]);
+
+  let current = null;
+  drop.addEventListener('click', () => {
+    // The F&B editor's own delete, confirmation and all — including the
+    // sentence about what a written menu leaves behind (§12.7).
+    if (current && current.source === 'foodAndBev' && current.id) removeMealService(current.id);
+  });
+
+  const node = el('li', { class: 'preview__line' }, [time, text, where, drop]);
 
   return {
     node,
     update(item) {
+      current = item;
       setText(time, formatTimeRange(item.start, item.end) || 'No time');
       setText(text, item.text || 'Untitled');
       setText(where, item.location || '');
       setHidden(where, !item.location);
       // Which array a line came from is the one thing the merge hides, and it
       // is what tells the user where to go to change it.
-      toggleClass(node, 'is-meal', item.source === 'foodAndBev');
+      const meal = item.source === 'foodAndBev';
+      toggleClass(node, 'is-meal', meal);
       toggleClass(node, 'is-untimed', !item.start);
+      // Which row of which array this line is, the same way every editor row
+      // says so. Nothing reads it back yet; it is what makes a line in a merged
+      // list addressable at all.
+      setAttr(node, 'data-row', item.id || '');
+
+      setHidden(drop, !meal);
+      if (!meal) return;
+      // Named, because a column of identical crosses tells a screen reader
+      // nothing about which meal it is about to take off the order.
+      const label = `Remove ${item.text || 'this meal service'} from this day`;
+      setAttr(drop, 'aria-label', label);
+      setAttr(drop, 'title', label);
     }
   };
 }
