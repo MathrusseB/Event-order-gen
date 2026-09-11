@@ -180,7 +180,7 @@ sections per event. Nothing is mandatory except the header block.
   "buildingsInUse": ["Remington", "Bunk Room"],
   "overflowBuildings": ["RLI"],
 
-  "seeded": { "meals": ["2026-11-14"], "itinerary": ["2026-11-14"] },
+  "seeded": { "meals": ["2026-11-14|Dinner"], "itinerary": ["2026-11-14"] },
   "customActivities": ["Sporting Clays"]
 }
 ```
@@ -432,10 +432,13 @@ nothing.
 
 **[v10] Itinerary rows are seeded three per day, blank and ready**, under the same discipline.
 
-`seeded` is that memory: the dates each kind has already been offered for. It is bookkeeping rather
-than document content, so it sits beside the arrays instead of in `meta`, and a file arriving
-without it is treated as already seeded for its whole range — an event authored before v10 has the
-meals somebody typed, and seeding over them would be the duplication this rule exists to prevent.
+`seeded` is that memory: what each kind has already been offered. It is bookkeeping rather than
+document content, so it sits beside the arrays instead of in `meta`, and a file arriving without it
+is treated as already seeded for its whole range — an event authored before v10 has the meals
+somebody typed, and seeding over them would be the duplication this rule exists to prevent.
+**[v16]** `seeded.meals` holds `date|Meal` entries rather than bare dates, because a day's
+entitlement changes with its position in the range (§5, v16 changes). `seeded.itinerary` stays bare
+dates: there is nothing to name, and three blank rows is three blank rows wherever the day falls.
 
 `customActivities` is the event's copy of the activity list (§6), written on save so the list
 travels with the file.
@@ -744,6 +747,11 @@ offered, for good. The cost falls the other way: a last day that becomes a middl
 Breakfast and the rest are added by hand. That is the cheaper of the two mistakes, because a missing
 meal is visible on the order and a duplicated one reads as deliberate.
 
+**[v16] Superseded.** The cost was paid on a real order — a two-day event extended to three left the
+old departure morning carrying breakfast and nothing else — and the reasoning above has a hole in
+it: *the ledger does not have to be the only test*. §5 (v16 changes) has the finer ledger and the
+existence check that makes it safe.
+
 **[v15] Meal services can be removed from the itinerary.** Each meal line of the itinerary preview
 carries the way off the day. The preview is where a wrong meal is visible — it merges `schedule[]`
 and `foodAndBev[]` in time order (§7 [v7]) — and until now it was the one place in this app that
@@ -757,6 +765,46 @@ showed somebody a mistake and sent them somewhere else to fix it.
   re-point it. A dish list is never destroyed by a click aimed at a time.
 - Schedule entries in the preview carry no such control. They are the rows immediately below it and
   are edited there, in place. Only meals live in another array, which is the asymmetry worth closing.
+
+### Changes from v15
+
+**[v16] The seeding ledger records which meals a date was offered, not merely that it was offered.**
+A date's entitlement changes when the event's first and last day change, and a ledger of dates
+cannot express the difference. The gap v15 accepted turned up on a real order and is ordinary: a
+two-day event extended to three left the old departure morning carrying breakfast and nothing else,
+no lunch, no dinner and no warning, until the kitchen asked.
+
+**Seeding a meal now requires two things:**
+
+- the ledger has not offered that meal on that date, **and**
+- no meal of that name is already on that date.
+
+The ledger keeps a deliberately removed meal removed — it was offered, and seeding never offers
+twice. The existence check keeps a hand-added one from being doubled — it is there, so nothing is
+owed. **Neither alone is sufficient**, which is why the previous version chose the visible gap over
+the invisible duplicate. The meal name is compared trimmed and case-insensitively, because a
+hand-typed "breakfast" is the same meal.
+
+A meal skipped because one already existed is **marked as offered**. It is settled, not pending, and
+the coordinator must not be handed a second one later.
+
+**Itinerary rows keep a per-date ledger.** There is nothing to name, and the number of rows a day
+gets does not change with the day's position.
+
+**The shape is a string, and stays `string[]`.** An entry is `2026-11-14|Dinner`. The JSON type does
+not change, sorting still produces a sensible order — by date, then by meal name — and a v15 file's
+bare dates can sit in the same array as v16 keys while the upgrade runs. An object keyed by date
+would have been a different type in the file, a different migration, and a rewrite of everything
+that walks the ledger, for the same information.
+
+**Migration.** A pre-v16 file has dates only, and what the rule gave a date when it was first seeded
+is not recoverable — the rule reads the range as it stands, and the range may have moved since. An
+old-format date is therefore read as having been offered **every** meal on it. That is the
+conservative direction: it can leave a day short of a meal, and it cannot resurrect one somebody
+deleted. **So an event saved before v16 may be short a meal on a day whose position in the range has
+since changed, and adding it by hand is the fix.** The migration summary counts the dates it
+upgraded (`mealLedgerUpgraded`), and it is idempotent — it runs on every load and the second run
+changes nothing.
 
 ## 6. Static reference data
 
@@ -999,7 +1047,8 @@ the dates puts three blank itinerary rows on every day, and the meals that day i
 arrival day, Breakfast on the departure day, all three on every day between, all three on a
 single-day event (§5, v15 changes). Nothing is stopped from being added to any day and nothing
 already there is removed, in either direction — a day whose place in the range changes keeps what it
-has. The itinerary preview is where what a day holds is read, so it is also where a meal that does
+has, and **[v16]** is offered whatever its new position is owed and does not yet carry (§5, v16
+changes). The itinerary preview is where what a day holds is read, so it is also where a meal that does
 not belong on the day is taken off; the confirmation names what a written menu leaves behind, and
 leaves it.
 

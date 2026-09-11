@@ -29,7 +29,7 @@ import {
   retiredLocation,
   roomsIn
 } from './reference.js';
-import { markSeeded } from './seed.js';
+import { ledgerEntryDate, markSeeded, upgradeMealLedger } from './seed.js';
 
 /**
  * Bring an event up to the current shape. Pure: the argument is not touched.
@@ -121,6 +121,7 @@ export function migrate(event) {
     menusFlattened: 0,
     retiredRooms: [],
     datesMarkedSeeded: 0,
+    mealLedgerUpgraded: 0,
     buildingsRenamed: [],
     retiredLocations: []
   };
@@ -364,9 +365,21 @@ export function migrate(event) {
 
   // 12. [v10] A file that has never met a seeder is treated as fully seeded for
   //     its own range, so opening it adds nothing to any document.
+  //     [v16] And a file whose meals ledger is a list of bare dates is brought
+  //     up to the per-meal shape first, so `markSeeded` below is adding to a
+  //     ledger of the current kind rather than mixing two.
   const hadLedger = next.seeded && typeof next.seeded === 'object';
+  const upgraded = upgradeMealLedger(next);
+  if (upgraded.dates) {
+    summary.mealLedgerUpgraded = upgraded.dates;
+    summary.changed = true;
+  }
+
   markSeeded(next);
-  if (!hadLedger) summary.datesMarkedSeeded = next.seeded.meals.length;
+  if (!hadLedger) {
+    summary.datesMarkedSeeded =
+      new Set((next.seeded.meals || []).map(ledgerEntryDate)).size;
+  }
 
   return { event: next, summary };
 }
@@ -438,6 +451,13 @@ function nameKey(name) {
  *   `attendees` / `accommodations` pair, once the first has become `guests`
  * @property {number} menusFlattened [v9] menu blocks whose `courses[]` became a
  *   flat `dishes[]`
+ * @property {number} mealLedgerUpgraded **[v16]** dates whose meals ledger
+ *   arrived in the v15 date-only form and were read as having been offered all
+ *   three meals (§5, v16 changes). The conservative reading, because the rule
+ *   that applied when the date was first seeded is not recoverable — so **an
+ *   event saved before v16 may be short a meal on a day whose position in the
+ *   range has since changed**, and adding it by hand is the fix. It cannot go
+ *   the other way and resurrect a meal somebody deleted.
  * @property {number} datesMarkedSeeded [v10] dates a pre-v10 file was marked as
  *   already seeded, so that opening it creates nothing
  * @property {{building: string, room: string, reason: 'building'|'room'}[]}

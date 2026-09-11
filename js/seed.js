@@ -102,12 +102,136 @@ export const SEEDED_ITINERARY_ROWS = 3;
 /** The two kinds of seeding, and where each keeps its rows and its ledger. */
 const KINDS = ['meals', 'itinerary'];
 
-/** The ledger of dates already offered, created if the file arrived without one. */
+/* ------------------------------------------------ [v16] the meals ledger */
+
+/**
+ * What separates the date from the meal in a meals-ledger entry.
+ *
+ * A pipe because no ISO date holds one and nothing but this module writes the
+ * meal half — the three names come from `SEEDED_MEALS` and never from anything
+ * somebody typed.
+ */
+const LEDGER_SEP = '|';
+
+/**
+ * One meals-ledger entry — BUILD-SPEC §5 (v16 changes).
+ *
+ * **Why a string and not an object or a map.** The ledger was `string[]` and
+ * stays `string[]`: the JSON type does not change, `sort()` goes on producing a
+ * sensible order (by date, then by meal name), and a v15 file's bare dates and
+ * a v16 file's keys can sit in the same array while the upgrade runs. An object
+ * keyed by date would have been a different type in the file, a different
+ * migration, and a rewrite of everything that walks the ledger — for the same
+ * information.
+ *
+ * @param {string} date ISO
+ * @param {string} meal as `SEEDED_MEALS` writes it
+ * @returns {string}
+ */
+export function mealLedgerKey(date, meal) {
+  return `${date}${LEDGER_SEP}${meal}`;
+}
+
+/**
+ * The date half of a ledger entry, whichever ledger and whichever format.
+ *
+ * The itinerary ledger is bare dates and always will be — there is nothing to
+ * name, and the number of rows a day gets does not change with the day's
+ * position in the range — so this answers for both.
+ *
+ * @param {string} entry
+ * @returns {string}
+ */
+export function ledgerEntryDate(entry) {
+  const text = String(entry || '');
+  const at = text.indexOf(LEDGER_SEP);
+  return at < 0 ? text : text.slice(0, at);
+}
+
+/**
+ * The same entry on another date. For the one caller that moves a whole event
+ * (js/shift.js) and must not have to know what an entry is made of.
+ *
+ * @param {string} entry
+ * @param {string} date
+ * @returns {string}
+ */
+export function ledgerEntryOn(entry, date) {
+  const text = String(entry || '');
+  const at = text.indexOf(LEDGER_SEP);
+  return at < 0 ? date : `${date}${text.slice(at)}`;
+}
+
+/**
+ * A meal name as it compares. Case and spacing are not a difference — a
+ * coordinator who typed "breakfast" has put breakfast on the day.
+ *
+ * @param {string} value
+ * @returns {string}
+ */
+export function mealNameKey(value) {
+  return String(value || '').trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
+/**
+ * Bring a v15 meals ledger up to v16, in place. Idempotent.
+ *
+ * **A date in the old ledger was offered whatever the rule gave it at the time,
+ * and that is not recoverable** — the rule reads the range as it stands, and
+ * the range may have moved since. So an old entry is read as every meal having
+ * been offered on that date, which is the conservative direction: it can leave
+ * a day short of a meal nobody will now be offered, and it cannot resurrect one
+ * somebody deleted. A meal is cheap to add and a duplicate on a printed order
+ * is not.
+ *
+ * @param {object} draft an event with `seeded.meals` already an array
+ * @returns {{dates: number}} old-format dates expanded by this run, 0 on a
+ *   ledger that was already v16 or on an event that has none
+ */
+export function upgradeMealLedger(draft) {
+  const seeded = draft && draft.seeded;
+  if (!seeded || typeof seeded !== 'object' || !Array.isArray(seeded.meals)) return { dates: 0 };
+
+  const upgraded = [];
+  const seen = new Set();
+  let dates = 0;
+
+  const keep = (key) => {
+    if (seen.has(key)) return;
+    seen.add(key);
+    upgraded.push(key);
+  };
+
+  for (const entry of seeded.meals) {
+    const text = String(entry || '');
+    if (!text) continue;
+    if (text.includes(LEDGER_SEP)) {
+      keep(text);
+      continue;
+    }
+    dates += 1;
+    for (const service of SEEDED_MEALS) keep(mealLedgerKey(text, service.meal));
+  }
+
+  upgraded.sort();
+  seeded.meals = upgraded;
+  return { dates };
+}
+
+/**
+ * The ledger of what has already been offered, created if the file arrived
+ * without one and brought up to the current shape if it arrived with an old one.
+ *
+ * The upgrade runs here rather than only in `migrate()` so that every path into
+ * seeding gets it — a hand-edited file, a fixture built in a test, an event
+ * assembled by a future caller that never met the migrator.
+ */
 function ledger(draft) {
   if (!draft.seeded || typeof draft.seeded !== 'object') draft.seeded = {};
   for (const kind of KINDS) {
     if (!Array.isArray(draft.seeded[kind])) draft.seeded[kind] = [];
   }
+  upgradeMealLedger(draft);
   return draft.seeded;
 }
 
@@ -140,53 +264,78 @@ function insertByDateAndTime(rows, row) {
  * Called from the one place the event dates are written. Safe to call at any
  * time and any number of times: a date already in the ledger is skipped.
  *
- * [v15] THE LEDGER STILL RECORDS THE DATE AND NOT WHICH MEALS IT GOT, and that
- * is deliberate rather than an omission. A finer ledger — "this day was offered
- * Dinner" — would let a day that stops being the first day be offered the other
- * two later, which sounds like an improvement until the coordinator has already
- * added Lunch to that day by hand: nothing in the file can tell a hand-added
- * Lunch from a missing one, so the day would end up with two. A day offered
- * anything is a day that has been offered, for good. The cost is the other
- * direction — a last day that becomes a middle day keeps only its Breakfast and
- * the rest are added by hand — and that is the cheaper of the two mistakes,
- * because it is visible on the order and a duplicate meal is not.
+ * [v16] THE MEALS LEDGER RECORDS WHICH MEALS, AND THE EXISTENCE CHECK IS WHAT
+ * MAKES THAT SAFE. v15 recorded only the date, on the grounds that a finer
+ * ledger would offer a former first day its Lunch later and double a Lunch the
+ * coordinator had added by hand — which is true of a finer ledger *alone*. Two
+ * tests, and the pair holds where neither half does:
+ *
+ *   * the ledger has not offered that meal on that date, **and**
+ *   * no meal of that name is already on that date.
+ *
+ * The ledger keeps a deliberately deleted meal deleted — it was offered, and
+ * seeding never offers twice. The existence check keeps a hand-added one from
+ * being doubled — it is there, so nothing is owed. A day whose position in the
+ * range changes is now offered what its new position is due, which is the gap
+ * v15 left: a two-day event extended to three left the old departure morning
+ * carrying breakfast and nothing else, with no warning, until the kitchen asked.
+ *
+ * The itinerary ledger stays per date. There is nothing to name, and three
+ * blank rows is three blank rows wherever the day falls.
  *
  * @param {object} draft the mutable event from `update()`
- * @returns {{meals: number, itinerary: number, dates: string[],
- *   created: {list: string, id: string, date: string}[]}} what was created, for
- *   a caller that wants to say so — and [v13] which rows, for the one caller
- *   that may have to take them back off again (js/shift.js)
+ * @returns {{meals: number, skipped: number, itinerary: number, dates: string[],
+ *   created: {list: string, id: string, date: string, meal?: string}[]}} what
+ *   was created, for a caller that wants to say so — [v13] which rows, for the
+ *   one caller that may have to take them back off again (js/shift.js), and
+ *   [v16] `skipped`, the meals the day was owed and already had
  */
 export function seedForDates(draft) {
   const meta = (draft && draft.meta) || {};
   const dates = datesBetween(meta.startDate, meta.endDate);
   const seeded = ledger(draft);
-  const made = { meals: 0, itinerary: 0, dates: [], created: [] };
+  const made = { meals: 0, skipped: 0, itinerary: 0, dates: [], created: [] };
+
+  const offeredKeys = new Set(seeded.meals);
 
   for (const date of dates) {
-    if (!seeded.meals.includes(date)) {
-      const services = list(draft, 'foodAndBev');
-      // [v15] A subset on the first and last day. The ledger below still
-      // records the *date*, not which meals it got: see `seedForDates`.
-      const offered = mealsSeededFor(dates, date);
-      for (const meal of offered) {
-        const id = newId();
-        made.created.push({ list: 'foodAndBev', id, date });
-        insertByDateAndTime(services, {
-          id,
-          date,
-          start: meal.start,
-          end: meal.end,
-          meal: meal.meal,
-          // No location: the ranch has three or four, and a guess printed on an
-          // order is worse than a blank somebody fills in (§6 [v10]).
-          location: '',
-          countBasis: 'present',
-          serves: 'all'
-        });
+    const services = list(draft, 'foodAndBev');
+    // [v15] A subset on the first and last day; [v16] each asked for on its own.
+    for (const meal of mealsSeededFor(dates, date)) {
+      const key = mealLedgerKey(date, meal.meal);
+      // Settled: this date has been offered this meal, whether it was taken or
+      // skipped, and whether it is still there. Seeding never asks twice.
+      if (offeredKeys.has(key)) continue;
+
+      // [v16] THE EXISTENCE CHECK, and the finer ledger is only safe with it.
+      // Nothing in the file tells a hand-added Lunch from a seeded one, so a
+      // ledger that knew the day was owed a Lunch would hand over a second.
+      const present = services.some((row) => row && row.date === date
+        && mealNameKey(row.meal) === mealNameKey(meal.meal));
+
+      offeredKeys.add(key);
+      seeded.meals.push(key);
+
+      if (present) {
+        made.skipped += 1;
+        continue;
       }
-      seeded.meals.push(date);
-      made.meals += offered.length;
+
+      const id = newId();
+      made.created.push({ list: 'foodAndBev', id, date, meal: meal.meal });
+      insertByDateAndTime(services, {
+        id,
+        date,
+        start: meal.start,
+        end: meal.end,
+        meal: meal.meal,
+        // No location: the ranch has three or four, and a guess printed on an
+        // order is worse than a blank somebody fills in (§6 [v10]).
+        location: '',
+        countBasis: 'present',
+        serves: 'all'
+      });
+      made.meals += 1;
     }
 
     if (!seeded.itinerary.includes(date)) {
@@ -260,8 +409,12 @@ export function isAsSeeded(event, list, row) {
  * as fully seeded, which is the conservative answer — the coordinator can still
  * add any row by hand, and nothing appears in a document they did not put there.
  *
+ * [v16] Marks each date's three meals rather than the date alone, and so
+ * records as settled the meals that are already on the day — which is what a
+ * skipped meal is. A meal on the paper is not a meal that is pending.
+ *
  * @param {object} draft
- * @returns {number} dates marked
+ * @returns {number} ledger entries added — meals and itinerary days together
  */
 export function markSeeded(draft) {
   const meta = (draft && draft.meta) || {};
@@ -269,9 +422,18 @@ export function markSeeded(draft) {
   let marked = 0;
 
   for (const date of datesBetween(meta.startDate, meta.endDate)) {
-    for (const kind of KINDS) {
-      if (seeded[kind].includes(date)) continue;
-      seeded[kind].push(date);
+    // [v16] Every meal, not merely the date. "Fully seeded" is the whole point
+    // of this function, and under a per-meal ledger the whole of a day is its
+    // three services — a day marked with only the two its position is due would
+    // be handed the third the moment the range moved.
+    for (const service of SEEDED_MEALS) {
+      const key = mealLedgerKey(date, service.meal);
+      if (seeded.meals.includes(key)) continue;
+      seeded.meals.push(key);
+      marked += 1;
+    }
+    if (!seeded.itinerary.includes(date)) {
+      seeded.itinerary.push(date);
       marked += 1;
     }
   }

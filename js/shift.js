@@ -24,7 +24,7 @@
 // a bed.
 
 import { shiftDate } from './dates.js';
-import { isAsSeeded } from './seed.js';
+import { isAsSeeded, ledgerEntryDate, ledgerEntryOn, mealLedgerKey } from './seed.js';
 
 /**
  * The dated fields, by the array that holds them.
@@ -184,17 +184,30 @@ export function shiftEvent(draft, days, created = []) {
         .filter((row) => !(row && skip.has(rowKey(kind.list, row.id))));
     }
 
-    // A ledger date comes off only when every row seeding made for it that day
-    // has come off with it. One row of the three edited into something real
-    // means the day was used, and the day stays offered.
+    const ledger = draft.seeded && Array.isArray(draft.seeded[kind.kind])
+      ? draft.seeded[kind.kind] : null;
+    if (!ledger) continue;
+
+    if (kind.kind === 'meals') {
+      // [v16] The meals ledger names the meal, so exactly the entries whose
+      // rows came off are the entries that come off — no arithmetic about how
+      // much of a day was used. A meal seeding skipped during the move created
+      // no row and so has no entry here: it was skipped because the day already
+      // had one, and that one is content, moving with the rest.
+      const gone = new Set(dropped.map((entry) => mealLedgerKey(entry.date, entry.meal)));
+      draft.seeded.meals = ledger.filter((entry) => !gone.has(entry));
+      continue;
+    }
+
+    // The itinerary ledger is a date, so a date comes off only when every row
+    // seeding made for it that day has come off with it. One row of the three
+    // edited into something real means the day was used, and it stays offered.
     const kept = new Set((created || [])
       .filter((entry) => entry && entry.list === kind.list
         && !skip.has(rowKey(kind.list, entry.id)))
       .map((entry) => entry.date));
     const gone = new Set(dropped.map((entry) => entry.date).filter((date) => !kept.has(date)));
-    const ledger = draft.seeded && Array.isArray(draft.seeded[kind.kind])
-      ? draft.seeded[kind.kind] : null;
-    if (ledger) draft.seeded[kind.kind] = ledger.filter((date) => !gone.has(date));
+    draft.seeded[kind.kind] = ledger.filter((date) => !gone.has(date));
   }
 
   let moved = 0;
@@ -224,8 +237,13 @@ export function shiftEvent(draft, days, created = []) {
   if (draft.seeded && typeof draft.seeded === 'object') {
     for (const kind of LEDGERS) {
       if (!Array.isArray(draft.seeded[kind.kind])) continue;
+      // [v16] Only the date half moves. A meals entry carries the meal's name
+      // with it, and `Breakfast` is not a date.
       draft.seeded[kind.kind] = draft.seeded[kind.kind]
-        .map((date) => shiftDate(date, days) || date)
+        .map((entry) => {
+          const moved = shiftDate(ledgerEntryDate(entry), days);
+          return moved ? ledgerEntryOn(entry, moved) : entry;
+        })
         .sort();
     }
   }

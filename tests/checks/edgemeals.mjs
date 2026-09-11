@@ -18,12 +18,9 @@
 //     remove that service. An editable list alone leaves the coordinator
 //     deleting the same two rows on every event he builds.
 //
-// The ledger question is the one worth reading twice. `seeded.meals` records
-// the *date* a day was offered meals, not which meals it got, and that is
-// deliberate: a finer ledger would offer a former first day its Breakfast and
-// Lunch later, and nothing in the file can tell a Lunch the coordinator added
-// by hand from a Lunch that was never offered. The check for that is the one
-// named in capitals below.
+// The ledger question is the one worth reading twice, and [v16] moved to
+// tests/checks/mealledger.mjs, which is where it is now answered: the ledger
+// names the meal, and an existence check is what makes that safe.
 
 import { mealsSeededFor, seedForDates } from '../../js/seed.js';
 import { validateEvent } from '../../js/validate.js';
@@ -127,7 +124,12 @@ export async function run({ browser, origin, check }) {
 
   check(
     'and the day added on the end is seeded as the new departure day',
-    afterHand.meals === 1 && mealsOn(byHand, '2026-11-09').join(',') === 'Breakfast',
+    mealsOn(byHand, '2026-11-09').join(',') === 'Breakfast'
+      // [v16] Three new meals, not one: the 9th gets its Breakfast, and the 8th
+      // has stopped being the departure day and is owed a middle day's Lunch
+      // and Dinner (§5, v16 changes).
+      && afterHand.meals === 3
+      && mealsOn(byHand, '2026-11-08').sort().join(',') === 'Breakfast,Dinner,Lunch',
     `${afterHand.meals} new meals: ${menuOf(byHand).join(' | ')}`
   );
 
@@ -151,16 +153,17 @@ export async function run({ browser, origin, check }) {
     `${shortened.foodAndBev.length} meals: ${menuOf(shortened).join(' | ')}`
   );
 
-  // The cost of a date-only ledger, checked so it is a decision and not a
-  // surprise: the reverse move does not fill the day back in.
+  // [v16] What v15 could not do, and the reason the ledger got finer. The whole
+  // case lives in tests/checks/mealledger.mjs; this is the one line of it that
+  // used to read the other way round.
   const widened = range('2026-11-06', '2026-11-08');
   seedForDates(widened);
   widened.meta.endDate = '2026-11-09';
   seedForDates(widened);
 
   check(
-    'a last day that becomes a middle day keeps only its Breakfast — offered once is offered',
-    mealsOn(widened, '2026-11-08').join(',') === 'Breakfast'
+    'A LAST DAY THAT BECOMES A MIDDLE DAY IS OWED THE OTHER TWO, AND GETS THEM [v16]',
+    mealsOn(widened, '2026-11-08').sort().join(',') === 'Breakfast,Dinner,Lunch'
       && mealsOn(widened, '2026-11-09').join(',') === 'Breakfast',
     `${mealsOn(widened, '2026-11-08').join(',')} on the 8th`
   );
