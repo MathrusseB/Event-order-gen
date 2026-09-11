@@ -47,6 +47,37 @@ mark for mark. Reading `display: none` out of print.css would be cheaper and
 would prove nothing: the rule is `body > *`, and the risk is a future panel that
 stops being a child of `<body>`.
 
+**`checks/accordion.mjs` — one section open, and a shut one that still says
+something.** BUILD-SPEC §10 [v17]: the editor became a disclosure set, and almost
+every claim in it is a claim about the interface. So most of this drives the real
+app — what is open, what a shut header says, whether a control on a shut header
+still works, where the caret is when a section comes back.
+
+The summaries are the exception and run in plain Node against `js/summary.js`:
+every section type twice, once with content and once empty, because the empty
+case is the one that goes wrong quietly. A section reporting "0 guests" reads as
+a broken count rather than as a section nobody has filled in. The counts are
+checked to be the event's and not the screen's — a blank seeded itinerary row is
+not an entry, and one cook working three dayparts is one cook.
+
+The rest is measured in Chromium. One body visible, counted rather than assumed.
+A shut section's §12 findings on its header at their own severity, because a
+finding nobody can see is a finding that does not exist. Reveal from the
+pre-print panel opening the section it is going to *before* it scrolls, and
+landing with the row on screen. Include in the order, move up, move down and
+remove all working on a shut header without opening it. The navigator opening one
+and closing the rest, and closing itself below the breakpoint. `--bar-h` still
+measuring the header, and the header still sticky.
+
+Two of those checks exist because measuring found what reading could not. A
+half-typed surname must come back with its caret and with the field still
+scrolled to the word being typed, and "that follows from hiding rather than
+rebuilding" turned out to be two thirds true: Chromium keeps the value, the
+selection, and the scroll offset of anything that scrolls as a block — and it
+takes focus away without giving it back, and a text field throws away its own
+scroll offset on blur *before* `focusout` fires, where nothing can read it.
+`shell.js` carries both of those itself, and this is what says so.
+
 **`checks/rooming.mjs` — the board writes one row per stretch, not one per
 night.** BUILD-SPEC §9: assigning a guest across consecutive nights makes one
 row with a spanning range, and taking them out of a room for one night in the

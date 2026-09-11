@@ -668,7 +668,9 @@ body.outline-open .outline {
 
 .block__head {
   display: grid;
-  grid-template-columns: 1.75rem minmax(0, 1fr);
+  /* [v17] Wide enough that the disclosure button in it is 44px under a thumb,
+     once its negative left margin has taken the header's gap as well. */
+  grid-template-columns: 2.25rem minmax(0, 1fr);
   align-items: center;
   gap: var(--space-2) var(--space-3);
   padding: var(--space-3) var(--space-4);
@@ -681,6 +683,92 @@ body.outline-open .outline {
   font-size: var(--text-md);
   color: var(--text-faint);
   text-align: right;
+}
+
+/* [v17] One section open at a time (§10). The header's first column is the
+   disclosure button — full height of the header, so it is a thumb-sized target at
+   every width without taking a row of its own — and it carries the section's
+   number and the chevron that says which way this one is. */
+.block__toggle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15rem;
+  grid-column: 1;
+  grid-row: 1 / -1;
+  align-self: stretch;
+  margin: calc(var(--space-3) * -1) 0 calc(var(--space-3) * -1) calc(var(--space-2) * -1);
+  padding: 0 var(--space-1);
+  border: 0;
+  background: none;
+  color: var(--text-faint);
+  font: inherit;
+  cursor: pointer;
+}
+
+.block__toggle:hover {
+  background: var(--ink-100);
+  color: var(--text);
+}
+
+.block__toggle .block__index {
+  text-align: center;
+  line-height: 1;
+}
+
+/* A triangle rather than a glyph: it is the same shape in every font, and it
+   turns rather than being swapped for a different character. */
+.block__chevron {
+  width: 0;
+  height: 0;
+  border-left: 0.3rem solid transparent;
+  border-right: 0.3rem solid transparent;
+  border-top: 0.36rem solid currentColor;
+  transition: transform 120ms ease;
+}
+
+.block--shut .block__chevron {
+  transform: rotate(-90deg);
+}
+
+/* What is inside a section that is standing on its header alone — the summary
+   (js/summary.js) and the §12 count its hidden rows cannot show. One line: the
+   summary takes what room there is and truncates, the count keeps its own. */
+.block__state {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.block__summary {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
+.block__checks {
+  flex: none;
+  color: var(--forest-600);
+  font-size: var(--text-xs);
+}
+
+.block__checks.is-warning {
+  color: var(--amber-700);
+}
+
+/* Shut, so there is nothing under the header for its rule to separate it from.
+   The badge, when a disabled section is showing one, brings its own. */
+.block--shut .block__head {
+  border-bottom: 0;
+}
+
+.block--shut .block__badge {
+  border-top: 1px solid var(--rule);
 }
 
 .block__naming {
@@ -1304,7 +1392,7 @@ body.outline-open .outline {
   }
 
   .block__head {
-    grid-template-columns: 1.75rem minmax(0, 1fr) auto auto;
+    grid-template-columns: 2.25rem minmax(0, 1fr) auto auto;
   }
 
   .block__controls,
@@ -1410,6 +1498,50 @@ body.outline-open .outline {
 
   .block__controls .btn__text {
     display: inline;
+  }
+
+  /* [v17] A shut header is furniture, not a form, and on a phone the words on
+     its three controls turned it into five rows of one — seven of those is the
+     scroll this was supposed to end. Shut, the header is two rows: the number,
+     the title with what is inside it, and the three controls back to glyphs on
+     the first; the include-in-the-order switch on the second. Every control is
+     still there and still works without opening the section (§10 [v17]); they
+     get their words back the moment it is open, where there is room for them. */
+  .block--shut .block__head {
+    grid-template-columns: 2.25rem minmax(0, 1fr) auto;
+  }
+
+  .block--shut .block__naming {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .block--shut .block__controls {
+    grid-column: 3;
+    grid-row: 1;
+    gap: var(--space-1);
+    flex-wrap: nowrap;
+  }
+
+  /* The title is a field and a field clips what does not fit, which reads as a
+     word broken off rather than as a name too long for the room. Shut, it is
+     being read far more often than it is being typed into, so it ends in an
+     ellipsis like every other line on the header. */
+  .block--shut .input--title {
+    text-overflow: ellipsis;
+  }
+
+  .block--shut .block__head .check--switch {
+    grid-column: 2 / -1;
+    grid-row: 2;
+  }
+
+  .block--shut .block__controls .btn__glyph {
+    display: inline;
+  }
+
+  .block--shut .block__controls .btn__text {
+    display: none;
   }
 }
 

@@ -145,6 +145,12 @@ export function setAttr(node, name, value) {
  */
 export function autoGrow(textarea) {
   if (!textarea || !textarea.isConnected) return;
+  // [v17] A hidden textarea has no box to measure: its scroll height is zero, and
+  // writing that back would set the field to nothing and leave it that way until
+  // something grew it again. A section collapsed by hiding (shell.js) is patched
+  // on every render like any other, so this is reached with no layout underneath
+  // it constantly — keep the last height it had and measure again when it is back.
+  if (textarea.offsetParent === null) return;
   const previous = textarea.style.height;
   textarea.style.height = 'auto';
   const wanted = `${textarea.scrollHeight}px`;

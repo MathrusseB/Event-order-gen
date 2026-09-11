@@ -9,6 +9,14 @@
 // editors rather than inside them: a document is not a section, and the switch
 // between editing and previewing is about the frame, not about the outline.
 //
+// [v17] The column of editors is a disclosure set — one section open, the rest
+// collapsed to their headers (§10 [v17]) — and which one is open lives here, in
+// this module, as a variable. It is not on the event: the choice is about the
+// screen somebody is looking at, not about the weekend they are planning, and a
+// file that carried it would be a file that opens differently depending on who
+// saved it. Collapsing hides a body and never unmounts it, for the reason
+// dom.js gives at length: these nodes are the rows' identity.
+//
 // Loaded as its own module script after app.js. It imports app.js, so app.js is
 // evaluated first whatever order the tags are in, and the import graph stays
 // acyclic: app.js knows nothing about the interface, and the interface reaches
@@ -35,6 +43,7 @@ import {
   typeInfo
 } from './sections.js';
 import { mountViews, setView } from './views.js';
+import { sectionSummary } from './summary.js';
 import { createMetaEditor } from './editors/meta.js';
 import { createMenuEditor } from './editors/menu.js';
 import { createRoomingEditor } from './editors/rooming.js';
@@ -66,6 +75,26 @@ const QUICK_ADD = SEEDED_SECTION_TYPES;
 
 const refs = {};
 let addTypeSignature = '';
+
+/**
+ * [v17] Which section is open. BUILD-SPEC §10 [v17].
+ *
+ * The sections are a disclosure set — one open, the rest collapsed to their
+ * headers — and this is the whole of that state. It lives here rather than on
+ * the event because it is not a fact about the event: it is not saved, not
+ * autosaved, not migrated, and an order opened on another machine opens on its
+ * own first enabled section rather than on whoever last pressed Save.
+ *
+ * `openId` is a section id, or null for none open. `openResolved` separates
+ * "nobody has chosen yet", which asks for the first enabled section, from
+ * "everything is deliberately shut", which asks for nothing. `focusOnOpen` is
+ * off for the one press that is going somewhere more specific than the field a
+ * section was last typed into — the navigator and a revealed finding both place
+ * the caret themselves, and two of them fighting over it is a flicker.
+ */
+let openId = null;
+let openResolved = false;
+let focusOnOpen = true;
 
 function grab() {
   refs.bar = document.getElementById('bar');
@@ -171,9 +200,93 @@ function closeOutlineOnNarrow() {
   }
 }
 
-/** Bring a block into view and put the caret in its title. */
+/**
+ * [v17] Open one section and close the rest, or close them all with null.
+ *
+ * Draws straight away rather than through `update()`: nothing about the event
+ * changed, and routing view state through the one write path would stamp
+ * `meta.touchedAt` (§12.11) every time somebody looked at a section.
+ *
+ * @param {string|null} id the section to open, or null for none
+ * @param {{restoreFocus?: boolean}} [options] `restoreFocus: false` when the
+ *   caller is about to place the caret itself
+ */
+function setOpenSection(id, { restoreFocus = true } = {}) {
+  if (openId === id) return;
+  openId = id;
+  openResolved = true;
+  focusOnOpen = restoreFocus;
+  try {
+    redraw();
+  } finally {
+    focusOnOpen = true;
+  }
+}
+
+/** Draw the event again. A view-state change, so nothing is written. */
+function redraw() {
+  render(getEvent());
+}
+
+/**
+ * [v17] Settle which section is open, after a change that may have taken it.
+ *
+ * Called on every render, because a section can leave the outline between two
+ * of them — removed here, or replaced wholesale by a file that arrived over
+ * this one. The first *enabled* section is the one to open: a disabled section
+ * is one the order is not carrying (§4), and opening it first would be opening
+ * the one thing on the page that will not print.
+ *
+ * @param {object[]} sections
+ */
+function resolveOpen(sections) {
+  if (openId && sections.some((section) => section && section.id === openId)) return;
+
+  // The section that was open is gone, so the choice is open again. An outline
+  // that is deliberately all shut stays shut.
+  if (openId) openResolved = false;
+  openId = null;
+  if (openResolved) return;
+
+  const first = sections.find((section) => section && section.enabled !== false)
+    || sections[0] || null;
+  // No sections yet: leave the choice unresolved so the first one added opens.
+  if (!first) return;
+  openId = first.id;
+  openResolved = true;
+}
+
+/**
+ * Bring a block into view and put the caret in its title.
+ *
+ * [v17] §10 — and open it on the way, closing the rest. Choosing a section in
+ * the navigator is the way between them now, so choosing one has to be enough.
+ */
 function goToBlock(id) {
-  goToNode(id === 'meta' ? refs.metaBlock : rowNode(refs.blocks, id));
+  if (id === 'meta') {
+    goToNode(refs.metaBlock);
+    return;
+  }
+  setOpenSection(id, { restoreFocus: false });
+  goToNode(rowNode(refs.blocks, id));
+}
+
+/**
+ * The section block a node sits inside, when it sits inside one.
+ *
+ * The direct child of `#section-blocks` rather than a class match: the blocks
+ * are reconciled children of that one parent, and a row deep inside an editor
+ * is found by walking to the top of its block rather than by hoping no editor
+ * ever names something `.block`.
+ *
+ * @param {Node} node
+ * @returns {Element|null}
+ */
+function sectionBlockOf(node) {
+  for (let at = node; at; at = at.parentElement) {
+    if (at.parentElement === refs.blocks) return at;
+  }
+  return null;
 }
 
 /**
@@ -215,6 +328,9 @@ function addAndFocus(type) {
     created = addSection(draft, type);
   });
   if (!created) return;
+  // [v17] A section somebody just added is the section they are about to type
+  // into, so it is the one open — whatever was open before it closes.
+  setOpenSection(created);
   const node = rowNode(refs.blocks, created);
   const title = node && node.querySelector('[data-field="title"]');
   if (title) {
@@ -359,17 +475,26 @@ function markDocChecks() {
  * @param {object} finding
  */
 function revealFinding(finding) {
-  if (!finding || !revealTarget(finding)) return;
+  // Inside the finding's own area first. A meal service and its menu block both
+  // carry the same row id — the meal is the thing they are both about — and
+  // §12.8 is filed under the Menu because writing the menu is what fixes it.
+  const target = revealTarget(finding);
+  if (!target) return;
   setView('edit');
 
   // The rooming rows are one of two panels behind a switch, and a row inside a
   // hidden panel cannot be scrolled to.
   if (finding.area === 'rooming' && roomingBlock) roomingBlock.showRows();
 
-  // Inside the finding's own area first. A meal service and its menu block both
-  // carry the same row id — the meal is the thing they are both about — and
-  // §12.8 is filed under the Menu because writing the menu is what fixes it.
-  goToNode(revealTarget(finding));
+  // [v17] §10 — and the same is now true of the sections: all but one are shut
+  // at any moment, and a scroll to a row inside a shut one lands on nothing. The
+  // section opens first. The node itself survives that — blocks
+  // are reconciled, so opening one patches it rather than rebuilding it — which
+  // is why this target, found before the open, is still the right node after.
+  const block = sectionBlockOf(target);
+  if (block) setOpenSection(block.dataset.row, { restoreFocus: false });
+
+  goToNode(target);
 }
 
 /**
@@ -423,12 +548,46 @@ function areaNode(area) {
 
 /* ------------------------------------------------------------- section block */
 
-/** A section's header controls and the editor mounted beneath them. */
+/**
+ * A section's header controls and the editor behind its disclosure.
+ *
+ * [v17] The header is the disclosure. Its left column is a button carrying
+ * `aria-expanded` and pointing at the body it opens, and everything else on the
+ * header — the title, the include-in-the-order switch, move up, move down,
+ * remove — stays where it was and keeps working with the section shut. Turning a
+ * section off is not a reason to open it.
+ *
+ * Shut means **hidden**, never unmounted. `dom.js` keys these rows by id and
+ * patches them in place; rebuilding a section's DOM on the way back in would
+ * throw that identity away and everything attached to it with it. So the body
+ * keeps every node, and a half-typed surname comes back exactly as it was — as
+ * does the scroll offset of anything that scrolls as a block.
+ *
+ * Two things hiding does *not* keep, and this carries both: the browser blurs
+ * whatever held focus and does not hand it back, and a text field throws away
+ * its own scroll offset when it is blurred. So the block remembers where the
+ * caret was and how far the field was scrolled to it, and puts both back.
+ */
 function createSectionBlock(section) {
   const id = section.id;
   const editor = editorFor(section.type)(section);
+  const bodyId = `body-${id}`;
+  const toggleId = `disclose-${id}`;
 
   const index = el('span', { class: 'block__index', 'aria-hidden': 'true' });
+  const chevron = el('span', { class: 'block__chevron', 'aria-hidden': 'true' });
+  // The button's whole accessible name, and the only place a screen reader takes
+  // the summary and the count from: the visible ones are `aria-hidden`, because
+  // a header that reads its own summary twice is a header read twice.
+  const spoken = el('span', { class: 'sr-only' });
+  const toggle = el('button', {
+    type: 'button',
+    class: 'block__toggle',
+    id: toggleId,
+    'data-control': 'section-open',
+    'aria-expanded': 'false',
+    'aria-controls': bodyId
+  }, [index, chevron, spoken]);
 
   const titleInput = el('input', {
     type: 'text',
@@ -473,6 +632,13 @@ function createSectionBlock(section) {
 
   const typeLabel = el('span', { class: 'block__type' });
 
+  // [v17] What is inside, for a header standing in for it, and the §12 count its
+  // rows cannot show while they are hidden. Both are decoration for a screen
+  // reader — `spoken` above already carries the words — and both go when the
+  // section opens: then the content is the summary, and the rows mark themselves.
+  const summary = el('span', { class: 'block__summary', 'aria-hidden': 'true', hidden: true });
+  const checks = el('span', { class: 'block__checks', 'aria-hidden': 'true', hidden: true });
+
   // The difference between disabled and deleted is not in the word, so it is
   // spelled out: the section stays, the content stays, the printed order does
   // not carry it. BUILD-SPEC §4 — never delete to hide.
@@ -484,40 +650,205 @@ function createSectionBlock(section) {
     })
   ]);
 
-  const node = el('section', { class: 'block', 'data-row': id, id: `block-${id}` }, [
-    el('header', { class: 'block__head' }, [
-      index,
-      el('div', { class: 'block__naming' }, [
-        el('label', { class: 'field', for: `title-${id}` }, [
-          el('span', { class: 'field__label sr-only', text: 'Section title' }),
-          titleInput
-        ]),
-        typeLabel
+  // `role="region"`, named by the button that opens it: a disclosure whose panel
+  // can be found again once somebody has scrolled away from its header.
+  const body = el('div', {
+    class: 'block__body',
+    id: bodyId,
+    role: 'region',
+    'aria-labelledby': toggleId,
+    hidden: true
+  }, [editor.node]);
+
+  const head = el('header', { class: 'block__head' }, [
+    toggle,
+    el('div', { class: 'block__naming' }, [
+      el('label', { class: 'field', for: `title-${id}` }, [
+        el('span', { class: 'field__label sr-only', text: 'Section title' }),
+        titleInput
       ]),
-      el('label', { class: 'check check--switch' }, [
-        enabledInput,
-        el('span', { class: 'check__label', text: 'Include in the order' })
-      ]),
-      el('div', { class: 'block__controls' }, [moveUp, moveDown, remove])
+      typeLabel,
+      el('span', { class: 'block__state' }, [summary, checks])
     ]),
-    badge,
-    el('div', { class: 'block__body' }, [editor.node])
+    el('label', { class: 'check check--switch' }, [
+      enabledInput,
+      el('span', { class: 'check__label', text: 'Include in the order' })
+    ]),
+    el('div', { class: 'block__controls' }, [moveUp, moveDown, remove])
   ]);
+
+  // Built shut, and the class says so from the start: `setOpen` below only moves
+  // the DOM when the state actually changes, so the first render of a section
+  // that stays shut must find it already drawn that way.
+  const node = el('section', { class: 'block block--shut', 'data-row': id, id: `block-${id}` },
+    [head, badge, body]);
+
+  let open = false;
+  /**
+   * Where the caret was, the last time it was inside this body. Read on the way
+   * out rather than on the way in: by the time a press on another section's
+   * header has closed this one, focus has already moved to that header.
+   */
+  let caret = null;
+  /**
+   * How far the focused field was scrolled, caught while it was still scrolling.
+   *
+   * A text field resets its own scroll offset when it loses focus, and does it
+   * *before* `focusout` fires, so the value is already gone by the time the caret
+   * is being remembered below. Capture phase, because `scroll` does not bubble.
+   */
+  let scrolled = null;
+
+  body.addEventListener('scroll', (event) => {
+    if (event.target === document.activeElement) {
+      scrolled = { node: event.target, left: event.target.scrollLeft, top: event.target.scrollTop };
+    }
+  }, true);
+
+  /** The caret in a control, with the scroll offset that blurring it took away. */
+  const remember = (node) => {
+    const at = caretIn(node);
+    if (at && scrolled && scrolled.node === node) {
+      at.scrollLeft = scrolled.left;
+      at.scrollTop = scrolled.top;
+    }
+    return at;
+  };
+
+  body.addEventListener('focusout', (event) => {
+    caret = remember(event.target);
+  });
+
+  /** Show or hide the body, and carry focus across the gap. */
+  const setOpen = (want) => {
+    if (want === open) return;
+    // A section shut while the caret is still inside it — from its own header,
+    // from the navigator — has had no `focusout` yet.
+    if (!want && body.contains(document.activeElement)) {
+      caret = remember(document.activeElement);
+    }
+    open = want;
+    setHidden(body, !want);
+    toggle.setAttribute('aria-expanded', String(want));
+    toggleClass(node, 'block--shut', !want);
+    if (want) restoreCaret();
+  };
+
+  /** Put the caret back where hiding the body took it from. */
+  const restoreCaret = () => {
+    const at = caret;
+    caret = null;
+    scrolled = null;
+    if (!focusOnOpen || !at || !body.contains(at.node)) return;
+    at.node.focus({ preventScroll: true });
+    if (at.start !== null) {
+      try {
+        at.node.setSelectionRange(at.start, at.end);
+      } catch {
+        // A control with no text selection to set. Focus was the point anyway.
+      }
+    }
+    // Last, because setting a selection can scroll the field itself. A block that
+    // scrolls keeps its offset across being hidden and needs none of this; a text
+    // field does not — its horizontal scroll is drawn from the caret and comes
+    // back at zero — so a surname typed past the right-hand edge of its box would
+    // reappear showing its first word rather than the word being typed.
+    //
+    // The read is not dead code: `hidden = false` above does not lay the body out
+    // on the spot, and a scroll offset written to a box the browser has not
+    // measured yet is clamped to zero.
+    void at.node.scrollWidth;
+    at.node.scrollLeft = at.scrollLeft;
+    at.node.scrollTop = at.scrollTop;
+  };
+
+  toggle.addEventListener('click', () => {
+    // The header the user pressed stays under their finger. Closing a tall
+    // section above this one takes its height out of the page, and without this
+    // the header being pressed slides up the screen by that much. Measured
+    // before and after and corrected at once — a smooth correction here reads as
+    // a page that has decided to drift on its own.
+    const was = head.getBoundingClientRect().top;
+    setOpenSection(open ? null : id);
+    const moved = head.getBoundingClientRect().top - was;
+    if (moved) window.scrollBy(0, moved);
+  });
 
   return {
     node,
-    update(event, current, position, total) {
+    update(event, current, position, total, wantOpen) {
       setText(index, String(position + 1));
       setValue(titleInput, current.title || '');
       setText(typeLabel, typeInfo(current.type).label);
+      // The faint line under the title is the type while the section is open and
+      // what is inside it while the section is shut — one line either way, which
+      // is what keeps a collapsed header two lines tall on a phone.
+      setHidden(typeLabel, !wantOpen);
+
       const enabled = current.enabled !== false;
       if (enabledInput.checked !== enabled) enabledInput.checked = enabled;
       toggleClass(node, 'block--off', !enabled);
       setHidden(badge, enabled);
       moveUp.disabled = position === 0;
       moveDown.disabled = position === total - 1;
+
+      // [v17] §5 — from the event, never from the rows on screen. A shut section
+      // still holds every node it had, and counting those would call a blank
+      // seeded itinerary row an entry.
+      const line = wantOpen ? '' : sectionSummary(event, current);
+      setText(summary, line);
+      setHidden(summary, !line);
+
+      // [v12] §12 — the area a section's findings are filed under is its type.
+      // [v17] Carried on the header only while the rows that would carry it are
+      // hidden; an empty area hides it, which is what the empty string asks for.
+      markChecks(checks, wantOpen ? '' : current.type);
+
+      setText(spoken, [
+        String(current.title || '').trim() || typeInfo(current.type).defaultTitle,
+        line,
+        checks.hidden ? '' : checks.textContent
+      ].filter(Boolean).join(' — '));
+
+      // Before the editor, not after: `autoGrow` measures a textarea against its
+      // own scroll height, and a textarea in a hidden body measures nothing.
+      setOpen(wantOpen);
       editor.update(event, current);
     }
+  };
+}
+
+/**
+ * [v17] A control and the caret inside it, ready to be handed back.
+ *
+ * `selectionStart` is not readable on every kind of input — a date, a number, a
+ * checkbox — and the ones it is not readable on have no caret to keep. Null
+ * means "focus it and leave the caret alone".
+ *
+ * The field's own scroll offsets ride along, because they are the part hiding
+ * does not keep: a `<div>` that scrolls comes back exactly where it was, and a
+ * text field scrolled sideways to the word being typed comes back at zero.
+ *
+ * @param {Element} node
+ * @returns {{node: Element, start: number|null, end: number|null, scrollLeft: number,
+ *   scrollTop: number}|null}
+ */
+function caretIn(node) {
+  if (!node || typeof node.focus !== 'function') return null;
+  let start = null;
+  let end = null;
+  try {
+    start = node.selectionStart;
+    end = node.selectionEnd;
+  } catch {
+    start = null;
+  }
+  return {
+    node,
+    start: start === undefined ? null : start,
+    end: end === undefined ? null : end,
+    scrollLeft: node.scrollLeft,
+    scrollTop: node.scrollTop
   };
 }
 
@@ -708,10 +1039,16 @@ function render(event) {
   const load = lastLoad();
   if (load.serial !== drawnLoad) {
     drawnLoad = load.serial;
+    // [v17] A different event has a different outline, so which section is open
+    // is decided again from the file that just arrived rather than carried over
+    // from the one it replaced (§10 [v17]).
+    openId = null;
+    openResolved = false;
     if (load.origin === 'new') metaEditor.focusDates();
   }
 
   const sections = sectionsOf(event);
+  resolveOpen(sections);
 
   syncAddMenu(event);
 
@@ -729,7 +1066,8 @@ function render(event) {
   outlineEntries.forEach((entry, index) => entry.update(outlineItems[index]));
 
   const blockEntries = reconcile(refs.blocks, sections, (section) => section.id, createSectionBlock);
-  blockEntries.forEach((entry, index) => entry.update(event, sections[index], index, sections.length));
+  blockEntries.forEach((entry, index) => entry.update(
+    event, sections[index], index, sections.length, sections[index].id === openId));
 
   setHidden(refs.empty, sections.length > 0);
 

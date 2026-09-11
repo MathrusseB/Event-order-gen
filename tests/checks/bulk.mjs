@@ -26,6 +26,7 @@
 
 import { copyDayInto, defaultTarget, planCopyDay } from '../../js/copyday.js';
 import { isKnownName, nameKey, parseName, parseNameLines } from '../../js/names.js';
+import { openSection } from '../lib/sections.mjs';
 
 export const title = 'Bulk entry — one day copied, and a list of names';
 
@@ -307,6 +308,9 @@ export async function run({ browser, origin, check }) {
     );
 
     /* -- the names -- */
+    // [v17] A different section, so it is opened first. The itinerary above
+    // closes as it does: one open at a time (§10 [v17]).
+    await openSection(page, '.editor--guests');
     await page.click('[data-control="add-names"]');
     await page.fill('.input--names', 'Reyes, Dana\n\nTom Whitfield\nAnneke Van Der Berg\nCher');
     await page.click('.batch__stage:not([hidden]) .btn--primary');
