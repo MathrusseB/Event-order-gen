@@ -414,7 +414,9 @@ this. Both call sites say so.
 
 **[v10] Meal services are seeded for every day of the event.** Three per day — Breakfast
 09:00–11:00, Lunch 12:00–14:00, Dinner 18:30–20:30 — created when the event dates are set or
-changed, with no location. They are ordinary rows from the moment they exist: edited, retimed,
+changed, with no location. **[v15]** Three per day on the days between the first and the last; the
+first day seeds Dinner and the last seeds Breakfast, because guests arrive in the afternoon and
+leave in the morning (§5, v15 changes). They are ordinary rows from the moment they exist: edited, retimed,
 reordered and deleted like any other. Partial arrival and departure days are trimmed by hand,
 because the app cannot know which end of the day a group is travelling on.
 
@@ -708,6 +710,54 @@ The rest of the rules it follows:
 **Adding one guest is still one button.** Most guests are added one at a time, and a list box is the
 wrong amount of ceremony for one name.
 
+### Changes from v14
+
+**[v15] Seeding treats the first and last day of an event differently.** The first day seeds Dinner
+only; the last day seeds Breakfast only; every day between seeds all three. v10 seeded three on
+every day, and on a real order the arrival day read *breakfast 09:00, lunch 12:00, guest arrivals
+16:00, dinner 18:30* — a service on the paper seven hours before anybody was on the property.
+Departure days carried the mirror of it, a dinner for a party that had gone home that morning.
+Guests arrive in the afternoon and leave in the morning, so the meals either side of that are the
+exception rather than the rule, and the exception is one press to add.
+
+**A single-day event seeds all three.** Both rules apply to it at once and their intersection is
+nothing, which is plainly wrong: with no arrival or departure to reason from, seed everything and
+let it be trimmed.
+
+**The rule keys on the event's own first and last date, never on guest arrivals.** The dates are the
+first thing typed into a new order and the attendee list is usually the last, so a rule reading
+`attendees[].arrive` would be reading an empty array at the only moment it runs and would never
+fire. The dates are also what the coordinator is asserting when they set them.
+
+**This is a default, not a constraint.** Nothing stops a meal being added to any day, and nothing
+removes one that is already there. Changing the dates re-evaluates which day is first and last, and
+a day that was in the middle and becomes the last day *keeps its dinner* — seeding adds and has
+never removed, and a meal already on the order may be one somebody wanted. An accepted date shift
+carries its meals exactly as it did.
+
+**The ledger is unchanged in kind, and that is a decision.** `seeded.meals` records the date a day
+was offered meals, not which meals it got. A finer ledger would let a day that stops being the first
+day be offered the other two later — which sounds like an improvement until the coordinator has
+already added Lunch to that day by hand, because nothing in the file can tell a hand-added Lunch
+from one that was never offered, and the day would end up with two. A day offered anything is
+offered, for good. The cost falls the other way: a last day that becomes a middle day keeps only its
+Breakfast and the rest are added by hand. That is the cheaper of the two mistakes, because a missing
+meal is visible on the order and a duplicated one reads as deliberate.
+
+**[v15] Meal services can be removed from the itinerary.** Each meal line of the itinerary preview
+carries the way off the day. The preview is where a wrong meal is visible — it merges `schedule[]`
+and `foodAndBev[]` in time order (§7 [v7]) — and until now it was the one place in this app that
+showed somebody a mistake and sent them somewhere else to fix it.
+
+- It deletes the `foodAndBev[]` row, in one `update()`. It is the F&B editor's own delete, called
+  rather than reimplemented, so there is one confirmation and one behaviour.
+- **A meal with a menu block written against it says so first, and names the dish count.** Per §5's
+  standing rule there is no cascade: the menu block stays where it is, §12.7 reports it as written
+  for a meal that is not there, and the menu editor shows it with its dishes intact and offers to
+  re-point it. A dish list is never destroyed by a click aimed at a time.
+- Schedule entries in the preview carry no such control. They are the rows immediately below it and
+  are edited there, in place. Only meals live in another array, which is the asymmetry worth closing.
+
 ## 6. Static reference data
 
 Seeded in `js/reference.js`. Not part of event JSON.
@@ -944,6 +994,15 @@ the two notes that explain them — which is what lets the notes be there at eve
 being the first thing dropped on a tablet. The app still opens on the autosave where there is one
 and on an empty order where there is not — never on the sample.
 
+**[v15] The days of an event arrive part-filled, and what they arrive with is a default.** Setting
+the dates puts three blank itinerary rows on every day, and the meals that day is due: Dinner on the
+arrival day, Breakfast on the departure day, all three on every day between, all three on a
+single-day event (§5, v15 changes). Nothing is stopped from being added to any day and nothing
+already there is removed, in either direction — a day whose place in the range changes keeps what it
+has. The itinerary preview is where what a day holds is read, so it is also where a meal that does
+not belong on the day is taken off; the confirmation names what a written menu leaves behind, and
+leaves it.
+
 **[v14] Itinerary rows and guests are entered two ways each, and the single row leads both.** Add
 entry and Add guest are unchanged and are still the first control in each editor: one row, one
 press, the caret in the field that gets typed into first. Beside each of them is the way in for the
@@ -984,7 +1043,7 @@ now keeps that port cheap.
 /js/migrate.js       forward migration of inbound JSON
 /js/derive.js        counts and lodging, derived from the event
 /js/reference.js     buildings, rooms, static lists
-/js/seed.js          [v10] the meals and itinerary rows a day starts with
+/js/seed.js          [v10] the meals and itinerary rows a day starts with, [v15] by day
 /js/shift.js         [v13] a date range that moves, and the rows that move with it
 /js/copyday.js       [v14] one day's itinerary copied onto another day
 /js/names.js         [v14] a typed list of names read into first and last names
@@ -1036,7 +1095,7 @@ fix it, in one sentence.
 | 5 | **[v3]** Rooming row whose `from`/`to` range falls outside the `arrive`/`depart` of the guest it is booked under | warning |
 | 6 | **[v3]** Room specified on a `pooled` building, or omitted on a `named` building. **[v12]** The `pooled` half cannot currently fire: every building has been `named` since v9 and there is no pooled building for it to fire on. Both halves stay, for the reason `pooled` itself stays (§6). **[v12]** And a building or a room the registry no longer carries is this rule as well — `migrate()` leaves such a row exactly as it was authored on the stated grounds that "§12.6 goes on reporting it every time the file is opened", and until v12 nothing did | warning |
 | 7 | Menu block referencing a nonexistent `fnbId` | warning |
-| 8 | F&B entry with no menu block, **[v13]** or with one that holds no dishes. The two are different things: nobody writes a dish list for a nightcap, and v10 seeds three services a day, so a fresh event would open with nine warnings on it before a word was typed. A block that exists and is empty was started and left, and prints a heading with nothing under it | **[v13]** note where there is no block, warning where the block is empty |
+| 8 | F&B entry with no menu block, **[v13]** or with one that holds no dishes. The two are different things: nobody writes a dish list for a nightcap, and v10 seeds services on every day, so a fresh event would open with a warning on every one of them before a word was typed. A block that exists and is empty was started and left, and prints a heading with nothing under it | **[v13]** note where there is no block, warning where the block is empty |
 | 9 | Schedule or F&B item dated outside `startDate`–`endDate` | warning |
 | 10 | Attendee `depart` earlier than `arrive` | warning |
 | 11 | `revisionDate` older than the most recent edit. **[v12]** The most recent edit is `meta.touchedAt` (§5), stamped by `update()`. A file with no `touchedAt` has never been edited by a build that records one, and the rule stays quiet rather than guessing | warning |
