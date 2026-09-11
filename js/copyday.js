@@ -30,9 +30,13 @@
 // row of a duplicated pair would edit the first one's node.
 //
 // In the shape `update()` wants — `copyDayInto` takes the mutable draft and
-// changes it in place, so a copy is one write, one render, and one step to
-// undo. `planCopyDay` reads a frozen event and answers what would happen,
-// which is what the interface says before and after.
+// changes it in place, so a copy of eleven rows is one write, one render, one
+// autosave and one `touchedAt` stamp rather than eleven of each. There is no
+// undo in this app to be one press of; what this buys is that the copy either
+// happened or did not, and that an undo, if one is ever added, takes the whole
+// copy back rather than the last row of it. `planCopyDay` reads a frozen event
+// and answers what would happen, which is what the interface says before and
+// after.
 
 import { datesBetween } from './dates.js';
 import { newId } from './ids.js';
