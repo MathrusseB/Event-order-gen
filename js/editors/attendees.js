@@ -13,9 +13,18 @@
 //     rows left naming nobody; silently un-rooming someone is a worse outcome
 //     than a stale row the validator will point at. The confirmation says how
 //     many rows it is about to strand.
+//
+// [v14] There are two ways in now, and Add guest is still the first of them.
+// Nine guests was nine rows opened one at a time, so a list of names can be
+// pasted instead and becomes nine rows at once (§5, v14 changes) — but a list
+// box is the wrong amount of ceremony for one guest, and one guest is most of
+// them. What the batch does *not* do is commit anything on the strength of the
+// parse: names.js guesses which half of `Anneke Van Der Berg` is the surname
+// and guesses wrongly, so what it read is shown as fields to correct first.
 
 import { findingsFor, getEvent, update } from '../app.js';
 import { newId } from '../ids.js';
+import { isKnownName, parseNameLines } from '../names.js';
 import {
   attendeeName,
   dietaryNotes,
@@ -137,6 +146,9 @@ export function createAttendeesEditor() {
     if (field) field.focus();
   });
 
+  // [v14] The other way in. §5 (v14 changes).
+  const batch = createNameBatch();
+
   const legend = el('p', {
     class: 'editor__legend',
     text: 'A date shown in grey follows the event dates. Type over it to pin that guest to their own.'
@@ -145,7 +157,8 @@ export function createAttendeesEditor() {
   const node = el('div', { class: 'editor editor--guests' }, [
     tally,
     el('div', { class: 'editor__table' }, [columns, list, emptyNote]),
-    el('div', { class: 'editor__foot' }, [addButton, legend])
+    el('div', { class: 'editor__foot' }, [addButton, batch.toggle, batch.said, legend]),
+    batch.node
   ]);
 
   return {
@@ -180,6 +193,297 @@ export function createAttendeesEditor() {
       const entries = reconcile(list, attendees, (attendee) => attendee.id, (attendee) =>
         createGuestRow(list, attendee.id));
       entries.forEach((entry, index) => entry.update(event, attendees[index], index, attendees.length));
+
+      batch.update(event);
+    }
+  };
+}
+
+/* ------------------------------------------- [v14] a list of names at once */
+
+/**
+ * Paste or type names, one per line, and get one row each.
+ *
+ * BUILD-SPEC §5 (v14 changes). Two stages, and the second one is the point:
+ *
+ *   1. The names, as a block of text.
+ *   2. **What was read from it**, as a first and a last name per line, editable,
+ *      with anything already on the guest list flagged.
+ *
+ * The parse is a heuristic and names.js says so at length: a line without a
+ * comma has its last word taken as the surname, which is wrong for every
+ * compound surname on the property's lists. Stage two exists so that guess is
+ * corrected by the person who knows, before it is written. Nothing here calls
+ * `update()` until the button at the end of stage two, and that call writes the
+ * whole batch — one write, one render, one step.
+ *
+ * None of this state is event state, so typing in it re-renders nothing and no
+ * caret can be taken out from under anybody.
+ */
+function createNameBatch() {
+  /** 'typing' — the block of text. 'checking' — what was read from it. */
+  let stage = 'typing';
+  /** One per non-blank line: what was parsed, corrected, and whether to add it. */
+  let entries = [];
+  /** The event as of the last render, for the duplicate check between renders. */
+  let current = null;
+
+  const said = el('p', { class: 'batch__said', role: 'status', hidden: true });
+
+  const toggle = el('button', {
+    type: 'button',
+    class: 'btn',
+    'data-control': 'add-names',
+    'aria-expanded': 'false',
+    'aria-controls': 'guest-batch',
+    text: 'Add a list of names'
+  });
+
+  const text = el('textarea', {
+    class: 'input input--names',
+    rows: 8,
+    spellcheck: 'false',
+    placeholder: 'Reyes, Dana\nTom Whitfield\nAnneke Van Der Berg'
+  });
+
+  const typingNote = el('p', {
+    class: 'batch__note',
+    text: 'One name a line. A line with a comma is read as Last, First; a line without one has '
+      + 'its last word taken as the surname. Nothing is added until you have seen what that '
+      + 'produced.'
+  });
+
+  const read = el('button', { type: 'button', class: 'btn btn--primary', text: 'Read the names' });
+  const cancelTyping = el('button', { type: 'button', class: 'btn', text: 'Cancel' });
+
+  const typing = el('div', { class: 'batch__stage' }, [
+    el('label', { class: 'field' }, [
+      el('span', { class: 'field__label', text: 'Names, one a line' }),
+      text
+    ]),
+    typingNote,
+    el('div', { class: 'batch__actions' }, [read, cancelTyping])
+  ]);
+
+  const rows = el('ul', { class: 'batch__rows' });
+  const checkingNote = el('p', {
+    class: 'batch__note',
+    text: 'Correct anything read the wrong way round — a compound surname always is. Every guest '
+      + 'arrives and departs with the event; set their own dates, child flag and dietary notes in '
+      + 'the rows afterwards.'
+  });
+  const back = el('button', { type: 'button', class: 'btn', text: 'Back to the names' });
+  const commit = el('button', { type: 'button', class: 'btn btn--primary' });
+  const cancelChecking = el('button', { type: 'button', class: 'btn', text: 'Cancel' });
+
+  const checking = el('div', { class: 'batch__stage', hidden: true }, [
+    rows,
+    checkingNote,
+    el('div', { class: 'batch__actions' }, [commit, back, cancelChecking])
+  ]);
+
+  const node = el('div', { class: 'batch', id: 'guest-batch', hidden: true }, [typing, checking]);
+
+  /** Whether a parsed line still names anybody after being edited. */
+  const named = (entry) => Boolean(String(entry.first || '').trim()
+    || String(entry.last || '').trim());
+
+  /** How many rows the button at the end would write. */
+  const chosen = () => entries.filter((entry) => entry.include && named(entry));
+
+  function show(open) {
+    setHidden(node, !open);
+    toggle.setAttribute('aria-expanded', String(open));
+    if (open) setHidden(said, true);
+  }
+
+  function reset() {
+    stage = 'typing';
+    entries = [];
+    text.value = '';
+    draw();
+  }
+
+  /** Redraw the parsed rows and the button. Never touches the event. */
+  function draw() {
+    setHidden(typing, stage !== 'typing');
+    setHidden(checking, stage !== 'checking');
+    if (stage !== 'checking') return;
+
+    const attendees = (current && current.attendees) || [];
+    const built = reconcile(rows, entries, (entry) => entry.key, () => createBatchRow(draw));
+    built.forEach((row, index) => row.update(entries[index], attendees));
+
+    const count = chosen().length;
+    setText(commit, count === 1 ? 'Add 1 guest' : `Add ${count} guests`);
+    commit.disabled = count === 0;
+  }
+
+  toggle.addEventListener('click', () => {
+    const opening = node.hidden;
+    show(opening);
+    if (opening) {
+      reset();
+      text.focus();
+    }
+  });
+
+  const close = () => {
+    show(false);
+    reset();
+    toggle.focus();
+  };
+  cancelTyping.addEventListener('click', close);
+  cancelChecking.addEventListener('click', close);
+
+  read.addEventListener('click', () => {
+    const attendees = (current && current.attendees) || [];
+    // Re-read from the text every time, including on the way back from stage
+    // two: the text is the source, and a correction made to a field belongs to
+    // the reading it was made against.
+    entries = parseNameLines(text.value, attendees).map((entry, index) => ({
+      ...entry,
+      key: `line-${index}`,
+      include: true
+    }));
+    if (!entries.length) return;
+    stage = 'checking';
+    draw();
+    const first = rows.querySelector('input');
+    if (first) first.focus();
+  });
+
+  back.addEventListener('click', () => {
+    stage = 'typing';
+    draw();
+    text.focus();
+  });
+
+  /**
+   * Write the batch. One `update()`, so nine guests are one step and not nine.
+   *
+   * Every row is built from `blankAttendee()` and carries a fresh `newId()` and
+   * empty `arrive`/`depart` — which *is* the event's default (§5, v2 changes):
+   * a stored empty string means "follow the event dates", and it is exactly
+   * what Add guest leaves behind for one guest.
+   */
+  commit.addEventListener('click', () => {
+    const adding = chosen().map((entry) => ({
+      ...blankAttendee(),
+      first: String(entry.first || '').trim(),
+      last: String(entry.last || '').trim()
+    }));
+    if (!adding.length) return;
+
+    update((draft) => {
+      draftAttendees(draft).push(...adding);
+    });
+
+    setText(said, adding.length === 1
+      ? 'One guest added to the list.'
+      : `${adding.length} guests added to the list.`);
+    setHidden(said, false);
+    show(false);
+    reset();
+    toggle.focus();
+  });
+
+  return {
+    node,
+    toggle,
+    said,
+    update(event) {
+      current = event;
+      // A duplicate is a fact about the guest list, and the guest list moves
+      // under this panel while it is open — somebody adds a row singly, or
+      // deletes one. Redrawn so the flag on screen is about the list as it is.
+      if (!node.hidden && stage === 'checking') draw();
+    }
+  };
+}
+
+/**
+ * One parsed line: the two halves as they were read, and whether to add it.
+ *
+ * A flagged duplicate is not blocked and not unticked for anybody. Two guests
+ * can share a name — a father and a son on the same weekend — and that is the
+ * reason rows carry ids (§5 [v4]). The tick is there so the other case, a list
+ * pasted twice, costs one press instead of nine deletions.
+ *
+ * @param {() => void} redraw the panel's own redraw, for the count on the button
+ */
+function createBatchRow(redraw) {
+  let entry = null;
+
+  const include = el('input', { type: 'checkbox', class: 'check__box' });
+  include.addEventListener('change', () => {
+    if (entry) entry.include = include.checked;
+    redraw();
+  });
+
+  const first = el('input', {
+    type: 'text',
+    class: 'input',
+    'data-field': 'batch-first',
+    autocomplete: 'off',
+    autocapitalize: 'words'
+  });
+  const last = el('input', {
+    type: 'text',
+    class: 'input',
+    'data-field': 'batch-last',
+    autocomplete: 'off',
+    autocapitalize: 'words'
+  });
+  first.addEventListener('input', () => {
+    if (entry) entry.first = first.value;
+    redraw();
+  });
+  last.addEventListener('input', () => {
+    if (entry) entry.last = last.value;
+    redraw();
+  });
+
+  const source = el('span', { class: 'batch__source' });
+  const warn = el('p', { class: 'batch__warn', hidden: true });
+
+  const node = el('li', { class: 'batch__row' }, [
+    el('label', { class: 'check check--batch' }, [
+      include,
+      el('span', { class: 'sr-only', text: 'Add this one' })
+    ]),
+    el('label', { class: 'field' }, [
+      el('span', { class: 'field__label', text: 'First name' }),
+      first
+    ]),
+    el('label', { class: 'field' }, [
+      el('span', { class: 'field__label', text: 'Last name' }),
+      last
+    ]),
+    source,
+    warn
+  ]);
+
+  return {
+    node,
+    update(current, attendees) {
+      entry = current;
+      setChecked(include, current.include);
+      setValue(first, current.first);
+      setValue(last, current.last);
+      setText(source, current.line);
+
+      // Asked against the fields as they stand rather than against the parse:
+      // correcting "Anne Berg" to "Anneke Van Der Berg" can turn a line into a
+      // duplicate, and correcting the other way can clear one.
+      const dupe = isKnownName(attendees, current.first, current.last);
+      setText(warn, dupe
+        ? 'Already on the guest list. Two guests can share a name — untick this one if it is the '
+          + 'same person twice.'
+        : '');
+      setHidden(warn, !dupe);
+      toggleClass(node, 'is-duplicate', dupe);
+      toggleClass(node, 'is-out', !current.include);
     }
   };
 }

@@ -150,6 +150,45 @@ export function seedForDates(draft) {
 }
 
 /**
+ * Whether a row is still exactly as `seedForDates` made it.
+ *
+ * The question anything that wants to take a seeded row back off again has to
+ * answer first. A seeded row is an ordinary row from the moment it exists (see
+ * the note at the top of this module) and **nothing may delete one somebody has
+ * touched** — so this is deliberately strict: every field as seeding wrote it,
+ * and for a meal, no menu written against it. Anything else is content, and
+ * content is never cleared for anybody's convenience.
+ *
+ * [v14] Lifted here from js/shift.js, which was the only caller when a shift
+ * was the only thing that cleared a seeded row. Copying a day onto another one
+ * clears them too, and what a seeded row looks like belongs beside the code
+ * that makes them rather than beside one of the two things that unmake them.
+ *
+ * @param {object} event the whole event — a meal is only untouched while no
+ *   menu block names it
+ * @param {string} list which array the row came from
+ * @param {object} row
+ * @returns {boolean} false for anything that is not a seeded array
+ */
+export function isAsSeeded(event, list, row) {
+  if (!row || typeof row !== 'object') return false;
+
+  if (list === 'schedule') {
+    return !row.start && !row.end && !String(row.label || '').trim();
+  }
+  if (list !== 'foodAndBev') return false;
+
+  const asSeeded = SEEDED_MEALS.some((meal) => meal.meal === row.meal
+    && meal.start === row.start && meal.end === row.end);
+  const counted = row.count === undefined || row.count === null || row.count === '';
+  const menu = (event && Array.isArray(event.menu)) ? event.menu : [];
+  const written = menu.some((block) => block && block.fnbId === row.id);
+  return asSeeded && counted && !written
+    && !String(row.location || '').trim()
+    && row.countBasis === 'present' && row.serves === 'all';
+}
+
+/**
  * Mark a date range as already offered, without creating anything.
  *
  * `migrate()` uses this on a file written before v10: it has the meals somebody
