@@ -862,12 +862,23 @@ Browser print-to-PDF. CSS `@page { size: letter; margin: 0.75in }`, running head
 first, and it names which of the three it is about to print. Saving the JSON is the secondary
 action and is worded as what it is: a working copy, for reopening an event to amend or duplicate.
 
+**[v13] The header is one row, and it stays one row.** It is sticky, so its height is rent every
+screen pays for as long as the tool is open, and at a third of a phone screen it had stopped being
+furniture. The event's name truncates rather than wrapping; the controls are icons with their words
+beside them, and it is the words that go as the screen narrows, never the control. Below 960px the
+four view destinations take a second full-bleed row of their own and read as tabs. Print still names
+its document: the select where there is room for one, and below 640px the button's own caption,
+which follows the document tab last opened. What is outstanding (§12) is a line beside Print, and
+below 768px an amber dot on it — still announced, never merely switched off.
+
 **[v13] The file actions rank the same way, and New leads them.** An order that begins as a copy of
 the sample prints somebody else's guests, so New is the primary action of the four, it asks nothing
 when there is nothing to discard, and it puts the caret in the start date. Load sample is the
 quietest of the four, names itself a sample, and confirms before it replaces work in progress. The
-app still opens on the autosave where there is one and on an empty order where there is not — never
-on the sample.
+four sit together in a menu behind one button on the header rather than on the header itself, with
+the two notes that explain them — which is what lets the notes be there at every width instead of
+being the first thing dropped on a tablet. The app still opens on the autosave where there is one
+and on an empty order where there is not — never on the sample.
 
 **[v2] Correction to v1:** do *not* put `break-inside: avoid` on whole sections. Sections have no
 length limit and must be free to flow across pages. Apply `break-inside: avoid` to individual rows,

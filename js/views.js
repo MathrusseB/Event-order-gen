@@ -129,7 +129,74 @@ export function mountViews(refs) {
     build(printTarget);
   });
 
+  // [v13] The tabs exist now, so say which one the shell is on. Nothing has
+  // changed view — that is exactly why this is here and not in `setView`.
+  markTabs();
+
   subscribe(onEvent);
+}
+
+/**
+ * [v13] What each tab is called when there is no room for its real name.
+ *
+ * The documents are called the Event Order, the Menu and the Rooming
+ * Assignment, and on a phone those three names are wider than the screen. The
+ * full name stays on the button for anything reading it aloud; what is drawn
+ * under the icon is the word that tells the four apart.
+ */
+const SHORT_LABELS = {
+  edit: 'Edit',
+  order: 'Order',
+  menu: 'Menu',
+  rooming: 'Rooming'
+};
+
+/** The SVG namespace. `document.createElement('svg')` makes an unknown HTML
+ *  element that lays out as nothing — icons have to be built in the namespace. */
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+/**
+ * [v13] One icon per tab, as shapes rather than markup.
+ *
+ * `el()` (dom.js) builds HTML elements, and nothing in this app uses
+ * `innerHTML`, so the icons are described here as `[tag, attributes]` and built
+ * with `createElementNS`. Stroke, fill and size come from `.bar__svg`, so a
+ * shape list carries geometry and nothing else.
+ */
+const TAB_ICONS = {
+  edit: [
+    ['path', { d: 'M4 20h4L19 9l-4-4L4 16z' }],
+    ['path', { d: 'M13.5 6.5l4 4' }]
+  ],
+  order: [
+    ['path', { d: 'M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z' }],
+    ['path', { d: 'M14 3v5h5' }],
+    ['path', { d: 'M9 13h6M9 17h6' }]
+  ],
+  menu: [
+    ['path', { d: 'M7 3v18M4.5 3v5.5a2.5 2.5 0 0 0 5 0V3' }],
+    ['path', { d: 'M17.5 21V3c-2.2 1.2-3.5 4-3.5 7.5V13h3.5' }]
+  ],
+  rooming: [
+    ['path', { d: 'M3 19V6' }],
+    ['path', { d: 'M3 15h18v4' }],
+    ['path', { d: 'M21 15v-3a3 3 0 0 0-3-3h-8v6' }],
+    ['circle', { cx: '6.5', cy: '11.5', r: '1.8' }]
+  ]
+};
+
+/** Build one of them. Decorative: the button's text is what is announced. */
+function barIcon(id) {
+  const svg = document.createElementNS(SVG_NS, 'svg');
+  svg.setAttribute('class', 'bar__svg');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('aria-hidden', 'true');
+  for (const [tag, attrs] of TAB_ICONS[id] || []) {
+    const shape = document.createElementNS(SVG_NS, tag);
+    for (const [name, value] of Object.entries(attrs)) shape.setAttribute(name, value);
+    svg.append(shape);
+  }
+  return svg;
 }
 
 /** One tab in the switcher. */
@@ -138,9 +205,12 @@ function viewButton(id, label) {
     type: 'button',
     class: 'btn btn--onbar viewtab',
     'data-view': id,
-    'aria-pressed': 'false',
-    text: label
-  });
+    'aria-pressed': 'false'
+  }, [
+    barIcon(id),
+    el('span', { class: 'bar__label', text: label }),
+    el('span', { class: 'bar__label--short', 'aria-hidden': 'true', text: SHORT_LABELS[id] || label })
+  ]);
   button.addEventListener('click', () => setView(id));
   return button;
 }
@@ -213,11 +283,7 @@ export function setView(next) {
   setHidden(region, editing);
   for (const [id, preview] of previews) setHidden(preview.node, id !== view);
 
-  for (const tab of document.querySelectorAll('.viewtab')) {
-    const on = tab.dataset.view === view;
-    tab.setAttribute('aria-pressed', String(on));
-    toggleClass(tab, 'is-on', on);
-  }
+  markTabs();
 
   if (!editing) {
     // Printing from a document you are looking at should print that one, with
@@ -234,6 +300,23 @@ export function setView(next) {
   window.scrollTo({ top: scrollByView.get(view) || 0, behavior: 'auto' });
   if (editing && lastEditFocus && lastEditFocus.isConnected) {
     lastEditFocus.focus({ preventScroll: true });
+  }
+}
+
+/**
+ * Mark the tab the shell is on.
+ *
+ * [v13] Lifted out of `setView` because `setView` returns early when the view
+ * is already the one asked for, and on first load it always is: the shell
+ * starts on `edit`, so `setView('edit')` from `mountViews` did nothing and the
+ * Edit tab came up unpressed at every width. The state of the switcher is not
+ * the same thing as a change of view, so it is no longer only written by one.
+ */
+function markTabs() {
+  for (const tab of document.querySelectorAll('.viewtab')) {
+    const on = tab.dataset.view === view;
+    tab.setAttribute('aria-pressed', String(on));
+    toggleClass(tab, 'is-on', on);
   }
 }
 

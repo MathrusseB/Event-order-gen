@@ -30,6 +30,7 @@ import { fileURLToPath } from 'node:url';
 import { plan, shiftEvent } from '../../js/shift.js';
 import { dayOffset, shiftDate } from '../../js/dates.js';
 import { seedForDates } from '../../js/seed.js';
+import { fileAction } from '../lib/bar.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const SAMPLE = path.resolve(HERE, '..', '..', 'data', 'sample.json');
@@ -60,7 +61,7 @@ async function setDate(page, field, value) {
 /** Open the sample and wait for it to be the event on screen. */
 async function openSample(page, origin) {
   await page.goto(`${origin}/index.html`, { waitUntil: 'networkidle' });
-  await page.click('#btn-sample');
+  await fileAction(page, '#btn-sample');
   await page.waitForFunction(() => document.getElementById('meta-startDate').value === '2026-11-14');
   return readEvent(page);
 }
@@ -538,7 +539,7 @@ export async function run({ browser, origin, check }) {
       await page.evaluate(() => document.activeElement.id)
     );
 
-    await page.click('#btn-new');
+    await fileAction(page, '#btn-new');
     check(
       'New over an untouched order asks nothing — there is nothing to discard',
       asked === 0,
@@ -560,14 +561,14 @@ export async function run({ browser, origin, check }) {
       'a section body is content, and meta.touchedAt says so whatever the field was'
     );
 
-    await page.click('#btn-new');
+    await fileAction(page, '#btn-new');
     check(
       'and New asks before discarding it',
       asked === 1,
       `${asked} confirmations after a note was typed`
     );
 
-    await page.click('#btn-sample');
+    await fileAction(page, '#btn-sample');
     await page.waitForFunction(() => document.getElementById('meta-startDate').value === '2026-11-14');
     check(
       'the sample says in its own name that it is a sample',
@@ -576,7 +577,7 @@ export async function run({ browser, origin, check }) {
       await page.evaluate(() => document.getElementById('meta-eventName').value)
     );
 
-    await page.click('#btn-new');
+    await fileAction(page, '#btn-new');
     check(
       'New over an event with work in it does ask',
       asked === 2,

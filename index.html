@@ -20,56 +20,125 @@
       <p class="bar__dates" id="bar-dates">Dates not set</p>
     </div>
 
+    <!-- [v13] One row of controls, and below 960px a second row of nothing but
+         the four view tabs. Every control that was a word is now an icon with
+         its word beside it, and the word is the part that goes when the screen
+         is narrow — a sticky header that eats a third of a phone screen is a
+         header that has stopped being furniture and started being the app. -->
     <div class="bar__tools">
       <!-- [v8] Edit, and one destination per document (§8). Filled by shell.js
            from the render registry, so the three documents are listed in one
            place and cannot drift apart from the ones that actually render. -->
       <nav class="bar__views" id="view-nav" aria-label="View"></nav>
 
-      <button type="button" class="btn btn--onbar bar__disclosure" id="btn-outline"
-              aria-expanded="false" aria-controls="outline">Sections</button>
+      <button type="button" class="btn btn--onbar bar__disclosure bar__iconbtn" id="btn-outline"
+              aria-expanded="false" aria-controls="outline">
+        <svg class="bar__svg" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M9 6h11M9 12h11M9 18h11"/>
+          <circle cx="4.5" cy="6" r="1.2" fill="currentColor" stroke="none"/>
+          <circle cx="4.5" cy="12" r="1.2" fill="currentColor" stroke="none"/>
+          <circle cx="4.5" cy="18" r="1.2" fill="currentColor" stroke="none"/>
+        </svg>
+        <span class="bar__label">Sections</span>
+      </button>
 
       <!-- [v10] Printing is what this tool is for (§10), so it is here rather
            than only inside a document view: the coordinator can print from the
            form without opening a preview first, and the select says which of
            the three is about to come out of the printer. Filled by views.js
-           from the same registry as the view tabs. -->
+           from the same registry as the view tabs.
+           [v13] On a phone the select goes and the button's own caption says
+           which document it will print — opening a document tab sets that, so
+           the answer is never guessed and never takes a row of its own. -->
       <div class="bar__print">
         <label class="sr-only" for="print-target">Document to print</label>
         <select class="input input--onbar" id="print-target"></select>
-        <button type="button" class="btn btn--onbar btn--onbar-strong" id="btn-print">Print</button>
+        <button type="button" class="btn btn--onbar btn--onbar-strong" id="btn-print">
+          <svg class="bar__svg" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M7 8V3h10v5"/>
+            <rect x="3" y="8" width="18" height="9" rx="1.5"/>
+            <path d="M7 13h10v8H7z"/>
+          </svg>
+          <span class="bar__label">Print</span>
+          <span class="bar__target" aria-hidden="true"></span>
+        </button>
         <!-- [v12] §12: what is outstanding, said where the print is started.
              Pressing Print with anything outstanding shows it in full first and
              then prints anyway — this warns, it never blocks. Empty and hidden
              on a clean event: a line saying nothing is wrong, on every event
-             where nothing is wrong, is a line nobody reads. -->
+             where nothing is wrong, is a line nobody reads.
+             [v13] Below 768px the line is read aloud but not drawn, and the
+             amber dot on the Print button carries it instead. -->
         <p class="bar__checks" id="print-checks" role="status" aria-live="polite" hidden></p>
       </div>
 
-      <nav class="bar__file" aria-label="Event file">
-        <!-- [v13] §10: New leads, and it is the one of the four that asks
-             nothing when there is nothing to discard. An order that begins as a
-             copy of the sample prints somebody else's guests. -->
-        <button type="button" class="btn btn--onbar btn--onbar-strong" id="btn-new">New order</button>
-        <button type="button" class="btn btn--onbar" id="btn-load">Load</button>
-        <button type="button" class="btn btn--onbar" id="btn-save">Save</button>
-        <input type="file" id="file-input" accept="application/json,.json" hidden>
-        <!-- [v10] §10: the JSON is the working copy, not the thing that leaves
-             the building. Saying so once here is cheaper than the phone call
-             asking why the guest list arrived as a .json file. -->
-        <p class="bar__savenote">Save keeps a working copy — reopen it to amend or duplicate this
-          event. What goes out is printed.</p>
-        <!-- [v13] §10: last, quiet, and named for what it is. It was next to
-             New and called "Load sample", which made it the shortest way to get
-             something on the screen — and then the November weekend it loads
-             became the starting point for a real December order. -->
-        <div class="bar__sample">
-          <button type="button" class="btn btn--onbar btn--quiet" id="btn-sample">Open the sample
-            event</button>
-          <p class="bar__samplenote">A made-up weekend, to see what the tool does. It replaces
-            whatever is open — start a real order with New.</p>
+      <!-- [v13] The four file actions and the two notes under them were four
+           buttons and two paragraphs on the bar itself, which is most of what
+           made it tall. They are the same four actions, behind one button, and
+           the menu is absolutely positioned so opening it cannot change
+           --bar-h and shove the whole page down. -->
+      <div class="bar__more">
+        <button type="button" class="btn btn--onbar bar__iconbtn" id="btn-more"
+                aria-expanded="false" aria-controls="bar-menu" aria-label="More" title="More">
+          <svg class="bar__svg" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="5" cy="12" r="1.7" fill="currentColor" stroke="none"/>
+            <circle cx="12" cy="12" r="1.7" fill="currentColor" stroke="none"/>
+            <circle cx="19" cy="12" r="1.7" fill="currentColor" stroke="none"/>
+          </svg>
+        </button>
+
+        <div class="bar__menu" id="bar-menu" hidden>
+          <nav class="bar__file" aria-label="Event file">
+            <!-- [v13] §10: New leads, and it is the one of the four that asks
+                 nothing when there is nothing to discard. An order that begins as a
+                 copy of the sample prints somebody else's guests. -->
+            <button type="button" class="btn btn--onbar btn--onbar-strong" id="btn-new">
+              <svg class="bar__svg" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/>
+                <path d="M14 3v5h5"/>
+                <path d="M12 11v6M9 14h6"/>
+              </svg>
+              New order
+            </button>
+            <button type="button" class="btn btn--onbar" id="btn-load">
+              <svg class="bar__svg" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+              </svg>
+              Load
+            </button>
+            <button type="button" class="btn btn--onbar" id="btn-save">
+              <svg class="bar__svg" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 4v11"/>
+                <path d="M7 10l5 5 5-5"/>
+                <path d="M4 17v3h16v-3"/>
+              </svg>
+              Save
+            </button>
+            <input type="file" id="file-input" accept="application/json,.json" hidden>
+            <!-- [v10] §10: the JSON is the working copy, not the thing that leaves
+                 the building. Saying so once here is cheaper than the phone call
+                 asking why the guest list arrived as a .json file. -->
+            <p class="bar__savenote">Save keeps a working copy — reopen it to amend or duplicate this
+              event. What goes out is printed.</p>
+            <!-- [v13] §10: last, quiet, and named for what it is. It was next to
+                 New and called "Load sample", which made it the shortest way to get
+                 something on the screen — and then the November weekend it loads
+                 became the starting point for a real December order. -->
+            <div class="bar__sample">
+              <button type="button" class="btn btn--onbar btn--quiet" id="btn-sample">
+                <svg class="bar__svg" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M9 3h6"/>
+                  <path d="M10 3v6l-5.5 9.5A1.7 1.7 0 0 0 6 21h12a1.7 1.7 0 0 0 1.5-2.5L14 9V3"/>
+                  <path d="M7.5 15h9"/>
+                </svg>
+                Open the sample event
+              </button>
+              <p class="bar__samplenote">A made-up weekend, to see what the tool does. It replaces
+                whatever is open — start a real order with New.</p>
+            </div>
+          </nav>
         </div>
-      </nav>
+      </div>
     </div>
   </header>
 

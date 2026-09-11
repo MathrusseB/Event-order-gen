@@ -25,6 +25,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readPages } from '../lib/pdf.mjs';
+import { fileAction } from '../lib/bar.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 
@@ -47,7 +48,7 @@ const EVENTS = [
   {
     name: 'the sample event',
     file: path.join(ROOT, 'data', 'sample.json'),
-    open: (page) => page.click('#btn-sample')
+    open: (page) => fileAction(page, '#btn-sample')
   },
   {
     name: 'a large event',
@@ -177,7 +178,7 @@ async function panelStaysOffThePaper({ browser, origin, check }) {
 
   try {
     await page.goto(`${origin}/index.html`, { waitUntil: 'networkidle' });
-    await page.click('#btn-sample');
+    await fileAction(page, '#btn-sample');
     await page.waitForFunction(
       (count) => document.getElementById('section-blocks').children.length === count,
       await sectionCount(path.join(ROOT, 'data', 'sample.json'))

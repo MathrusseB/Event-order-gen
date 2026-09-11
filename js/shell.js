@@ -73,6 +73,8 @@ function grab() {
   refs.barDates = document.getElementById('bar-dates');
   refs.outline = document.getElementById('outline');
   refs.outlineToggle = document.getElementById('btn-outline');
+  refs.moreToggle = document.getElementById('btn-more');
+  refs.moreMenu = document.getElementById('bar-menu');
   refs.outlineList = document.getElementById('outline-list');
   refs.addType = document.getElementById('add-type');
   refs.addButton = document.getElementById('btn-add-section');
@@ -110,6 +112,55 @@ function wireOutlineToggle() {
   refs.outlineToggle.addEventListener('click', () => {
     const open = document.body.classList.toggle('outline-open');
     refs.outlineToggle.setAttribute('aria-expanded', String(open));
+  });
+}
+
+/**
+ * [v13] The file actions, behind one button on the bar.
+ *
+ * The menu is `position: absolute`, which is the whole reason it can exist:
+ * `trackBarHeight()` writes `--bar-h` from the header's measured height and the
+ * navigator, the tallies and the rooming board's head all sit at that offset,
+ * so a panel that opened *inside* the bar would shove the page down by its own
+ * height every time somebody looked for Save.
+ *
+ * It closes on a press outside itself, on Escape, and after any of its own
+ * buttons has been pressed. That last one listens on the menu rather than on
+ * each button, so app.js's handlers — which own what New, Load, Save and the
+ * sample actually do — have already run by the time this sees the click, and a
+ * `window.confirm` they raise is answered before anything moves.
+ */
+function wireMoreMenu() {
+  const button = refs.moreToggle;
+  const menu = refs.moreMenu;
+  if (!button || !menu) return;
+
+  const close = ({ restoreFocus = false } = {}) => {
+    if (menu.hidden) return;
+    setHidden(menu, true);
+    button.setAttribute('aria-expanded', 'false');
+    if (restoreFocus) button.focus();
+  };
+
+  button.addEventListener('click', () => {
+    const open = menu.hidden;
+    setHidden(menu, !open);
+    button.setAttribute('aria-expanded', String(open));
+  });
+
+  menu.addEventListener('click', (event) => {
+    if (event.target.closest('button')) close();
+  });
+
+  // `pointerdown`, not `click`: a press that starts outside the menu should
+  // dismiss it whether or not it finishes on something clickable.
+  document.addEventListener('pointerdown', (event) => {
+    if (menu.hidden || event.target.closest('.bar__more')) return;
+    close();
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') close({ restoreFocus: true });
   });
 }
 
@@ -703,6 +754,7 @@ function mount() {
   grab();
   trackBarHeight();
   wireOutlineToggle();
+  wireMoreMenu();
   wireDocLinks();
   wireAddSection();
   subscribe(render);
