@@ -146,7 +146,10 @@ export async function run({ check }) {
   seedForDates(front);
   check(
     'a day added to the front of an event lands at the front, not on the end',
-    front.foodAndBev[0].date === '2026-11-13' && front.foodAndBev.length === 6,
+    // [v16] Eight: the new 13th is the arrival day and gets its Dinner, and the
+    // 14th — which has stopped being the arrival day — is now owed the
+    // Breakfast and Lunch a middle day gets (§5, v16 changes).
+    front.foodAndBev[0].date === '2026-11-13' && front.foodAndBev.length === 8,
     front.foodAndBev.map((row) => `${row.date.slice(5)} ${row.meal}`).join(' | ')
   );
 
@@ -154,10 +157,14 @@ export async function run({ check }) {
     foodAndBev: [{ id: 'f1', date: '2026-11-14', meal: 'Dinner' }], schedule: [] };
   markSeeded(old);
   seedForDates(old);
+  const markedDates = [...new Set(old.seeded.meals.map((entry) => entry.split('|')[0]))];
   check(
     'a file that predates seeding is marked, not seeded over',
-    old.foodAndBev.length === 1 && old.seeded.meals.length === 3,
-    `${old.foodAndBev.length} meals, ${old.seeded.meals.length} dates marked`
+    // [v16] Three dates, nine entries — the ledger names the meal now, and
+    // "fully seeded" means all three of them on every day (§5, v16 changes).
+    old.foodAndBev.length === 1 && markedDates.length === 3 && old.seeded.meals.length === 9,
+    `${old.foodAndBev.length} meals, ${markedDates.length} dates / `
+      + `${old.seeded.meals.length} ledger entries`
   );
 
   /* ------------------------------------------------- one guest, one room */

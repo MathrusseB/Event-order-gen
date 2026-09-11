@@ -41,6 +41,12 @@ export const title = 'The dates — a range that moves, and the way into a new o
 const TO = { start: '2026-12-02', end: '2026-12-04' };
 const OFFSET = 18;
 
+/** [v16] The dates a meals ledger covers — its entries are `date|Meal` now. */
+function ledgerDates(event) {
+  return [...new Set(((event.seeded && event.seeded.meals) || [])
+    .map((entry) => String(entry).split('|')[0]))].sort();
+}
+
 /** The event the browser is holding, read out of the module the app is running. */
 async function readEvent(page) {
   return page.evaluate(async () => {
@@ -270,7 +276,7 @@ export async function run({ browser, origin, check }) {
 
     check(
       'and the days the range now covers are seeded, as on any other date change',
-      (await readEvent(page)).seeded.meals.includes('2026-12-02'),
+      ledgerDates(await readEvent(page)).includes('2026-12-02'),
       'seeding is not held back for an answer — an accepted shift clears those rows instead, '
         + 'because an offer nobody answers must not cost the event three unseeded days'
     );
@@ -290,7 +296,10 @@ export async function run({ browser, origin, check }) {
       'ACCEPTED: nothing was duplicated — the new days were not seeded over the content',
       after.foodAndBev.length === before.foodAndBev.length
         && after.schedule.length === before.schedule.length
-        && after.seeded.meals.join(',') === '2026-12-02,2026-12-03,2026-12-04',
+        // [v16] The ledger travelled with the content and names the meals it
+        // carried: the sample's three days each held all three services.
+        && ledgerDates(after).join(',') === '2026-12-02,2026-12-03,2026-12-04'
+        && after.seeded.meals.length === 9,
       `${after.foodAndBev.length} meals, ${after.schedule.length} rows, `
         + `seeded ${after.seeded.meals.join(',')}`
     );
@@ -338,8 +347,8 @@ export async function run({ browser, origin, check }) {
       // all three in the middle, Breakfast on the departure day (§5, v15).
       after.foodAndBev.length === before.foodAndBev.length + 5
         && after.schedule.length === before.schedule.length + 9
-        && after.seeded.meals.includes('2026-12-02')
-        && after.seeded.meals.includes('2026-11-14'),
+        && ledgerDates(after).includes('2026-12-02')
+        && ledgerDates(after).includes('2026-11-14'),
       `${after.foodAndBev.length} meals, ${after.schedule.length} rows`
     );
 
@@ -491,8 +500,8 @@ export async function run({ browser, origin, check }) {
 
     check(
       'AN OFFER NOBODY ANSWERS STILL LEAVES THE NEW RANGE SEEDED [v13]',
-      withOfferUp.seeded.meals.includes('2026-12-02')
-        && withOfferUp.seeded.meals.includes('2026-12-04')
+      ledgerDates(withOfferUp).includes('2026-12-02')
+        && ledgerDates(withOfferUp).includes('2026-12-04')
         // [v15] One meal on the 2nd, because the 2nd is the arrival day.
         && withOfferUp.foodAndBev.filter((row) => row.date === '2026-12-02')
           .map((row) => row.meal).join(',') === 'Dinner',
@@ -517,7 +526,7 @@ export async function run({ browser, origin, check }) {
       'and accepting clears those seeded days rather than piling the order on top of them',
       after.foodAndBev.length === before.foodAndBev.length
         && after.schedule.length === before.schedule.length
-        && after.seeded.meals.join(',') === '2026-12-02,2026-12-03,2026-12-04',
+        && ledgerDates(after).join(',') === '2026-12-02,2026-12-03,2026-12-04',
       `${after.foodAndBev.length} meals, ${after.schedule.length} rows, `
         + `seeded ${after.seeded.meals.join(',')}`
     );
