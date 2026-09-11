@@ -173,40 +173,64 @@ ul, ol {
 
 /* ------------------------------------------------------------------- bar */
 
+/* [v13] The bar is sticky, so its height is rent the document pays on every
+   screen for as long as it is open. It was a third of a phone screen: the name
+   on its own line, four file buttons and two notes wrapped under them, and the
+   outstanding line taking a row of its own. It is one row now — name, print,
+   and the rest behind a menu — with the view tabs on a second row below 960px.
+   Nothing was dropped; the words were, where an icon says the same thing. */
 .bar {
   position: sticky;
   top: 0;
   z-index: 10;
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
-  gap: var(--space-2) var(--space-5);
-  padding: var(--space-3) var(--space-5);
+  gap: var(--space-2) var(--space-4);
+  padding: var(--space-2) var(--space-4);
   background: var(--forest-900);
   color: #f0f4ef;
-  border-bottom: 3px solid var(--forest-600);
+  border-bottom: 2px solid var(--forest-600);
 }
 
+/* The name takes whatever the controls leave and no more: it truncates rather
+   than wrapping, because a second line of title is a second line of header on
+   every screen in the building.
+
+   `flex-basis: 0` rather than `auto` is what makes that true. A flex container
+   breaks lines on each item's *content* width before it shrinks anything, so a
+   basis of `auto` has this box asking for the whole event name — and the bar
+   answers by wrapping the controls onto a second row instead of ever reaching
+   the ellipsis below. `Sample event - Illig Party, Opening Weekend` is long
+   enough to do it at 1440. From zero, the name gets the room that is left and
+   truncates when that is not enough, which is the arrangement the ellipsis was
+   written for. */
 .bar__doc {
   display: flex;
-  flex-wrap: wrap;
+  flex: 1 1 0;
+  flex-wrap: nowrap;
   align-items: baseline;
-  gap: var(--space-1) var(--space-4);
+  gap: var(--space-3);
   min-width: 0;
 }
 
 .bar__name {
   font-family: var(--font-serif);
-  font-size: var(--text-xl);
+  font-size: var(--text-lg);
   font-weight: 600;
   line-height: var(--leading-tight);
   letter-spacing: -0.005em;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .bar__dates {
   font-size: var(--text-sm);
   color: var(--forest-300);
+  white-space: nowrap;
 }
 
 .bar__name.is-placeholder,
@@ -215,13 +239,14 @@ ul, ol {
   font-style: italic;
 }
 
-/* Button labels never wrap mid-word, so the rows of buttons wrap instead.
-   On a phone that is two tidy lines rather than a slice off the right edge. */
+/* [v13] The tools do not wrap. There is one row of them and there is room for
+   one row of them, because below 960px this box dissolves (`display: contents`)
+   and its children are placed on the bar's own two rows by hand. */
 .bar__tools {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-3);
 }
 
 .bar__file {
@@ -232,6 +257,87 @@ ul, ol {
 
 .bar .bar__disclosure {
   display: none;
+}
+
+/* ------------------------------------------------- [v13] icons on the bar */
+
+/* Inline SVG, drawn from the button's own colour, at one size everywhere. No
+   icon font and no sprite sheet: §3 — no build step, no runtime dependency. */
+.bar .btn {
+  gap: 6px;
+}
+
+.bar__svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Both of these are the narrow screen's business. The short tab name and the
+   Print button's caption are off until a media query asks for them. */
+.bar__label--short,
+.bar__target {
+  display: none;
+}
+
+/* Square when its label is gone, so an icon on its own is still a target. */
+.bar__iconbtn {
+  min-width: var(--control-h);
+  padding: 0 var(--space-2);
+}
+
+/* --------------------------------------------- [v13] the file menu on the bar */
+
+/* New, Load, Save and the sample, with the two notes that explain them, used to
+   sit on the bar itself — four buttons and two paragraphs, which is most of
+   what made it tall. They are unchanged and they are all still here; they are
+   behind one button.
+
+   The menu is absolutely positioned, and that is load-bearing rather than
+   tidy: `--bar-h` is written from `#bar.offsetHeight` (shell.js) and the
+   navigator, the tallies and the rooming board's head all hang off it, so a
+   menu that opened in flow would push the entire page down every time somebody
+   went looking for Save. */
+.bar__more {
+  position: relative;
+}
+
+.bar__menu {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  right: 0;
+  z-index: 11;
+  width: min(19rem, calc(100vw - 2 * var(--space-3)));
+  padding: var(--space-3);
+  background: var(--forest-900);
+  border: 1px solid var(--forest-600);
+  box-shadow: 0 10px 28px rgb(0 0 0 / 0.35);
+}
+
+/* In a column, full width, left-aligned: a menu, not a toolbar folded up. */
+.bar__menu .bar__file {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: stretch;
+}
+
+.bar__menu .btn {
+  justify-content: flex-start;
+  width: 100%;
+}
+
+/* The sample stays the quiet one, but a 2px-tall button in a menu is a
+   mis-tap waiting to happen — it keeps the quiet colours and takes the height
+   of a control. */
+.bar__menu .btn--quiet {
+  min-height: var(--control-h);
+  padding: 0 var(--space-3);
+  font-size: var(--text-sm);
 }
 
 /* --------------------------------------------------------------- controls */
@@ -1054,6 +1160,19 @@ body.outline-open .outline {
     min-height: var(--touch-h);
     padding: 0 var(--space-1);
   }
+
+  /* [v13] `.btn` above gives these their height; this gives the icon-only ones
+     their width, so Sections and the file menu are 44px square rather than
+     44px tall and 36px wide. */
+  .bar__iconbtn {
+    min-width: var(--touch-h);
+  }
+
+  /* And the quiet button in the menu, which `.btn--quiet { min-height: 0 }`
+     would otherwise win back — it is later in the file and the same weight. */
+  .bar__menu .btn--quiet {
+    min-height: var(--touch-h);
+  }
 }
 
 /* Wide enough for the navigator to live beside the sheet. Below this the
@@ -1092,7 +1211,86 @@ body.outline-open .outline {
   }
 }
 
+/* [v13] Below a wide desktop the name and the dates stop sharing a line and
+   stack, tight, inside the height the row already has — the dates are the line
+   that goes first, not the name. */
+@media (max-width: 80rem) {
+  .bar__doc {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0;
+    line-height: 1.15;
+  }
+
+  .bar__name {
+    max-width: 100%;
+  }
+
+  .bar__dates {
+    font-size: var(--text-xs);
+  }
+}
+
+/* [v13] Tablets and phones: row one is Sections, the event's name, Print and
+   the file menu; row two is the four view tabs, full-bleed, reading as tabs
+   rather than as four more buttons. `display: contents` on the tools lets the
+   two rows be composed from the bar's own children in `order`, which is the
+   only way the name can sit between two controls that are not its siblings. */
 @media (max-width: 59.99rem) {
+  .bar {
+    gap: 0 var(--space-2);
+    padding: var(--space-1) var(--space-3) 0;
+  }
+
+  .bar__tools {
+    display: contents;
+  }
+
+  #btn-outline {
+    order: 0;
+  }
+
+  .bar__doc {
+    order: 1;
+    flex: 1 1 0;
+  }
+
+  .bar__print {
+    order: 2;
+  }
+
+  .bar__more {
+    order: 3;
+  }
+
+  /* `.bar ` on this, on the tabs, and on the print row and the checks line in
+     the blocks below is not decoration. Those base rules are appended at the
+     foot of this file, after every media query here, so a plain `.bar__views`
+     would tie with the `display: flex` down there on specificity and lose on
+     file order. */
+  .bar .bar__views {
+    order: 4;
+    flex: 1 0 100%;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0;
+    margin: var(--space-1) calc(var(--space-3) * -1) 0;
+    border-top: 1px solid var(--forest-800);
+  }
+
+  .bar .viewtab {
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: #b9cbbd;
+  }
+
+  .bar .viewtab.is-on {
+    background: transparent;
+    color: #fff;
+    box-shadow: inset 0 -3px 0 var(--forest-300);
+  }
+
   .bar .bar__disclosure {
     display: inline-flex;
   }
@@ -1109,6 +1307,107 @@ body.outline-open .outline {
   }
 
   .block__controls .btn__text {
+    display: inline;
+  }
+}
+
+/* [v13] §12 — below 768px the outstanding line has no room to be two short
+   lines beside Print, so it stops being drawn and starts being a dot on the
+   button. It is hidden the `.sr-only` way and not with `display: none`,
+   because it is the `aria-live` region: switched off it would stop announcing,
+   and a screen reader user would lose the count altogether rather than seeing
+   it somewhere smaller. */
+@media (max-width: 47.99rem) {
+  .bar .bar__checks {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  #btn-print {
+    position: relative;
+  }
+
+  /* Amber, and only for the warning state — the clean line is not news. */
+  .bar__print:has(#print-checks:not([hidden]):not(.is-clean)) #btn-print::after {
+    content: "";
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--amber-400);
+    box-shadow: 0 0 0 2px var(--forest-900);
+  }
+}
+
+/* [v13] Phones. Every word on the bar's own controls goes, and the icons carry
+   them; the names stay on the buttons for anything reading them aloud. The
+   view tabs become icon-over-word, which is the one place a word is worth its
+   pixels — four identical icons in a row is a guessing game. */
+@media (max-width: 40rem) {
+  .bar__name {
+    font-size: var(--text-md);
+  }
+
+  .bar .bar__print {
+    gap: 0;
+  }
+
+  /* Opening a document tab already sets the print target (views.js), and the
+     caption below says which one it is, so the select is the one control here
+     that has a replacement rather than a shorter form. */
+  .bar__print .input--onbar {
+    display: none;
+  }
+
+  .bar__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  #btn-print {
+    padding: 0 var(--space-3);
+  }
+
+  #btn-print .bar__target {
+    display: inline;
+    font-size: var(--text-xs);
+  }
+
+  html[data-print="order"] #btn-print .bar__target::after {
+    content: "Order";
+  }
+
+  html[data-print="menu"] #btn-print .bar__target::after {
+    content: "Menu";
+  }
+
+  html[data-print="rooming"] #btn-print .bar__target::after {
+    content: "Rooming";
+  }
+
+  .bar .viewtab {
+    flex-direction: column;
+    gap: 1px;
+    min-height: 3rem;
+    padding: 4px 0 3px;
+    font-size: 0.6875rem;
+  }
+
+  .viewtab .bar__label--short {
     display: inline;
   }
 }
@@ -2424,9 +2723,10 @@ body.outline-open .outline {
    thumb. */
 /* Wide enough for two panes, which is also wide enough for the controls to be
    worth pinning. Narrower than this — a phone, or the board in a split window
-   — nothing sticks: the application header is already three rows tall down
-   there, and a second fixed band on top of it would leave a letterbox to
-   arrange rooms through. */
+   — nothing sticks: [v13] the application header is two short rows down there
+   rather than the three or four it once was, but it is still a fixed band, and
+   a second one on top of it would leave a letterbox to arrange rooms
+   through. */
 @container (min-width: 44rem) {
   .board__head {
     position: sticky;
@@ -3233,17 +3533,26 @@ body.outline-open .outline {
 .bar__print {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: var(--space-2);
-  margin-right: var(--space-3);
+}
+
+/* [v13] `.input { width: 100% }` was stretching the select to fill whatever the
+   bar had left, which pushed Print onto a row of its own and the outstanding
+   line onto a third. The select is as wide as its longest document name and no
+   wider. */
+.bar__print .input--onbar {
+  width: auto;
+  min-width: 0;
 }
 
 /* [v12] §12 — what is outstanding, on the bar where the print is started.
    Amber on the dark slab, because this is the one thing up here that is about
    the document rather than about the tool. Hidden entirely on a clean event. */
 .bar__checks {
-  flex-basis: 100%;
-  margin: var(--space-1) 0 0;
+  margin: 0;
+  max-width: 9.5rem;
+  line-height: 1.25;
   color: var(--amber-400);
   font-size: var(--text-xs);
 }
@@ -3268,19 +3577,20 @@ body.outline-open .outline {
 }
 
 .bar__savenote {
-  flex-basis: 100%;
-  margin: var(--space-1) 0 0;
+  display: block;
+  margin: 0 0 var(--space-1);
   color: var(--forest-300);
   font-size: var(--text-xs);
-  max-width: 34ch;
+  max-width: none;
 }
 
 /* [v13] §10 — the sample sits below the three file actions rather than beside
    them, and is dimmer than any of them. It is not a fourth way to open an
    event; it is a demonstration, and it says so under its own button. */
 .bar__sample {
-  flex-basis: 100%;
-  margin-top: var(--space-2);
+  margin-top: var(--space-1);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--forest-800);
 }
 
 .btn--quiet {
@@ -3299,28 +3609,20 @@ body.outline-open .outline {
   margin: 2px 0 0;
   color: #7d9a85;
   font-size: var(--text-xs);
-  max-width: 34ch;
+  max-width: none;
 }
 
-@media (max-width: 60rem) {
-  /* On a tablet the bar is already three rows; the notes are the first thing
-     that can go, and the buttons still say Save and Open the sample event. */
-  .bar__savenote,
-  .bar__samplenote {
-    display: none;
-  }
-
-  .input--onbar {
-    min-width: 8rem;
-  }
-}
+/* [v13] The notes used to be dropped on a tablet, because the bar was already
+   three rows tall and they were the first thing that could go. They are inside
+   the menu now, where they cost the bar nothing and are read at the moment
+   somebody is deciding between Save and the sample — so they are back, at
+   every width. */
 
 /* ------------------------------------------------------------- view tabs */
 
 .bar__views {
   display: flex;
   gap: 2px;
-  margin-right: var(--space-3);
 }
 
 .viewtab.is-on {

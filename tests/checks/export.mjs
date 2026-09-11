@@ -35,6 +35,7 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { readPages } from '../lib/pdf.mjs';
+import { fileAction } from '../lib/bar.mjs';
 
 export const title = 'The exported board — one file, no network, no second implementation';
 
@@ -172,7 +173,7 @@ export async function run({ browser, origin, savePdf, check }) {
   const maker = await browser.newContext();
   const app = await maker.newPage();
   await app.goto(`${origin}/index.html`, { waitUntil: 'networkidle' });
-  await app.click('#btn-sample');
+  await fileAction(app, '#btn-sample');
   await app.waitForFunction(() => document.querySelectorAll('.boardbuilding').length > 0);
 
   const built = await app.evaluate(async () => {
