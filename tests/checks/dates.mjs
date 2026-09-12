@@ -31,6 +31,7 @@ import { plan, shiftEvent } from '../../js/shift.js';
 import { dayOffset, shiftDate } from '../../js/dates.js';
 import { seedForDates } from '../../js/seed.js';
 import { fileAction } from '../lib/bar.mjs';
+import { openSection } from '../lib/sections.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const SAMPLE = path.resolve(HERE, '..', '..', 'data', 'sample.json');
@@ -573,6 +574,9 @@ export async function run({ browser, origin, check }) {
     // A note typed into the seeded Notes section and nothing else. Its body is
     // the only place that content lives, and New used to throw it away without
     // a word — and clearAutosave() took the last copy with it.
+    // [v17] The Notes section is the third of the three a new order is seeded
+    // with, so it is behind its own header until somebody opens it (§10 [v17]).
+    await openSection(page, '.editor--text');
     await page.fill('.editor--text textarea', 'Gate code changes Friday.');
     await page.waitForFunction(() =>
       document.querySelector('.editor--text textarea').value !== '');
