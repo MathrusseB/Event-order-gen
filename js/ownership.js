@@ -510,8 +510,7 @@ function addGuestSheet() {
             arrive: arrive.input.value,
             depart: depart.input.value,
             isChild: child.checked,
-            dietary: '',
-            note: ''
+            dietary: ''
           };
           if (!attendee.first && !attendee.last) {
             setText(problem, 'A guest needs a name.');

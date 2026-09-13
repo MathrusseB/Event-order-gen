@@ -30,6 +30,7 @@ import {
   roomsIn
 } from './reference.js';
 import { ledgerEntryDate, markSeeded, upgradeMealLedger } from './seed.js';
+import { makeSection } from './sections.js';
 
 /**
  * Bring an event up to the current shape. Pure: the argument is not touched.
@@ -101,6 +102,19 @@ import { ledgerEntryDate, markSeeded, upgradeMealLedger } from './seed.js';
  *      `location` is free text (§6 [v13]), somebody planned something there,
  *      and §12.13 keeps saying so long after this summary has gone.
  *
+ *  16. [v18] `attendees[].note` is gone from the model (§5, v18 changes), and
+ *      the notes already typed into it are moved rather than dropped. Each one
+ *      becomes a line — "Kim Palmer — Arriving late" — on the body of the last
+ *      **enabled** `freeText` section, and an event with none gets one titled
+ *      "Notes" at the end of the outline. Then the property is deleted, which
+ *      is what makes this idempotent: the second load finds no note to move.
+ *
+ *      A field the documents never printed is still somebody's typing, and
+ *      deleting the field without the words would be this migration quietly
+ *      losing work — the one thing rules 11 and 15 exist to refuse. It goes to
+ *      free text because that is the only place on the order where a sentence
+ *      about a guest can print at all.
+ *
  * `foodAndBev[].serves` needs no rule: it defaults to `all` where it is read
  * (`fnbCount`), so a pre-v5 entry counts exactly as it always did.
  *
@@ -123,7 +137,8 @@ export function migrate(event) {
     datesMarkedSeeded: 0,
     mealLedgerUpgraded: 0,
     buildingsRenamed: [],
-    retiredLocations: []
+    retiredLocations: [],
+    guestNotesMoved: 0
   };
 
   if (!event || typeof event !== 'object' || Array.isArray(event)) {
@@ -287,6 +302,30 @@ export function migrate(event) {
     next.sections = kept;
   }
 
+  // 16. [v18] The per-guest note, moved into free text and then removed.
+  //
+  //     After the two section passes above, deliberately: the outline this
+  //     appends to has to be the one the app will show, and a "Notes" section
+  //     added before rule 10 ran would be appended to an outline that is still
+  //     being rewritten.
+  const noted = attendees.filter((attendee) =>
+    attendee && typeof attendee === 'object' && String(attendee.note || '').trim());
+  if (noted.length) {
+    appendFreeText(next, noted.map((attendee) =>
+      `${attendeeName(attendee) || 'A guest with no name'} — ${String(attendee.note).trim()}`));
+    summary.guestNotesMoved = noted.length;
+    summary.changed = true;
+  }
+  // The empty ones go too — a property the model no longer carries should not
+  // round-trip through Save — but an empty field holding nothing is a shape
+  // being tidied rather than work being rescued, so like the v5 attendee
+  // defaults above it does not set `changed`.
+  for (const attendee of attendees) {
+    if (attendee && typeof attendee === 'object' && Object.hasOwn(attendee, 'note')) {
+      delete attendee.note;
+    }
+  }
+
   // 13. [v13] The three buildings v13 renamed, resolved by the room on the row.
   //     Before rule 11, so a renamed row is a current row by the time the
   //     retired-room scan reads it. Idempotent: `renamedBuilding` answers
@@ -384,6 +423,37 @@ export function migrate(event) {
   return { event: next, summary };
 }
 
+/**
+ * [v18] Append lines to the outline's free text, making somewhere to put them if
+ * the event has nowhere.
+ *
+ * The **last enabled** `freeText` section, because that is the one at the bottom
+ * of the order — an event with "Security Notes" near the top and "Notes" at the
+ * end wants these under the second, and a disabled section is one the order is
+ * not carrying, so writing into it would be moving the words out of sight.
+ *
+ * A blank line separates them from whatever was already written: `lines()` in
+ * renders/parts.js reads a blank line as a paragraph break and a single newline
+ * as a line break (§8), so the moved notes print as one block of lines under the
+ * note somebody typed rather than running on from the end of its last sentence.
+ *
+ * @param {object} event mutated in place — always the migration's own clone
+ * @param {string[]} lines one finished line each
+ */
+function appendFreeText(event, lines) {
+  if (!Array.isArray(event.sections)) event.sections = [];
+
+  const existing = [...event.sections].reverse().find((entry) =>
+    entry && typeof entry === 'object' && entry.type === 'freeText' && entry.enabled !== false);
+  const target = existing || makeSection('freeText', 'Notes');
+  if (!existing) event.sections.push(target);
+
+  const body = String(target.body || '');
+  target.body = body.trim()
+    ? `${body.replace(/\s+$/, '')}\n\n${lines.join('\n')}`
+    : lines.join('\n');
+}
+
 /** [v9] The section types that became `guests`. */
 const MERGED_INTO_GUESTS = new Set(['attendees', 'accommodations']);
 
@@ -472,4 +542,9 @@ function nameKey(name) {
  *   Reported and left alone, exactly as `retiredRooms` is: the words are the
  *   only record that somebody planned something there, and §12.13 goes on
  *   saying so every time the file is opened
+ * @property {number} guestNotesMoved **[v18]** per-guest notes moved onto the
+ *   last enabled `freeText` section before `attendees[].note` was deleted (§5,
+ *   v18 changes). A note the documents never printed is still somebody's
+ *   typing, so it is moved somewhere that prints rather than dropped. Zero on
+ *   every load after the first, which is what makes the rule idempotent
  */

@@ -1,0 +1,70 @@
+{
+  "meta": {
+    "eventName": "Order Shape - Three Levels",
+    "startDate": "2026-11-13",
+    "endDate": "2026-11-15",
+    "eventLead": "Brian Mathrusse",
+    "revisionDate": "2026-11-10",
+    "revisedBy": "Brian Mathrusse",
+    "brandId": "maple-ranch",
+    "includeInOrder": { "rooming": true, "menu": true }
+  },
+
+  "sections": [
+    { "id": "s1", "type": "schedule", "title": "Itinerary", "enabled": true },
+    { "id": "s2", "type": "guests", "title": "Guests", "enabled": true },
+    { "id": "s3", "type": "foodAndBev", "title": "Food & Beverage", "enabled": true }
+  ],
+
+  "attendees": [
+    { "id": "a-1", "last": "Illig", "first": "Brian", "arrive": "2026-11-13",
+      "depart": "2026-11-15", "isChild": false, "dietary": "" },
+    { "id": "a-2", "last": "Whitfield", "first": "Tom", "arrive": "2026-11-13",
+      "depart": "2026-11-15", "isChild": false, "dietary": "" },
+    { "id": "a-3", "last": "Illig", "first": "Nora", "arrive": "2026-11-13",
+      "depart": "2026-11-15", "isChild": true, "dietary": "" }
+  ],
+
+  "rooming": [
+    { "id": "r-1", "building": "Remington", "room": "1", "guestIds": ["a-1"],
+      "from": "2026-11-13", "to": "2026-11-15" },
+    { "id": "r-2", "building": "Remington", "room": "2", "guestIds": ["a-2"],
+      "from": "2026-11-13", "to": "2026-11-15" },
+    { "id": "r-3", "building": "Bunk Room", "room": "Bunk Room", "guestIds": ["a-3"],
+      "from": "2026-11-13", "to": "2026-11-15" }
+  ],
+
+  "schedule": [
+    { "id": "s-1", "date": "2026-11-13", "start": "05:00", "end": "10:00", "label": "Duck Hunt" },
+    { "id": "s-2", "date": "2026-11-14", "start": "05:00", "end": "10:00", "label": "Duck Hunt" },
+    { "id": "s-3", "date": "2026-11-14", "start": "13:00", "end": "16:00", "label": "Range" },
+    { "id": "s-4", "date": "2026-11-15", "start": "09:00", "end": "10:30", "label": "Departures" }
+  ],
+
+  "foodAndBev": [
+    { "id": "f-1", "date": "2026-11-13", "start": "18:30", "end": "20:30", "meal": "Dinner",
+      "location": "", "countBasis": "present", "serves": "all" },
+    { "id": "f-2", "date": "2026-11-14", "start": "08:00", "end": "09:30", "meal": "Breakfast",
+      "location": "", "countBasis": "present", "serves": "all" },
+    { "id": "f-3", "date": "2026-11-14", "start": "18:30", "end": "20:30", "meal": "Dinner",
+      "location": "", "countBasis": "present", "serves": "all" },
+    { "id": "f-4", "date": "2026-11-15", "start": "08:00", "end": "09:30", "meal": "Breakfast",
+      "location": "", "countBasis": "present", "serves": "all" }
+  ],
+
+  "menu": [
+    { "fnbId": "f-1", "dishes": ["American Wagyu Beef Tenderloin", "Whipped Potato"] },
+    { "fnbId": "f-2", "dishes": ["Buttermilk Biscuits", "Skillet Hash"] },
+    { "fnbId": "f-3", "dishes": ["Pan-Roasted Walleye", "Wild Rice"] },
+    { "fnbId": "f-4", "dishes": ["Pecan Coffee Cake"] }
+  ],
+
+  "staff": [],
+  "departments": [],
+
+  "buildingsInUse": ["Remington", "Bunk Room"],
+  "overflowBuildings": [],
+
+  "seeded": { "meals": [], "itinerary": [] },
+  "customActivities": []
+}

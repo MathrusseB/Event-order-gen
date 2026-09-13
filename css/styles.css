@@ -1153,7 +1153,9 @@ body.outline-open .outline {
 
 /* One column definition, shared by the header strip and every row, so the two
    can never drift apart. Widths are sized to fit inside the 55rem container
-   query below — last, first, arrives, departs, child, dietary, note, actions. */
+   query below — last, first, arrives, departs, child, dietary, actions.
+   [v18] Seven tracks, not eight: the Note column is gone (§5, v18 changes) and
+   dietary keeps the width it was sharing. */
 .editor--guests {
   --guest-cols:
     minmax(4.75rem, 1fr)
@@ -1162,7 +1164,6 @@ body.outline-open .outline {
     9rem
     3rem
     minmax(6rem, 1.8fr)
-    minmax(6rem, 1.2fr)
     minmax(7.75rem, auto);
 }
 
@@ -1187,7 +1188,6 @@ body.outline-open .outline {
 }
 
 .row .cell--dietary,
-.row .cell--note,
 .row .cell--actions,
 .row .rowwarn,
 .row .rowwarn__repairs {
@@ -1673,7 +1673,6 @@ body.outline-open .outline {
   }
 
   .rows--guests .row .cell--dietary,
-  .rows--guests .row .cell--note,
   .rows--guests .row .cell--actions {
     grid-column: auto;
   }
@@ -3504,10 +3503,54 @@ body.outline-open .outline {
 }
 
 /* [v9] A document included in the order (§8). The bar names it; the sections
-   inside it are the ones the standalone document draws, so they keep their own
-   bars and nothing is restyled to pretend otherwise. */
+   inside it are the ones the standalone document draws. */
 .sec--included > .sec__body > .sec:last-child {
   margin-bottom: 0;
+}
+
+/* [v18] THREE LEVELS OF HEADING, NOT ONE (§8 [v18]).
+   Until now the bar naming the included document and the bars inside it were
+   the same object: `.sec__title` and `.meal__head` are identical, so on the
+   order "Rooming Assignment" and "Remington" under it were one rank, and so
+   were "Menu" and "Dinner". A reader cannot see a hierarchy drawn in one
+   weight, and the whole reason the bar exists is to be the thing the eye
+   climbs.
+
+   So inside an inclusion the nested heads give up the fill and keep the rule:
+   filled grey bar (the document) > unfilled rule (a building, a meal) >
+   `.day__head`'s hairline (a day inside the itinerary). Three ranks, each
+   visibly less than the one above it, and nothing here touches `.day__head`.
+
+   Only inside `.sec--included`. The standalone Rooming Assignment and Menu are
+   not in one, so their bars are untouched — a building bar is the top rank on
+   its own sheet and belongs filled there. */
+.sec--included .sec__body .sec__title,
+.sec--included .sec__body .meal__head {
+  margin: 10pt 0 5pt;
+  padding: 0 0 2pt;
+  background: none;
+  border-bottom: 1pt solid var(--ink-500);
+  font-family: var(--font-serif);
+  font-size: 11pt;
+  font-weight: 600;
+  color: var(--ink-900);
+  /* No fill left to force, so nothing to ask the printer for. */
+  print-color-adjust: economy;
+  -webkit-print-color-adjust: economy;
+}
+
+/* `.meal__name` carries the meal head's own type, so the rank above reaches it
+   only through here. `.sec__note` and `.meal__detail` are untouched and stay
+   where they are, small and grey on the right of the same line. */
+.sec--included .sec__body .meal__head .meal__name {
+  font-size: 11pt;
+}
+
+/* The first head under the bar takes no top margin: the bar has already left
+   7pt below itself, and 10pt more reads as a gap rather than as a step. */
+.sec--included > .sec__body > :first-child > .sec__title,
+.sec--included > .sec__body > :first-child > .meal__head {
+  margin-top: 0;
 }
 
 /* ------------------------------------------------------------- data tables */
@@ -3556,6 +3599,14 @@ body.outline-open .outline {
 .tbl .col-where { width: 1.5in; }
 .tbl .col-name { width: 2.1in; }
 .tbl .col-room { width: 1.5in; }
+
+/* [v18] The guest list is three columns since Dietary became a block of its own
+   (§8 [v18]), and the name takes the width the fourth column had: `auto` beside
+   two fixed dates is all of it. Written against the table and not into
+   `.col-name` itself, for the reason these widths are named rather than
+   positional — the next table to want a name column should not inherit a
+   decision made about this one. */
+.tbl--guests .col-name { width: auto; }
 
 /* ------------------------------------------------------------------- a day */
 

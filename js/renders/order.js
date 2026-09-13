@@ -19,7 +19,9 @@
 //     appears on any document (§8 [v9]).
 //   * `foodAndBev` prints the F&B schedule table, which the Menu prints too.
 //     The repetition is deliberate: the Menu leaves the kitchen on its own and
-//     has to say when each service is.
+//     has to say when each service is. [v18] It prints the dietary block only
+//     where no enabled `guests` section has — that block rides with the guest
+//     list now (§8 [v18]), and no order prints it twice.
 //
 // Disabled sections do not print at all — that is what disabling is for (§4).
 // An *enabled* section holding nothing prints its heading and a quiet note
@@ -114,48 +116,65 @@ function renderSchedule(event) {
     return [emptyNote('Nothing scheduled yet. Schedule entries and meal services both print here.')];
   }
 
-  const days = itineraryDates(event);
-  if (!days.length) {
+  const dates = itineraryDates(event);
+  if (!dates.length) {
     return [emptyNote('Set the event dates to lay the itinerary out by day.')];
   }
 
-  return days.map((date) => {
-    const entries = itineraryFor(event, date);
-    return el('div', { class: 'day' }, [
-      el('h3', { class: 'day__head', text: formatDateFull(date) }),
-      entries.length
-        ? table(
-            [
-              { label: 'Time', class: 'col-time' },
-              { label: 'Item', class: 'col-item' },
-              { label: 'Location', class: 'col-where' }
-            ],
-            entries.map((entry) => [
-              formatTimeRange(entry.start, entry.end),
-              entry.text,
-              entry.location
-            ]),
-            'itin')
-        : emptyNote('Nothing scheduled this day.')
-    ]);
-  });
+  // [v18] One decision for the whole itinerary, not one per day. Only meals
+  // carry a location (§8 [v18] — `foodAndBev` rows have one, schedule rows do
+  // not, and that is the model, not an omission), so a day of hunts and
+  // downtime has nothing to put in the column and a day with dinner on it has
+  // one cell. Deciding per day would mean Friday's table is three columns wide
+  // and Saturday's four, and a reader turning the page reads shifted columns as
+  // a different table rather than the same one continued.
+  const days = dates.map((date) => ({ date, entries: itineraryFor(event, date) }));
+  const located = days.some(({ entries }) =>
+    entries.some((entry) => String(entry.location || '').trim()));
+
+  const columns = [
+    { label: 'Time', class: 'col-time' },
+    { label: 'Item', class: 'col-item' },
+    ...(located ? [{ label: 'Location', class: 'col-where' }] : [])
+  ];
+
+  return days.map(({ date, entries }) => el('div', { class: 'day' }, [
+    el('h3', { class: 'day__head', text: formatDateFull(date) }),
+    entries.length
+      ? table(
+          columns,
+          entries.map((entry) => [
+            formatTimeRange(entry.start, entry.end),
+            entry.text,
+            ...(located ? [entry.location] : [])
+          ]),
+          'itin')
+      : emptyNote('Nothing scheduled this day.')
+  ]));
 }
 
 /* ---------------------------------------------------------------- foodAndBev */
 
 /**
- * §8 A — the F&B schedule table, then the allergies and dietary block.
+ * §8 A — the F&B schedule table, and the dietary block where nothing else
+ * carries it.
  *
  * The count is `fnbCount` and is never recomputed here: it composes `serves`
  * with `countBasis` (§7), and a children's seating at 17:30 plus an adults'
  * dinner at 18:30 add up to one sitting only because both read the same rule.
  *
- * The dietary block prints "None known" rather than disappearing (§8 [v8]).
- * Its absence would read as an oversight, and this is the block the kitchen
- * checks before it plates anything.
+ * [v18] The dietary block moved to the guest list (§8 [v18]), which is the
+ * section an order is actually seeded with — so this section prints it only
+ * where there is no enabled `guests` section above to have printed it. Either
+ * way it prints "None known" rather than disappearing (§8 [v8]): its absence
+ * would read as an oversight, and this is the block the kitchen checks before
+ * it plates anything.
  */
 function renderFoodAndBev(event) {
   const services = event.foodAndBev || [];
+  // [v18] The same rule as the itinerary above: a column no service has anything
+  // to put in is 1.5in of ruled white space.
+  const located = services.some((service) => String(service.location || '').trim());
 
   const schedule = services.length
     ? table(
@@ -164,19 +183,42 @@ function renderFoodAndBev(event) {
           { label: 'Time', class: 'col-time' },
           { label: 'Meal', class: 'col-item' },
           { label: 'Count', class: 'col-count' },
-          { label: 'Location', class: 'col-where' }
+          ...(located ? [{ label: 'Location', class: 'col-where' }] : [])
         ],
         services.map((service) => [
           formatDate(service.date),
           formatTimeRange(service.start, service.end),
           service.meal || 'Untitled service',
           String(fnbCount(event, service)),
-          service.location || ''
+          ...(located ? [service.location || ''] : [])
         ]),
         'fnb')
     : emptyNote('No meal services yet.');
 
-  return [schedule, dietaryBlock(event)];
+  // [v18] Once per order. The dietary block now rides with the guest list, which
+  // is the section that is actually in the outline (§8 [v18]), so this prints it
+  // only where there is no guests section to have carried it — an order with
+  // Food & Beverage on and Guests off must still tell the kitchen.
+  return hasEnabledSection(event, 'guests')
+    ? [schedule]
+    : [schedule, dietaryBlock(event)];
+}
+
+/**
+ * Whether the outline holds an enabled section of a type.
+ *
+ * Asked of the outline rather than of the data, because the question is what
+ * this order is printing and not what the event holds: §4's rule is that the
+ * outline is the document, and a disabled `guests` section prints nothing at all
+ * (§8) — so it has not carried the dietary block anywhere.
+ *
+ * @param {object} event
+ * @param {string} type
+ * @returns {boolean}
+ */
+function hasEnabledSection(event, type) {
+  return (Array.isArray(event.sections) ? event.sections : [])
+    .some((entry) => entry && entry.type === type && entry.enabled !== false);
 }
 
 /* -------------------------------------------------------------------- guests */
@@ -195,6 +237,17 @@ function renderFoodAndBev(event) {
  * the weekday is on the itinerary above and repeating it here buys nothing but
  * width. Children are indicated discreetly (§5, v5 changes): a small grey tag
  * beside the name, never a column of its own.
+ *
+ * [v18] THREE COLUMNS, AND THE DIETARY NOTES AS A BLOCK UNDER THEM (§8 [v18]).
+ * Dietary was a fourth column, which is the wrong shape twice over: on a party
+ * of twenty it is one filled cell and nineteen blanks that the eye has to read
+ * past on every row, and on the guest whose cell is filled it is an allergy in
+ * six-word column width. As a block it is the line the kitchen wants — "Kim
+ * Palmer — shellfish" — and `dietaryBlock` prints "None known." when nobody has
+ * one (§8 [v8]), which is the point of putting it here: an order with no Food &
+ * Beverage section used to carry no dietary information at all, and the guests
+ * section is the one the outline actually has. The width the column gave up
+ * goes to the names, where a long one was wrapping.
  */
 function renderGuests(event) {
   const attendees = event.attendees || [];
@@ -212,17 +265,16 @@ function renderGuests(event) {
       [
         { label: 'Guest', class: 'col-name' },
         { label: 'Arrives', class: 'col-date' },
-        { label: 'Departs', class: 'col-date' },
-        { label: 'Dietary', class: 'col-item' }
+        { label: 'Departs', class: 'col-date' }
       ],
       attendees.map((attendee) => [
         nameWithTag(attendeeName(attendee) || 'Unnamed guest', attendee.isChild ? 'child' : ''),
         formatDateShort(attendee.arrive) || followsEvent(event, 'startDate'),
-        formatDateShort(attendee.depart) || followsEvent(event, 'endDate'),
-        String(attendee.dietary || '').trim()
+        formatDateShort(attendee.depart) || followsEvent(event, 'endDate')
       ]),
       'guests'),
-    el('p', { class: 'sec__count', text: `${attendees.length} on the list.` })
+    el('p', { class: 'sec__count', text: `${attendees.length} on the list.` }),
+    dietaryBlock(event)
   ];
 }
 
