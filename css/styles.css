@@ -3600,13 +3600,22 @@ body.outline-open .outline {
 .tbl .col-name { width: 2.1in; }
 .tbl .col-room { width: 1.5in; }
 
-/* [v18] The guest list is three columns since Dietary became a block of its own
-   (§8 [v18]), and the name takes the width the fourth column had: `auto` beside
-   two fixed dates is all of it. Written against the table and not into
-   `.col-name` itself, for the reason these widths are named rather than
-   positional — the next table to want a name column should not inherit a
-   decision made about this one. */
-.tbl--guests .col-name { width: auto; }
+/* [v19] The guest list's own three widths. [v18] left the name column `auto`
+   when Dietary became a block (§8 [v18]), which handed it every inch the fourth
+   column had given up: on Letter that put Arrives 70% of the way across the
+   text block, and each row read as a name, a long gap, and two dates nobody
+   could associate with it. Written against the table and not into `.col-name`
+   itself, for the reason these widths are named rather than positional — the
+   next table to want a name column should not inherit a decision made about
+   this one.
+
+   The table stays `width: 100%`. Narrowing it to its content would pull the row
+   rules in with it, and rules stopping mid-page under a full-width heading read
+   as a rendering fault rather than as a narrow table. So the spare width is
+   distributed across these three, which lands Arrives near 49% and Departs near
+   75% — the dates close enough to the name to be read with it. */
+.tbl--guests .col-name { width: 3.1in; }
+.tbl--guests .col-date { width: 1.6in; }
 
 /* ------------------------------------------------------------------- a day */
 

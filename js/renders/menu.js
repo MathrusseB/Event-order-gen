@@ -12,6 +12,13 @@
 // deliberate (§5, v7 changes): the Menu leaves the kitchen on its own and has
 // to say when each service is. Both read `foodAndBev[]`, so they cannot drift.
 //
+// [v19] Not in content, at least — and the shape is a second thing, which the
+// Location column is where they did drift. §8 [v18] made that column conditional
+// on the order and left this copy printing it always, so an event with no meal
+// locations sent the kitchen a ruled empty column the order had stopped
+// carrying. Both tables now decide it the same way, from the same array. The
+// column is the only conditional part; nothing else about the two tables is.
+//
 // The spine is the meal, not the menu block. `mealServices` orders every
 // service by date and time and this walks that list, so a meal with nothing
 // written for it prints its heading and says so (§12.8, §8 [v8]) instead of
@@ -75,23 +82,32 @@ export function menuBlocks(event) {
  * The same table the Event Order prints, from the same array and the same
  * count. §7 — the menu header count is "the same computed value as the F&B row
  * it references", so both come from `fnbCount` and neither is re-derived.
+ *
+ * [v19] And the same columns, which is the half of "the same table" that had
+ * stopped being true: §8 [v18] took the empty Location column off the order's
+ * copy and left this one printing it. Two tables of one array that disagree
+ * about their own shape are the drift this repetition exists to avoid.
  */
 function scheduleTable(event, services) {
   if (!services.length) return emptyNote('No meal services yet.');
+  // [v19] Decided once from the services, the way the order's copy decides it
+  // (§8 [v18]).
+  const located = services.some((service) => String(service.location || '').trim());
+
   return table(
     [
       { label: 'Date', class: 'col-date' },
       { label: 'Time', class: 'col-time' },
       { label: 'Meal', class: 'col-item' },
       { label: 'Count', class: 'col-count' },
-      { label: 'Location', class: 'col-where' }
+      ...(located ? [{ label: 'Location', class: 'col-where' }] : [])
     ],
     services.map((service) => [
       formatDate(service.date),
       formatTimeRange(service.start, service.end),
       service.meal || 'Untitled service',
       String(fnbCount(event, service)),
-      service.location || ''
+      ...(located ? [service.location || ''] : [])
     ]),
     'fnb');
 }

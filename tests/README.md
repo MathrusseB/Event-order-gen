@@ -67,6 +67,19 @@ three the moment one does. The one location is typed into the real Food &
 Beverage editor rather than written into a fixture, because the itinerary reads
 `foodAndBev[]` and that is the whole way the column arrives in life.
 
+[v19] The F&B table is checked as **one table printed twice**, not as two
+tables that happen to agree: the order's copy and the Menu's must carry the same
+column labels, on an event where a meal has a location and on one where none
+does. [v18] made the Location column conditional on the order alone and left the
+Menu printing an empty ruled column, and a check written about either table by
+itself would have passed through that.
+
+Where the guest table's dates sit is measured rather than described, because
+"too wide" is not a thing a class name can say: on the sample event at Letter,
+Arrives must start before 55% of the text block — it was 70% when the name
+column was `auto` — and the table must still span the whole block, which is the
+reason the widths are fixed rather than the table narrowed to its content.
+
 The three ranks of heading are measured as computed backgrounds. Inside an
 inclusion the building and meal heads must have no fill, the same type size as
 each other, and the `--ink-500` rule; the two bars naming the included documents
