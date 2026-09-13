@@ -1,6 +1,6 @@
 // Validation — BUILD-SPEC §12.
 //
-// Thirteen rules, none of which had ever run before v12. Each gets an event
+// Fourteen rules, none of which had ever run before v12. Each gets an event
 // that trips it and an event that does not, because the negative case is the
 // one that matters here: a rule that fires on everything is worse than a rule
 // that never fires, since it teaches the coordinator to stop reading the panel,
@@ -25,6 +25,8 @@
 //     deletes the field, and the two selectors are what decide
 //   * turnover — two rooms on consecutive nights is ordinary
 //   * a room held under no name yet — not an orphan
+//   * [v18] a Food & Beverage section turned off — still in the outline, still
+//     openable, so the meals in it are still reachable
 //
 // Plain Node, no browser: `validate.js` takes an event and returns findings,
 // and everything it imports is pure.
@@ -33,7 +35,7 @@ import { validateEvent } from '../../js/validate.js';
 import { assignmentModeFor, sharesFreely } from '../../js/reference.js';
 import { LODGING_BUILDINGS } from '../../js/reference.js';
 
-export const title = 'Validation — the thirteen rules of §12, and what must not trip them';
+export const title = 'Validation — the fourteen rules of §12, and what must not trip them';
 
 const N14 = '2026-11-14';
 const N15 = '2026-11-15';
@@ -59,7 +61,10 @@ function base() {
       includeInOrder: { rooming: false, menu: false },
       touchedAt: ''
     },
-    sections: [],
+    // [v18] §12.14 fires on an event with meals and no `foodAndBev` section, so
+    // the base carries one: every check below breaks one thing, and a base that
+    // tripped a rule of its own would make every finding ambiguous.
+    sections: [{ id: 's-fnb', type: 'foodAndBev', title: 'Food & Beverage', enabled: true }],
     attendees: [
       { id: 'a-dana', first: 'Dana', last: 'Reyes', arrive: N14, depart: N16, isChild: false },
       { id: 'a-tom', first: 'Tom', last: 'Whitfield', arrive: N14, depart: N16, isChild: false }
@@ -847,14 +852,69 @@ export async function run({ check }) {
     'a blank label matches nothing'
   );
 
-  /* ----------------------------------------------------------- all thirteen */
+  /* --------------------------------- 14. meals with nowhere to edit them [v18] */
+
+  // The ordinary event since v9: meals on the itinerary, no F&B section in the
+  // outline, and until v18 nothing anywhere saying the way in is Add section.
+  const unreachable = withEvent((event) => {
+    event.sections = [];
+  });
+  const unreachableFound = forRule(unreachable, 14);
+  check(
+    '§12.14 fires on an event with meal services and no Food & Beverage section [v18]',
+    unreachableFound.length === 1
+      && unreachableFound[0].severity === 'note'
+      && unreachableFound[0].area === 'foodAndBev',
+    say(unreachableFound)
+  );
+
+  check(
+    '§12.14 says where the meals are printing and that there is nowhere to edit them [v18]',
+    unreachableFound.length === 1
+      && /itinerary/.test(unreachableFound[0].text)
+      && /Menu/.test(unreachableFound[0].text)
+      && /Food & Beverage/.test(unreachableFound[0].text),
+    say(unreachableFound)
+  );
+
+  check(
+    '§12.14 counts the services in words, and one service is not "1 services" [v18]',
+    unreachableFound.length === 1 && unreachableFound[0].text.startsWith('One meal service prints'),
+    say(unreachableFound)
+  );
+
+  check(
+    '§12.14 — THE SECTION IS THERE, SO IT STAYS SILENT [v18]',
+    forRule(base(), 14).length === 0,
+    say(forRule(base(), 14))
+  );
+
+  check(
+    '§12.14 does not fire on a Food & Beverage section that is merely turned off [v18]',
+    forRule(withEvent((event) => {
+      event.sections[0].enabled = false;
+    }), 14).length === 0,
+    'a disabled section is still in the outline and still opens — the meals are reachable'
+  );
+
+  check(
+    '§12.14 does not fire on an event with no meal services at all [v18]',
+    forRule(withEvent((event) => {
+      event.sections = [];
+      event.foodAndBev = [];
+      event.menu = [];
+    }), 14).length === 0,
+    'nothing is printing that nobody can edit'
+  );
+
+  /* ----------------------------------------------------------- all fourteen */
 
   const everything = kitchenSink();
   const tripped = new Set(validateEvent(everything).map((item) => item.rule));
   const missing = [];
-  for (let rule = 1; rule <= 13; rule += 1) if (!tripped.has(rule)) missing.push(rule);
+  for (let rule = 1; rule <= 14; rule += 1) if (!tripped.has(rule)) missing.push(rule);
   check(
-    'every one of the thirteen rules can be tripped — one event trips all of them',
+    'every one of the fourteen rules can be tripped — one event trips all of them',
     missing.length === 0,
     missing.length ? `never fired: ${missing.map((rule) => `§12.${rule}`).join(', ')}` : ''
   );
@@ -917,7 +977,7 @@ export async function run({ check }) {
 }
 
 /**
- * One event that trips all thirteen rules at once.
+ * One event that trips all fourteen rules at once.
  *
  * Not a realistic event — it is the check that no rule is silently absent from
  * the module. A rule that is never written and a rule that always passes look

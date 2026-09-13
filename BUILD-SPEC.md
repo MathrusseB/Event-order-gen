@@ -117,13 +117,13 @@ sections per event. Nothing is mandatory except the header block.
 
   "attendees": [
     { "id": "a-7f3c", "last": "Illig",   "first": "Brian", "arrive": "2026-11-14", "depart": "2026-11-16",
-      "isChild": false, "dietary": "",                 "note": "" },
+      "isChild": false, "dietary": "" },
     { "id": "a-2b91", "last": "Palmer",  "first": "Kim",   "arrive": "2026-11-15", "depart": "2026-11-16",
-      "isChild": false, "dietary": "Shellfish allergy", "note": "Arriving late" },
+      "isChild": false, "dietary": "Shellfish allergy" },
     { "id": "a-c40e", "last": "Baldwin", "first": "Chase", "arrive": "2026-11-14", "depart": "2026-11-14",
-      "isChild": false, "dietary": "",                 "note": "Day guest, departing after dinner" },
+      "isChild": false, "dietary": "" },
     { "id": "a-3fa1", "last": "Illig",   "first": "Nora",  "arrive": "2026-11-14", "depart": "2026-11-16",
-      "isChild": true,  "dietary": "",                 "note": "" }
+      "isChild": true,  "dietary": "" }
   ],
 
   "rooming": [
@@ -846,6 +846,27 @@ than no reveal at all. The navigator's markers are unchanged.
 not sections (§4, §8) and the header prints on every document rather than being part of one; none of
 the three is in the outline, and none of them is in the disclosure set.
 
+### Changes from v17
+
+**[v18] `attendees[].note` is gone.** It was written on every guest row and read by nothing — no
+render, no rule, no export — so it was a column of typing that never left the screen. The field the
+row keeps is `dietary`, which drives the Menu's allergies block, the block under the guest list
+(§8 [v18]) and the buffet labels; the Note beside it only looked like it did the same job.
+
+**The notes already typed are moved, not dropped.** `migrate()` appends each one as a line — "Kim
+Palmer — Arriving late" — to the body of the **last enabled** `freeText` section, creating one
+titled "Notes" at the end of the outline where the event has none, and then deletes the property.
+A second load finds nothing to move. A field the documents never printed is still somebody's
+typing, and a migration that quietly loses it is the one thing §5's forward migration must never do
+— the same reasoning that leaves a retired room exactly where it was authored.
+
+**The rest of v18 is the printed page, and it is in §8:** the guest list is three columns with the
+dietary notes as a named block under it, the Location column is decided once per document rather
+than per day, and an inclusion's building and meal heads give up their fill so the order reads in
+three ranks of heading instead of one. §12 gains rule 14, which reports meal services printing on
+an order whose outline has no Food & Beverage section to edit them in — the field that change makes
+visible is the one nobody could reach.
+
 ## 6. Static reference data
 
 Seeded in `js/reference.js`. Not part of event JSON.
@@ -1004,6 +1025,26 @@ section types render something other than their own array: `schedule` prints the
 too. **[v9]** `guests` prints the buildings line and the attendee list, and is the only place
 either appears.
 
+**[v18] The guest list is three columns — Guest, Arrives, Departs — and the dietary notes are a
+named block under it.** Dietary was a fourth column, which is the wrong shape twice over: on a
+party of twenty it is one filled cell and nineteen blanks the eye reads past on every row, and on
+the one guest it concerns it is an allergy in six-word column width. As a block it is the line the
+kitchen wants — "Kim Palmer — shellfish" — and the width the column gave up goes to the names.
+It prints under the count line, and it prints "None known." where nobody has one, which is the
+reason for moving it rather than merely reshaping it: **an order with no Food & Beverage section
+carried no dietary information at all.** The `foodAndBev` section prints the same block only where
+the outline holds no enabled `guests` section, so no order prints it twice. The Menu's own copy
+(**B** below) is unchanged — it leaves the kitchen on its own.
+
+**[v18] Only meals carry a location, and the column is decided once per document.** `foodAndBev`
+rows have a `location` and `schedule` rows do not (§5), so an itinerary of hunts and downtime has
+nothing to put in a Location column and a day with dinner on it has one cell. The column is
+therefore on every day's table or on none of them, decided by whether **any** entry on the whole
+itinerary carries a location — never per day, because Friday's table three columns wide above
+Saturday's four reads as a different table rather than the same one continued. The same rule
+governs the F&B table's own Location column. Nothing about the model changes: the field stays
+where it is, on meals alone.
+
 **B. Menu** — header, F&B schedule table, allergies, per-meal sections grouped by course heading.
 **[v7]** Always generated; never a section of the Event Order.
 
@@ -1015,6 +1056,23 @@ room is a thing you tap; on paper it is thirty-one rows to read six. **[v7]** Al
 of the Event Order. **[v9]** It does **not** repeat the attendee list: that is the `guests`
 section's, on the Event Order, and the same names on two documents drift the moment one is
 reissued. The unassigned callout is not a guest list — it is a warning about the grid.
+
+**[v18] Three ranks of heading on the Event Order, not one.** `meta.includeInOrder` appends
+another document's body to the order, and inside it each building and each meal draws its own
+section bar — which until now was the *same* bar as the one naming the document: identical fill,
+identical rule, identical type. So "Rooming Assignment" and "Remington" under it read as equals,
+and so did "Menu" and "Dinner". A hierarchy drawn in one weight is not a hierarchy. The order now
+reads in three steps, each visibly less than the one above it:
+
+1. **The filled grey bar** — a document section, and the bar naming an included document.
+2. **An unfilled 1pt rule** — a building inside the room grid, a meal inside the menu. Same type,
+   no fill, and the small grey detail (the pooled-building note, the meal's date/time/covers) stays
+   on the right of the same line.
+3. **The day hairline** — a day inside the itinerary, smaller and lighter than both.
+
+This is a property of the print stylesheet and it applies **only inside an inclusion**. The
+standalone Rooming Assignment and Menu keep their bars exactly as they are: there a building bar is
+the top rank of its own sheet, and unfilling it would leave that sheet with no first rank at all.
 
 **[v8] Absence is printed, not omitted.** A disabled section does not print at all — that is what
 disabling is for. But an *enabled* section holding nothing prints its heading and a quiet note
@@ -1203,11 +1261,12 @@ fix it, in one sentence.
 | 11 | `revisionDate` older than the most recent edit. **[v12]** The most recent edit is `meta.touchedAt` (§5), stamped by `update()`. A file with no `touchedAt` has never been edited by a build that records one, and the rule stays quiet rather than guessing | warning |
 | 12 | **[v7]** A `schedule[]` entry whose label matches an F&B meal on the same date at the same time — a meal typed into both arrays, which will now print twice on the merged itinerary (§7) | warning |
 | 13 | **[v13]** A name the property registry no longer carries: a meal or itinerary row whose `location` is one of the locations v13 retired (§6), or a building named in `buildingsInUse[]` or `overflowBuildings[]` that is not in the lodging registry. The row keeps the words it was authored with — somebody planned something there — and this is what goes on saying so. Only retired names are reported for a location, never a typed one: `location` is free text and the file cannot tell the two apart (§6) | note |
+| 14 | **[v18]** The event has at least one meal service and the outline holds **no** `foodAndBev` section at all. Not a fault and nothing to repair: the meals print on the itinerary and on the Menu (§7 [v7], §8) and a new order has not been seeded with that section since v9, so the ordinary event is one whose dinners are on the paper with no way in to change a time, a place or a count. Filed under `foodAndBev`, which the pre-print panel already draws as "not in this order" | note |
 
 **[v12] A rule that cannot fire is still written.** `js/validate.js` holds one function per rule,
 whether or not the current model can trip it, each commented with what it is protecting against.
 A rule silently absent from the module is indistinguishable from a rule that passes, and the next
-reader has no way to tell which of the thirteen were implemented.
+reader has no way to tell which of the fourteen were implemented.
 
 **[v12] Findings reach Brian in two places, and they are different jobs.**
 

@@ -12,6 +12,8 @@
 //           rooms in buildings the v9 registry no longer carries
 //   v12     the three buildings v13 renamed — `Lodge Lower Suites` and
 //           `Lodge Bunk Rooms` — and the locations v13 retired
+//   v17     [v18] `attendees[].note`, a field nothing ever printed, with words
+//           in it that somebody typed
 //
 // Each is checked here on the shape as it was actually written, not on a
 // hand-tidied version of it, and the run is checked to be idempotent: a file
@@ -303,6 +305,132 @@ export async function run({ check }) {
         && JSON.stringify(again.event) === JSON.stringify(thirteen.event);
     })(),
     'a renamed file must migrate to itself'
+  );
+
+  /* ---------------------------------------------------------------- v18 */
+
+  // The field is gone from the model (§5, v18 changes) and the words are not.
+  // Rescued rather than dropped, for the reason rules 11 and 15 leave a retired
+  // room alone: a migration that quietly loses somebody's typing is the one
+  // thing this module must never do.
+  const noted = migrate({
+    meta: {}, sections: [
+      { id: 's1', type: 'guests', title: 'Guests', enabled: true },
+      { id: 's2', type: 'freeText', title: 'Security Notes', enabled: true,
+        body: 'PSO on property from noon.' },
+      { id: 's3', type: 'freeText', title: 'Notes', enabled: true, body: '' }
+    ],
+    attendees: [
+      { id: 'a-1', first: 'Kim', last: 'Palmer', isChild: false, dietary: '',
+        note: 'Arriving late' },
+      { id: 'a-2', first: 'Tom', last: 'Whitfield', isChild: false, dietary: '', note: '' },
+      { id: 'a-3', first: 'Dana', last: 'Reyes', isChild: false, dietary: '',
+        note: 'Departs after breakfast' }
+    ],
+    rooming: [], schedule: [], foodAndBev: [], menu: [], staff: [], departments: [],
+    buildingsInUse: []
+  });
+
+  check(
+    'v18: A PER-GUEST NOTE BECOMES A LINE IN THE NOTES SECTION, under the guest\'s name',
+    noted.event.sections[2].body
+      === 'Kim Palmer — Arriving late\nDana Reyes — Departs after breakfast'
+      && noted.summary.guestNotesMoved === 2
+      && noted.summary.changed === true,
+    JSON.stringify(noted.event.sections[2].body)
+  );
+
+  check(
+    'v18: and the property is gone from every attendee, the empty ones with it',
+    noted.event.attendees.every((guest) => !Object.hasOwn(guest, 'note')),
+    JSON.stringify(noted.event.attendees.map((guest) => Object.keys(guest).join('+')))
+  );
+
+  check(
+    'v18: the LAST enabled free-text section takes them — not the first one it finds',
+    noted.event.sections[1].body === 'PSO on property from noon.',
+    JSON.stringify(noted.event.sections[1].body)
+  );
+
+  check(
+    'v18: LOADING THE SAME FILE TWICE DOES NOT DUPLICATE THE LINE',
+    (() => {
+      const again = migrate(structuredClone(noted.event));
+      return again.summary.changed === false
+        && again.summary.guestNotesMoved === 0
+        && JSON.stringify(again.event) === JSON.stringify(noted.event);
+    })(),
+    'the words are on the section now; there is no note left to move'
+  );
+
+  check(
+    'v18: an event with no free-text section at all gets one, titled Notes, at the end',
+    (() => {
+      const made = migrate({
+        meta: {}, sections: [{ id: 's1', type: 'guests', title: 'Guests', enabled: true }],
+        attendees: [{ id: 'a-1', first: 'Kim', last: 'Palmer', note: 'Arriving late' }],
+        rooming: [], schedule: [], foodAndBev: [], menu: [], staff: [], departments: [],
+        buildingsInUse: []
+      });
+      const last = made.event.sections[made.event.sections.length - 1];
+      return made.event.sections.length === 2
+        && last.type === 'freeText' && last.title === 'Notes' && last.enabled === true
+        && Boolean(last.id)
+        && last.body === 'Kim Palmer — Arriving late';
+    })(),
+    'there has to be somewhere for the words to print'
+  );
+
+  check(
+    'v18: a DISABLED free-text section is not where they go — that is out of sight',
+    (() => {
+      const off = migrate({
+        meta: {}, sections: [
+          { id: 's1', type: 'freeText', title: 'Notes', enabled: false, body: '' }
+        ],
+        attendees: [{ id: 'a-1', first: 'Kim', last: 'Palmer', note: 'Arriving late' }],
+        rooming: [], schedule: [], foodAndBev: [], menu: [], staff: [], departments: [],
+        buildingsInUse: []
+      });
+      return off.event.sections.length === 2
+        && off.event.sections[0].body === ''
+        && off.event.sections[1].body === 'Kim Palmer — Arriving late';
+    })(),
+    'a section the order is not carrying cannot be where the rescue lands'
+  );
+
+  check(
+    'v18: a note joins what somebody already wrote, a blank line below it',
+    (() => {
+      const onto = migrate({
+        meta: {}, sections: [
+          { id: 's1', type: 'freeText', title: 'Notes', enabled: true,
+            body: 'Gate code changes Friday.\n' }
+        ],
+        attendees: [{ id: 'a-1', first: 'Kim', last: 'Palmer', note: 'Arriving late' }],
+        rooming: [], schedule: [], foodAndBev: [], menu: [], staff: [], departments: [],
+        buildingsInUse: []
+      });
+      return onto.event.sections[0].body
+        === 'Gate code changes Friday.\n\nKim Palmer — Arriving late';
+    })(),
+    'the moved lines are their own paragraph, not the end of somebody else\'s sentence'
+  );
+
+  check(
+    'v18: an empty note alone is not a migration — the shape is tidied, nothing is rescued',
+    (() => {
+      const tidy = migrate({
+        meta: {}, sections: [], attendees: [{ id: 'a-1', first: 'Kim', last: 'Palmer', note: '' }],
+        rooming: [], schedule: [], foodAndBev: [], menu: [], staff: [], departments: [],
+        buildingsInUse: []
+      });
+      return tidy.summary.changed === false
+        && tidy.summary.guestNotesMoved === 0
+        && !Object.hasOwn(tidy.event.attendees[0], 'note')
+        && tidy.event.sections.length === 0;
+    })(),
+    'a field holding nothing is the v5 attendee defaults, one direction over'
   );
 
   /* --------------------------------------------------------- idempotence */

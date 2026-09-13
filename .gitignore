@@ -1,0 +1,3 @@
+# `node tests/run.mjs --out pdfs` writes here (tests/README.md). Printed output
+# to look at, regenerated on every run — not source, and not small.
+pdfs/

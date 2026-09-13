@@ -34,6 +34,13 @@
 // [v13] Thirteen rules now. 13 reports the names v13's registry correction left
 // behind, and 8 reports two different things at two severities.
 //
+// [v18] Fourteen. 14 is a different kind of rule from the thirteen above it:
+// nothing on the event is wrong, and what it reports is that a field is
+// unreachable — meal services printing on the itinerary and on the Menu with no
+// Food & Beverage section in the outline to edit them in (§8 [v18]). §12 is the
+// only surface that lists findings about sections an order does not carry, which
+// is what makes it the place to say so.
+//
 // Dates are ISO `YYYY-MM-DD` strings and are compared as strings, exactly as
 // derive.js compares them. Never convert one to a `Date` to compare it.
 
@@ -1101,6 +1108,54 @@ function ruleThirteenRetiredNames(event) {
   return found;
 }
 
+/**
+ * §12.14 [v18] — meal services with no Food & Beverage section to edit them in.
+ *
+ * Protecting against: a field nobody can reach. A meal service's date, time,
+ * location and count are editable in one place, the Food & Beverage editor, and
+ * since v9 a new order is not seeded with that section (§4 [v9]) because the
+ * itinerary already carries every meal (§7 [v7]). So the ordinary event is one
+ * whose dinners print on the itinerary and on the Menu and whose coordinator has
+ * no way in to change any of it — not the time, not the place, not the count —
+ * with nothing on screen saying that the way in is one tap on Add section.
+ *
+ * A note, not a warning. Nothing here is wrong: an order that does not print an
+ * F&B table is a normal order, and most of them are. What is worth seeing once
+ * before it becomes paper is that the meals on the page are not reachable from
+ * the outline in front of you.
+ *
+ * **The test is the outline, not what is enabled on it.** A section turned off
+ * is still in the outline and still opens in the editor (§4), so its meals are
+ * reachable and this stays quiet. A section that is not there at all is the case.
+ *
+ * The area is `foodAndBev`, which is a finding filed against a section this
+ * order does not carry — the pre-print panel already draws that as
+ * "Food & Beverage · not in this order" rather than as a button that goes
+ * nowhere (§12 [v12]), and here that label is most of the message.
+ *
+ * @param {object} event
+ * @returns {Finding[]}
+ */
+function ruleFourteenMealsWithNoSection(event) {
+  const services = rowsOf(event, 'foodAndBev');
+  if (!services.length) return [];
+
+  const sections = Array.isArray(event && event.sections) ? event.sections : [];
+  if (sections.some((entry) => entry && entry.type === 'foodAndBev')) return [];
+
+  const many = services.length !== 1;
+  return [finding({
+    rule: 14,
+    severity: NOTE,
+    text: `${startCase(countWord(services.length))} meal ${many ? 'services' : 'service'} `
+      + `${many ? 'print' : 'prints'} on the itinerary and on the Menu, and this order has no `
+      + 'Food & Beverage section — adding one is the way to change a time, a place or a count.',
+    area: 'foodAndBev',
+    rowIds: [],
+    date: ''
+  })];
+}
+
 /* --------------------------------------------------------------------- pass */
 
 /**
@@ -1120,7 +1175,8 @@ const RULES = [
   ruleTenBackwardsStays,
   ruleElevenStaleRevisionDate,
   ruleTwelveMealTypedTwice,
-  ruleThirteenRetiredNames
+  ruleThirteenRetiredNames,
+  ruleFourteenMealsWithNoSection
 ];
 
 /**

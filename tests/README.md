@@ -47,6 +47,34 @@ mark for mark. Reading `display: none` out of print.css would be cheaper and
 would prove nothing: the rule is `body > *`, and the risk is a future panel that
 stops being a child of `<body>`.
 
+**`checks/order.mjs` — the shape of the printed Event Order.** BUILD-SPEC §8
+[v18]. Four claims about the page, none of which can be read off a module, so
+this drives the real app and reads the documents out of the previews — the same
+DOM the printer receives.
+
+The guest list is three columns and no table on the order carries a Dietary
+column any more. The dietary notes are a block under the list instead, checked
+twice: with names on an event that has them, and saying "None known." on an
+event that does not — which is the reason the block moved rather than merely
+changed shape, because an order with no Food & Beverage section carried no
+dietary information at all. It is also **counted**, on an order carrying both
+Guests and Food & Beverage, since printing it twice is the obvious way to get
+this wrong.
+
+The Location column is checked on every day's table at once, in both directions:
+absent from all three days of an event where no meal has a location, and on all
+three the moment one does. The one location is typed into the real Food &
+Beverage editor rather than written into a fixture, because the itinerary reads
+`foodAndBev[]` and that is the whole way the column arrives in life.
+
+The three ranks of heading are measured as computed backgrounds. Inside an
+inclusion the building and meal heads must have no fill, the same type size as
+each other, and the `--ink-500` rule; the two bars naming the included documents
+must still be filled; a day inside the itinerary must be smaller and lighter than
+both. Then the Rooming Assignment and the Menu are shown on their own and their
+bars must still be filled — the rule that unfills a building bar on the order
+must not reach the sheet where that bar is the top rank.
+
 **`checks/accordion.mjs` — one section open, and a shut one that still says
 something.** BUILD-SPEC §10 [v17]: the editor became a disclosure set, and almost
 every claim in it is a claim about the interface. So most of this drives the real
@@ -125,6 +153,14 @@ a room that has left the property registry is reported and **left alone**, never
 remapped and never dropped. The run is checked to be idempotent, and to leave
 the caller's event untouched.
 
+[v18] `attendees[].note` is the newest shape and the only one whose rule moves
+words rather than ids: the field is gone from the model and each note already
+typed becomes a line on the last enabled free-text section, with a "Notes"
+section made at the end of the outline where the event has none. Checked in both
+directions that matter — the line lands under the guest's name, the property is
+gone from every attendee, and a second load neither moves anything nor
+duplicates the line.
+
 [v13] The three renamed buildings are here too, and they are the other half of
 that rule: a rooming row is renamed **by its room**, because that part is not a
 guess — `Lodge Lower Suites` + `Timber` can only be the Timber — while the same
@@ -172,7 +208,7 @@ one. And a guest cannot hold two rooms on the same night, while turnover between
 two rooms on consecutive nights stays expressible — the difference between
 overlap and "assigned anywhere".
 
-**`checks/validation.mjs` — the thirteen rules of §12, and what must not trip
+**`checks/validation.mjs` — the fourteen rules of §12, and what must not trip
 them.** BUILD-SPEC §12: every rule had been written down since v2 and none of
 them had ever run. Each gets an event that trips it and an event that does not,
 against `js/validate.js` directly in Node — an event in, findings out, so there
@@ -194,8 +230,16 @@ one warning — which is what nine warnings on an untouched event bought. Rule 1
 is checked the same way round: a location the app itself used to offer is
 reported, and free text somebody typed is not.
 
+[v18] Rule 14 is the newest and is a different animal: nothing on the event is
+wrong, and what it reports is that a field is unreachable — meal services
+printing on the itinerary and on the Menu with no Food & Beverage section in the
+outline to edit them in. So the negative cases are the ones to read: an event
+that has the section, an event whose section is merely turned off (still in the
+outline, still openable, so the meals are still reachable), and an event with no
+meals at all.
+
 Three checks are about the module rather than about any one rule. One event
-trips all thirteen, which is how a rule that was never written is told from a
+trips all fourteen, which is how a rule that was never written is told from a
 rule that always passes. Validating a deeply frozen event must not throw, which
 is what "pure" means here. And every finding is read back as English: no ISO
 date, no row id, no rule number, and a finished sentence.
@@ -211,3 +255,8 @@ nobody would choose to look at.
   pages.
 - `empty-event.json` — no dates, no guests, no sections. The degenerate case:
   three documents with nothing to say, which must still be one page each.
+- `order-shape.json` — [v18] three days, three guests and not a dietary note
+  among them, four meals and not a location among them, and `includeInOrder` on
+  for both documents. Every absence in it is deliberate: it is the event that
+  answers "None known.", the event whose itinerary has no Location column to
+  print, and the event whose order carries all three ranks of heading at once.

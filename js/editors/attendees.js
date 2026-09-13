@@ -60,8 +60,7 @@ function blankAttendee() {
     arrive: '',
     depart: '',
     isChild: false,
-    dietary: '',
-    note: ''
+    dietary: ''
   };
 }
 
@@ -120,7 +119,6 @@ export function createAttendeesEditor() {
     el('span', { text: 'Departs' }),
     el('span', { text: 'Child' }),
     el('span', { text: 'Dietary' }),
-    el('span', { text: 'Note' }),
     el('span', { class: 'sr-only', text: 'Row actions' })
   ]);
 
@@ -630,14 +628,16 @@ function createGuestRow(list, id) {
     ])
   ]);
 
-  // Dietary is its own field, not a corner of `note`: it drives the Menu
-  // allergies block and the buffet labels (BUILD-SPEC §5, v5 changes), so it
-  // stays in the row where it can be scanned down a column.
+  // [v18] Dietary is the row's only free text now, and it is the one that earns
+  // the width: it drives the Menu allergies block, the block under the guest
+  // list and the buffet labels (BUILD-SPEC §5, v5 changes; §8 [v18]). The Note
+  // field beside it was written on every load and read by nothing — no render,
+  // no rule, no export — so it was a column of typing that never left the
+  // screen (§5, v18 changes).
   const dietary = createTextField(id, 'dietary', 'Dietary', {
     autocapitalize: 'sentences',
     placeholder: 'Allergy or accommodation'
   });
-  const note = createTextField(id, 'note', 'Note', { autocapitalize: 'sentences' });
 
   const moveUp = createRowButton('up', 'Move up', '↑');
   const moveDown = createRowButton('down', 'Move down', '↓');
@@ -656,7 +656,6 @@ function createGuestRow(list, id) {
     depart.root,
     childCell,
     dietary.root,
-    note.root,
     el('div', { class: 'cell cell--actions' }, [moveUp, moveDown, remove]),
     warning.node
   ]);
@@ -669,7 +668,6 @@ function createGuestRow(list, id) {
       setValue(first.input, attendee.first);
       setChecked(childInput, attendee.isChild);
       setValue(dietary.input, attendee.dietary);
-      setValue(note.input, attendee.note);
 
       // The picker is scoped to the event, which is a nudge, not a fence:
       // BUILD-SPEC §12.9 warns about dates outside the event and never blocks
