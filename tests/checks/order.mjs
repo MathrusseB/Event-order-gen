@@ -32,10 +32,31 @@
 //     standalone documents are checked in the same run, because the rule that
 //     unfills a building bar on the order must not reach the sheet where that
 //     bar is the top rank.
+//
+//   * **[v19] One F&B table in two places, and it is one table.** The order and
+//     the Menu both print the meal services from `foodAndBev[]`, deliberately
+//     (§5, v7 changes) — and [v18] made the Location column conditional on one
+//     of them only, so an event with no meal locations printed four columns on
+//     the order and five on the Menu. The claim to hold is therefore not "the
+//     Menu hides an empty column" but **the two tables have the same columns**,
+//     which is checked on a located event and on an unlocated one. A claim
+//     about one table alone would pass again the next time only one of them
+//     moves.
+//
+//   * **[v19] The guest table's dates sit with its names.** Measured, because
+//     "the name column is too wide" is not a thing a class name can say: with
+//     Dietary gone the `auto` name column took every inch the fourth had given
+//     up, and on Letter that left Arrives 70% of the way across with a row that
+//     read as a name, a gap, and two unattached dates. The check is geometric
+//     and one-sided — Arrives before 55% of the body — plus the companion claim
+//     the widths exist to preserve: the table still spans the whole text block,
+//     so its rules reach both margins like every other table on the sheet.
 
 import { openSection } from '../lib/sections.mjs';
+import { fileAction } from '../lib/bar.mjs';
 
-export const title = 'Event Order — three columns, one dietary block, three ranks of heading';
+export const title =
+  'Event Order — its columns and blocks, its three ranks of heading, one F&B table in two places';
 
 /** `--ink-500`, the rule under an included document's building and meal heads. */
 const RULE_MIDDLE = 'rgb(102, 112, 116)';
@@ -95,11 +116,33 @@ function tableHeads(page, id, modifier) {
 }
 
 /**
+ * [v19] Two tables' column labels, compared as one table each.
+ *
+ * Both sides must hold exactly one table: a comparison that passed because
+ * neither document drew anything would be the failure it is meant to catch.
+ *
+ * @param {string[][]} order from `tableHeads` on the Event Order
+ * @param {string[][]} menu from `tableHeads` on the Menu
+ * @returns {boolean}
+ */
+function sameColumns(order, menu) {
+  return order.length === 1 && menu.length === 1
+    && order[0].length > 0
+    && order[0].join(' | ') === menu[0].join(' | ');
+}
+
+/** Table heads as one readable line, for a failure detail. */
+function say(heads) {
+  return heads.map((row) => row.join(' | ')).join(' // ') || '(no table)';
+}
+
+/**
  * @param {object} context see tests/run.mjs
  */
 export async function run({ browser, origin, fixture, check }) {
   await withDietary({ browser, origin, fixture, check });
   await withoutEither({ browser, origin, fixture, check });
+  await guestColumns({ browser, origin, check });
 }
 
 /* ------------------------------------------- an event with dietary needs on it */
@@ -177,6 +220,21 @@ async function withDietary({ browser, origin, fixture, check }) {
       fnb.length === 1 && fnb[0].join(' | ') === 'Date | Time | Meal | Count | Location',
       fnb.map((row) => row.join(' | ')).join(' // ')
     );
+
+    await show(page, 'menu');
+    const kitchen = await tableHeads(page, 'menu', 'fnb');
+    check(
+      'the Menu\'s service table keeps the Location column where a meal has one [v19]',
+      kitchen.length === 1
+        && kitchen[0].join(' | ') === 'Date | Time | Meal | Count | Location',
+      kitchen.map((row) => row.join(' | ')).join(' // ')
+    );
+
+    check(
+      'THE ORDER\'S F&B TABLE AND THE MENU\'S ARE THE SAME COLUMNS — located event [v19]',
+      sameColumns(fnb, kitchen),
+      `order: ${say(fnb)} / menu: ${say(kitchen)}`
+    );
   } finally {
     await context.close();
   }
@@ -226,11 +284,25 @@ async function withoutEither({ browser, origin, fixture, check }) {
       bare.map((row) => row.join(' | ')).join(' // ')
     );
 
+    const bareFnb = await tableHeads(page, 'order', 'fnb');
     check(
       'and none on the F&B table either — no meal has one to print',
-      (await tableHeads(page, 'order', 'fnb'))
-        .every((row) => row.join(' | ') === 'Date | Time | Meal | Count'),
-      (await tableHeads(page, 'order', 'fnb')).map((row) => row.join(' | ')).join(' // ')
+      bareFnb.every((row) => row.join(' | ') === 'Date | Time | Meal | Count'),
+      say(bareFnb)
+    );
+
+    await show(page, 'menu');
+    const bareKitchen = await tableHeads(page, 'menu', 'fnb');
+    check(
+      'THE MENU\'S SERVICE TABLE HIDES THE EMPTY LOCATION COLUMN TOO [v19]',
+      bareKitchen.length === 1 && bareKitchen[0].join(' | ') === 'Date | Time | Meal | Count',
+      say(bareKitchen)
+    );
+
+    check(
+      'and the two tables are the same columns — unlocated event [v19]',
+      sameColumns(bareFnb, bareKitchen),
+      `order: ${say(bareFnb)} / menu: ${say(bareKitchen)}`
     );
 
     // One location, typed where a coordinator types it. The itinerary reads
@@ -251,12 +323,30 @@ async function withoutEither({ browser, origin, fixture, check }) {
       located.map((row) => row.join(' | ')).join(' // ')
     );
 
+    const locatedFnb = await tableHeads(page, 'order', 'fnb');
     check(
       'and on the F&B table with it',
-      (await tableHeads(page, 'order', 'fnb'))
-        .every((row) => row.join(' | ') === 'Date | Time | Meal | Count | Location'),
-      (await tableHeads(page, 'order', 'fnb')).map((row) => row.join(' | ')).join(' // ')
+      locatedFnb.every((row) => row.join(' | ') === 'Date | Time | Meal | Count | Location'),
+      say(locatedFnb)
     );
+
+    await show(page, 'menu');
+    const locatedKitchen = await tableHeads(page, 'menu', 'fnb');
+    check(
+      'and the Menu\'s service table gains the column on the same one meal [v19]',
+      locatedKitchen.length === 1
+        && locatedKitchen[0].join(' | ') === 'Date | Time | Meal | Count | Location',
+      say(locatedKitchen)
+    );
+
+    check(
+      'and the two tables are still the same columns, on the event that just moved [v19]',
+      sameColumns(locatedFnb, locatedKitchen),
+      `order: ${say(locatedFnb)} / menu: ${say(locatedKitchen)}`
+    );
+
+    // The heading ranks below are read off the order, so come back to it.
+    await show(page, 'order');
 
     /* -------------------------------------------------- three ranks of heading */
 
@@ -340,6 +430,68 @@ async function withoutEither({ browser, origin, fixture, check }) {
       'and the standalone Menu still fills its meal heads [v18]',
       kitchen.length === 4 && kitchen.every((colour) => !unfilled(colour)),
       kitchen.join(', ') || '(no meal heads)'
+    );
+  } finally {
+    await context.close();
+  }
+}
+
+/* ----------------------------------- [v19] where the guest table's dates sit */
+
+/**
+ * The sample event, measured.
+ *
+ * Its own button rather than the file input, because the sample is the event a
+ * coordinator loads to see what the tool does and this is a claim about the page
+ * they are shown. Viewport 1280 so `.paper` keeps its 8.5in width and 0.75in
+ * padding — below 60rem the padding collapses and the text block stops being
+ * Letter's, which would make a percentage here a measurement of the harness.
+ */
+async function guestColumns({ browser, origin, check }) {
+  const context = await browser.newContext();
+  const page = await context.newPage();
+
+  try {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto(`${origin}/index.html`, { waitUntil: 'networkidle' });
+    await fileAction(page, '#btn-sample');
+    await page.waitForFunction(() =>
+      document.getElementById('section-blocks').children.length === 7);
+    await show(page, 'order');
+
+    const geo = await page.evaluate(() => {
+      const body = document.querySelector('.docview[data-view="order"] .doc__body');
+      const table = body.querySelector('.tbl--guests');
+      const frame = body.getBoundingClientRect();
+      const across = (node) =>
+        ((node.getBoundingClientRect().left - frame.left) / frame.width) * 100;
+      const heads = [...table.querySelectorAll('thead th')];
+      return {
+        width: Math.round(frame.width),
+        tableWidth: Math.round(table.getBoundingClientRect().width),
+        labels: heads.map((head) => head.textContent.trim()),
+        starts: heads.map((head) => Math.round(across(head) * 10) / 10)
+      };
+    });
+
+    const arrives = geo.starts[geo.labels.indexOf('Arrives')];
+    const departs = geo.starts[geo.labels.indexOf('Departs')];
+
+    check(
+      'THE GUEST TABLE\'S DATES SIT WITH ITS NAMES — Arrives starts before 55% [v19]',
+      geo.labels.join(' | ') === 'Guest | Arrives | Departs' && arrives < 55,
+      `Arrives at ${arrives}%, Departs at ${departs}% of a ${geo.width}px text block`
+    );
+
+    // The other half of the same decision, and the reason the widths are fixed
+    // rather than the table narrowed to its content: a table that stopped short
+    // of the right margin would put its row rules mid-page under a full-width
+    // section bar, which reads as a rendering fault rather than as a narrow
+    // table.
+    check(
+      'and the table still spans the whole text block — its rules reach both margins [v19]',
+      Math.abs(geo.tableWidth - geo.width) <= 1,
+      `table ${geo.tableWidth}px against a ${geo.width}px text block`
     );
   } finally {
     await context.close();
